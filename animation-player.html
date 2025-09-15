@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .animation-container {
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f8f8f8;
+            padding: 20px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .frame-preview-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        #frame-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .frame-image {
+            display: none;
+            max-width: 100%;
+            height: auto;
+            transition: transform 0.1s ease;
+        }
+
+        .frame-image.active {
+            display: block;
+        }
+
+        .center-indicator {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            background-color: #ff4444;
+            pointer-events: none;
+            z-index: 10;
+            transform: translateX(-50%);
+        }
+
+
+
+        .range-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .range-group input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        .animation-creation {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .creation-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .creation-controls input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .create-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .create-btn:hover {
+            background-color: #218838;
+        }
+
+        .create-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .apply-center-btn {
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .apply-center-btn:hover {
+            background-color: #138496;
+        }
+
+        .animation-selector {
+            margin-bottom: 10px;
+        }
+
+        .animation-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .control-group {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            flex: 1;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .play-pause-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .play-pause-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Walking Animation Player</h1>
+
+        <div class="animation-container">
+            <div class="frame-preview-container">
+                <div id="frame-container"></div>
+                <div class="center-indicator" id="center-indicator"></div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Playback Controls</h3>
+            <button class="play-pause-btn" id="play-pause-btn">Pause</button>
+
+            <div class="input-group">
+                <label>Frame:</label>
+                <input type="range" id="frame-slider" min="0" max="149" value="0">
+                <input type="number" id="frame-input" min="0" max="149" value="0">
+            </div>
+
+            <div class="input-group">
+                <label>Center X Offset:</label>
+                <input type="number" id="center-input" value="0" step="1">
+                <span>px</span>
+                <button id="apply-center-btn" class="apply-center-btn">Apply to Rest</button>
+            </div>
+
+            <div class="input-group">
+                <label>Elapsed Time:</label>
+                <span id="elapsed-time-display">0.00s</span>
+            </div>
+        </div>
+
+        <div class="animation-creation">
+            <h3>Create Animation from Frame Range</h3>
+            <div class="animation-selector">
+                <select id="animation-select">
+                    <option value="Walk">Walk</option>
+                </select>
+            </div>
+            <div class="range-controls">
+                <div class="range-group">
+                    <input type="number" id="start-frame-input" min="0" max="149" value="0" placeholder="Start frame">
+                </div>
+                <div class="range-group">
+                    <input type="number" id="end-frame-input" min="0" max="149" value="149" placeholder="End frame">
+                </div>
+            </div>
+            <div class="creation-controls">
+                <input type="text" id="animation-name" placeholder="New animation name" maxlength="50">
+                <button class="create-btn" id="create-animation-btn">Create Animation</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Timing Settings</h3>
+            <div class="input-group">
+                <label>Delay (ms):</label>
+                <input type="range" id="delay-slider" min="10" max="1000" value="30">
+                <input type="number" id="delay-input" min="10" max="1000" value="30">
+            </div>
+
+            <div class="input-group">
+                <label>FPS:</label>
+                <span id="fps-display">33.3</span>
+            </div>
+        </div>
+
+        <div class="info">
+            <div class="info-item">
+                <span class="info-label">Animation Frames:</span>
+                <span id="current-animation-frames">150</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Animation Length:</span>
+                <span id="total-length-display">4.50s</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        class AnimationPlayer {
+            constructor() {
+                this.currentFrame = 0;
+                this.totalFrames = 150;
+                this.startFrame = 0;
+                this.endFrame = 149;
+                this.delay = 30; // milliseconds
+                this.isPlaying = true;
+                this.animationId = null;
+                this.startTime = Date.now();
+                this.elapsedTime = 0;
+                this.currentAnimation = 'Walk';
+                this.animations = []; // Available animations
+                this.animationData = {}; // Store animation metadata
+                this.isCreating = false;
+
+                // Center point data: stores relative center offset for each frame of each animation
+                this.centerPoints = {}; // { animationName: { frameIndex: offsetPixels } }
+                this.currentCenterPoint = 0; // Current center offset in pixels (0=center, -1=right, +1=left)
+
+                // Frame dimensions for calculations
+                this.frameWidth = 0;
+                this.frameHeight = 0;
+
+                // Frame management for smooth animation
+                this.frameElements = {}; // { animationName: { frameIndex: HTMLImageElement } }
+                this.currentFrameElement = null;
+
+                this.initializeElements();
+                this.bindEvents();
+                this.loadAvailableAnimations();
+                this.startAnimation();
+                this.updateDisplays();
+
+                // Create frame elements after initial setup
+                setTimeout(() => this.createFrameElements(), 100);
+            }
+
+            initializeElements() {
+                this.frameContainer = document.getElementById('frame-container');
+                this.playPauseBtn = document.getElementById('play-pause-btn');
+                this.frameSlider = document.getElementById('frame-slider');
+                this.frameInput = document.getElementById('frame-input');
+                this.centerInput = document.getElementById('center-input');
+                this.centerIndicator = document.getElementById('center-indicator');
+                this.applyCenterBtn = document.getElementById('apply-center-btn');
+                this.delaySlider = document.getElementById('delay-slider');
+                this.delayInput = document.getElementById('delay-input');
+                this.fpsDisplay = document.getElementById('fps-display');
+                this.currentAnimationFrames = document.getElementById('current-animation-frames');
+                this.totalLengthDisplay = document.getElementById('total-length-display');
+                this.elapsedTimeDisplay = document.getElementById('elapsed-time-display');
+                this.startFrameInput = document.getElementById('start-frame-input');
+                this.endFrameInput = document.getElementById('end-frame-input');
+                this.animationSelect = document.getElementById('animation-select');
+                this.animationNameInput = document.getElementById('animation-name');
+                this.createAnimationBtn = document.getElementById('create-animation-btn');
+
+                // Will set frame dimensions when frames are created
+            }
+
+            initializeCenterInput() {
+                // Remove min/max constraints for relative offsets
+                this.centerInput.removeAttribute('min');
+                this.centerInput.removeAttribute('max');
+                // Initialize to 0 (center) by default
+                this.centerInput.value = this.currentCenterPoint;
+            }
+
+            bindEvents() {
+                this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+
+                this.frameSlider.addEventListener('input', (e) => {
+                    this.setFrame(parseInt(e.target.value));
+                });
+
+                this.frameInput.addEventListener('change', (e) => {
+                    this.setFrame(parseInt(e.target.value));
+                });
+
+                this.centerInput.addEventListener('change', (e) => {
+                    this.setCenterPoint(parseInt(e.target.value) || 0);
+                });
+
+                this.applyCenterBtn.addEventListener('click', () => {
+                    this.applyCenterToSubsequentFrames();
+                });
+
+                this.delaySlider.addEventListener('input', (e) => {
+                    this.setDelay(parseInt(e.target.value));
+                });
+
+                this.delayInput.addEventListener('change', (e) => {
+                    this.setDelay(parseInt(e.target.value));
+                });
+
+                this.startFrameInput.addEventListener('change', (e) => {
+                    this.setStartFrame(parseInt(e.target.value));
+                });
+
+                this.endFrameInput.addEventListener('change', (e) => {
+                    this.setEndFrame(parseInt(e.target.value));
+                });
+
+                this.animationSelect.addEventListener('change', (e) => {
+                    this.switchAnimation(e.target.value);
+                });
+
+                this.createAnimationBtn.addEventListener('click', () => {
+                    this.createAnimation();
+                });
+            }
+
+            setFrame(frame) {
+                this.currentFrame = Math.max(this.startFrame, Math.min(frame, this.endFrame));
+                this.loadCurrentFrameCenterPoint();
+                this.updateFrame();
+                this.updateDisplays();
+            }
+
+            setCenterPoint(offsetPixels) {
+                this.currentCenterPoint = offsetPixels;
+                this.saveCenterPoint();
+                this.centerInput.value = this.currentCenterPoint;
+                this.updatePreview();
+            }
+
+            applyCenterToSubsequentFrames() {
+                if (!this.centerPoints[this.currentAnimation]) {
+                    this.centerPoints[this.currentAnimation] = {};
+                }
+
+                // Set the same center offset for all frames from current frame to the end
+                for (let frameIndex = this.currentFrame; frameIndex < this.totalFrames; frameIndex++) {
+                    this.centerPoints[this.currentAnimation][frameIndex] = this.currentCenterPoint;
+                }
+            }
+
+            loadCurrentFrameCenterPoint() {
+                if (!this.centerPoints[this.currentAnimation]) {
+                    this.centerPoints[this.currentAnimation] = {};
+                }
+
+                const savedCenter = this.centerPoints[this.currentAnimation][this.currentFrame];
+                if (savedCenter !== undefined) {
+                    this.currentCenterPoint = savedCenter;
+                } else {
+                    // Default to no offset (center)
+                    this.currentCenterPoint = 0;
+                }
+
+                this.centerInput.value = this.currentCenterPoint;
+            }
+
+            saveCenterPoint() {
+                if (!this.centerPoints[this.currentAnimation]) {
+                    this.centerPoints[this.currentAnimation] = {};
+                }
+                this.centerPoints[this.currentAnimation][this.currentFrame] = this.currentCenterPoint;
+            }
+
+            setStartFrame(startFrame) {
+                this.startFrame = Math.max(0, Math.min(startFrame, this.endFrame - 1));
+                this.startFrameInput.value = this.startFrame;
+
+                // Update frame slider constraints
+                this.frameSlider.min = this.startFrame;
+
+                // If current frame is before start, move to start
+                if (this.currentFrame < this.startFrame) {
+                    this.currentFrame = this.startFrame;
+                    this.updateFrame();
+                }
+
+                this.updateDisplays();
+            }
+
+            setEndFrame(endFrame) {
+                this.endFrame = Math.max(this.startFrame + 1, Math.min(endFrame, this.totalFrames - 1));
+                this.endFrameInput.value = this.endFrame;
+
+                // Update frame slider constraints
+                this.frameSlider.max = this.endFrame;
+
+                // If current frame is after end, move to end
+                if (this.currentFrame > this.endFrame) {
+                    this.currentFrame = this.endFrame;
+                    this.updateFrame();
+                }
+
+                this.updateDisplays();
+            }
+
+            setDelay(delay) {
+                this.delay = Math.max(10, Math.min(delay, 1000));
+                this.delaySlider.value = this.delay;
+                this.delayInput.value = this.delay;
+                this.updateDisplays();
+
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                    this.startAnimation();
+                }
+            }
+
+            updateFrame() {
+                // Hide current frame
+                if (this.currentFrameElement) {
+                    this.currentFrameElement.classList.remove('active');
+                }
+
+                // Show new frame
+                if (this.frameElements[this.currentAnimation] &&
+                    this.frameElements[this.currentAnimation][this.currentFrame]) {
+                    this.currentFrameElement = this.frameElements[this.currentAnimation][this.currentFrame];
+                    this.currentFrameElement.classList.add('active');
+                }
+            }
+
+            createFrameElements() {
+                // Clear existing frames
+                this.frameContainer.innerHTML = '';
+                this.currentFrameElement = null;
+
+                if (!this.frameElements[this.currentAnimation]) {
+                    this.frameElements[this.currentAnimation] = {};
+                }
+
+                // Create image elements for all frames
+                for (let frame = 0; frame < this.totalFrames; frame++) {
+                    if (!this.frameElements[this.currentAnimation][frame]) {
+                        const frameNumber = String(frame).padStart(3, '0');
+                        const frameSrc = `Source/${this.currentAnimation}/frame_${frameNumber}_delay-0.03s.gif`;
+
+                        const img = document.createElement('img');
+                        img.className = 'frame-image';
+                        img.src = frameSrc;
+                        img.alt = `Frame ${frame}`;
+
+                        // Set dimensions on first frame load
+                        if (frame === 0) {
+                            img.onload = () => {
+                                this.frameWidth = img.naturalWidth;
+                                this.frameHeight = img.naturalHeight;
+                                this.initializeCenterInput();
+                                this.updatePreview();
+                            };
+                        }
+
+                        this.frameContainer.appendChild(img);
+                        this.frameElements[this.currentAnimation][frame] = img;
+                    }
+                }
+
+                // Show current frame
+                this.updateFrame();
+            }
+
+            updatePreview() {
+                if (this.frameWidth === 0 || !this.currentFrameElement) return; // Wait for frame to load
+
+                // Get the actual displayed width of the image (after scaling)
+                const displayedWidth = this.currentFrameElement.clientWidth;
+                const scale = displayedWidth / this.frameWidth;
+
+                // Calculate the scaled offset (negative because -1 means move right, +1 means move left)
+                const scaledOffset = -this.currentCenterPoint * scale;
+
+                // Apply transform to move the frame
+                this.currentFrameElement.style.transform = `translateX(${scaledOffset}px)`;
+            }
+
+            nextFrame() {
+                this.currentFrame++;
+                if (this.currentFrame > this.endFrame) {
+                    this.currentFrame = this.startFrame;
+                }
+                this.loadCurrentFrameCenterPoint();
+                this.updateFrame();
+                this.updateDisplays();
+                this.updatePreview();
+            }
+
+            togglePlayPause() {
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                } else {
+                    this.startAnimation();
+                }
+            }
+
+            startAnimation() {
+                this.isPlaying = true;
+                this.playPauseBtn.textContent = 'Pause';
+                this.startTime = Date.now() - (this.currentFrame * this.delay);
+
+                const animate = () => {
+                    if (this.isPlaying) {
+                        this.nextFrame();
+                        this.animationId = setTimeout(animate, this.delay);
+                    }
+                };
+
+                this.animationId = setTimeout(animate, this.delay);
+            }
+
+            stopAnimation() {
+                this.isPlaying = false;
+                this.playPauseBtn.textContent = 'Play';
+                if (this.animationId) {
+                    clearTimeout(this.animationId);
+                    this.animationId = null;
+                }
+            }
+
+            updateDisplays() {
+                // Update frame controls
+                this.frameSlider.value = this.currentFrame;
+                this.frameInput.value = this.currentFrame;
+
+                // Update timing displays
+                const fps = (1000 / this.delay).toFixed(1);
+                this.fpsDisplay.textContent = fps;
+
+                // Update animation info to reflect current animation
+                this.currentAnimationFrames.textContent = this.totalFrames;
+                const totalLength = (this.totalFrames * this.delay / 1000).toFixed(2);
+                this.totalLengthDisplay.textContent = totalLength + 's';
+
+                // Update elapsed time based on current frame position
+                const elapsedTime = (this.currentFrame * this.delay / 1000).toFixed(2);
+                this.elapsedTimeDisplay.textContent = elapsedTime + 's';
+
+            }
+
+            async loadAvailableAnimations() {
+                try {
+                    const response = await fetch('/api/animations');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.animations = data.animations.map(anim => anim.name);
+                        this.animationData = {};
+
+                        // Store animation metadata
+                        data.animations.forEach(anim => {
+                            this.animationData[anim.name] = {
+                                frameCount: anim.frameCount
+                            };
+                        });
+
+                        // Set default animation if Walk exists
+                        if (this.animations.includes('Walk')) {
+                            this.currentAnimation = 'Walk';
+                            this.totalFrames = this.animationData['Walk'].frameCount;
+                            this.endFrame = this.totalFrames - 1;
+                        }
+
+                        this.updateAnimationSelect();
+                    } else {
+                        console.error('Failed to load animations:', data.error);
+                        // Fallback to just Walk
+                        this.animations = ['Walk'];
+                        this.animationData = { 'Walk': { frameCount: 150 } };
+                        this.updateAnimationSelect();
+                    }
+                } catch (error) {
+                    console.error('Error loading animations:', error);
+                    // Fallback to just Walk
+                    this.animations = ['Walk'];
+                    this.animationData = { 'Walk': { frameCount: 150 } };
+                    this.updateAnimationSelect();
+                }
+            }
+
+            updateAnimationSelect() {
+                this.animationSelect.innerHTML = '';
+                this.animations.forEach(animation => {
+                    const option = document.createElement('option');
+                    option.value = animation;
+                    option.textContent = animation;
+                    if (animation === this.currentAnimation) {
+                        option.selected = true;
+                    }
+                    this.animationSelect.appendChild(option);
+                });
+            }
+
+            async createAnimation() {
+                const name = this.animationNameInput.value.trim();
+                if (!name) {
+                    alert('Please enter an animation name');
+                    return;
+                }
+
+                if (this.animations.includes(name)) {
+                    alert('Animation with this name already exists');
+                    return;
+                }
+
+                if (this.startFrame >= this.endFrame) {
+                    alert('Start frame must be less than end frame');
+                    return;
+                }
+
+                if (this.isCreating) return;
+
+                this.isCreating = true;
+                this.createAnimationBtn.disabled = true;
+                this.createAnimationBtn.textContent = 'Creating...';
+
+                try {
+                    const result = await this.copyFramesToNewAnimation(name);
+
+                    // Copy center points from source animation for the selected range
+                    this.copyCenterPointsToNewAnimation(name);
+
+                    // Add to animations list and switch to it
+                    this.animations.push(name);
+                    this.animationData[name] = { frameCount: result.frameCount };
+                    this.currentAnimation = name;
+                    this.updateAnimationSelect();
+
+                    // Reset range to full range for new animation
+                    this.totalFrames = result.frameCount;
+                    this.startFrame = 0;
+                    this.endFrame = this.totalFrames - 1;
+                    this.currentFrame = 0;
+
+                    // Clear center point for new animation
+                    this.currentCenterPoint = 0;
+                    this.centerInput.value = 0;
+
+                    // Update input constraints
+                    this.startFrameInput.max = this.endFrame;
+                    this.endFrameInput.max = this.endFrame;
+                    this.frameSlider.min = this.startFrame;
+                    this.frameSlider.max = this.endFrame;
+                    this.startFrameInput.value = this.startFrame;
+                    this.endFrameInput.value = this.endFrame;
+
+                    // Create frame elements for new animation
+                    this.createFrameElements();
+                    this.updateDisplays();
+
+                    this.animationNameInput.value = '';
+                    alert(`Animation "${name}" created successfully with ${result.frameCount} frames!`);
+
+                } catch (error) {
+                    console.error('Error creating animation:', error);
+                    alert(`Failed to create animation: ${error.message}`);
+                } finally {
+                    this.isCreating = false;
+                    this.createAnimationBtn.disabled = false;
+                    this.createAnimationBtn.textContent = 'Create Animation';
+                }
+            }
+
+            copyCenterPointsToNewAnimation(newAnimationName) {
+                // Initialize center points for the new animation
+                this.centerPoints[newAnimationName] = {};
+
+                // Get the source animation name before switching
+                const sourceAnimation = this.currentAnimation;
+
+                // Copy center offsets from the selected frame range to the new animation
+                let newFrameIndex = 0;
+                for (let sourceFrameIndex = this.startFrame; sourceFrameIndex <= this.endFrame; sourceFrameIndex++) {
+                    const sourceCenterOffset = this.centerPoints[sourceAnimation]?.[sourceFrameIndex] || 0;
+                    this.centerPoints[newAnimationName][newFrameIndex] = sourceCenterOffset;
+                    newFrameIndex++;
+                }
+            }
+
+            calculateCenterOffsetsForRange() {
+                const offsets = [];
+                for (let frameIndex = this.startFrame; frameIndex <= this.endFrame; frameIndex++) {
+                    const offset = this.centerPoints[this.currentAnimation]?.[frameIndex] || 0;
+                    offsets.push(offset);
+                }
+                return offsets;
+            }
+
+            async copyFramesToNewAnimation(animationName) {
+                try {
+                    const response = await fetch('/api/animations', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: animationName,
+                            sourceAnimation: this.currentAnimation,
+                            startFrame: this.startFrame,
+                            endFrame: this.endFrame,
+                            centerOffsets: this.calculateCenterOffsetsForRange()
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    if (!data.success) {
+                        throw new Error(data.error || 'Unknown error occurred');
+                    }
+
+                    return data;
+                } catch (error) {
+                    console.error('Error copying frames:', error);
+                    throw error;
+                }
+            }
+
+            switchAnimation(animationName) {
+                if (animationName === this.currentAnimation) return;
+
+                this.currentAnimation = animationName;
+
+                // Get frame count from stored animation data
+                if (this.animationData[animationName]) {
+                    this.totalFrames = this.animationData[animationName].frameCount;
+                } else {
+                    // Fallback default
+                    this.totalFrames = 150;
+                }
+
+                this.startFrame = 0;
+                this.endFrame = this.totalFrames - 1;
+                this.currentFrame = this.startFrame;
+
+                // Initialize center points for new animation if they don't exist
+                if (!this.centerPoints[animationName]) {
+                    this.centerPoints[animationName] = {};
+                }
+
+                // Clear center points when switching animations
+                this.currentCenterPoint = 0;
+                this.centerInput.value = 0;
+
+                // Update input constraints
+                this.startFrameInput.max = this.totalFrames - 1;
+                this.endFrameInput.max = this.totalFrames - 1;
+                this.frameSlider.min = this.startFrame;
+                this.frameSlider.max = this.endFrame;
+                this.startFrameInput.value = this.startFrame;
+                this.endFrameInput.value = this.endFrame;
+
+                // Create frame elements for smoother animation
+                this.createFrameElements();
+                this.updateDisplays();
+            }
+
+        }
+
+        // Initialize the animation player when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AnimationPlayer();
+        });
+    </script>
+</body>
+</html>
