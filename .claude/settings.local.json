@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python:*)",
       "Bash(start animation-player.html)",
-      "Bash(start http://localhost:5000)"
+      "Bash(start http://localhost:5000)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
