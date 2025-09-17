@@ -1,6 +1,20 @@
-# Animation Player
+# Rotoscoper Tools
 
-A web-based animation player with frame management capabilities. Create custom animations by selecting frame ranges from existing animations.
+A collection of web-based animation tools for creating custom animations and generating sprites with color mapping capabilities.
+
+## Tools
+
+### 🎬 New Animation Tool
+- Create custom animations by selecting frame ranges from existing animations
+- Center point adjustment with red indicator line
+- Frame alignment controls with "Apply to Rest" functionality
+- Real-time animation preview and timing controls
+
+### 🎨 Sprite Tool
+- Generate sprites from animations with custom color mapping
+- Extract colors from animation frames automatically
+- Real-time color remapping with visual color picker interface
+- Sprite opacity controls and frame visibility toggle
 
 ## Features
 
@@ -10,6 +24,9 @@ A web-based animation player with frame management capabilities. Create custom a
 - ✅ Create new animations from frame ranges
 - ✅ Switch between multiple animations
 - ✅ Real-time animation statistics
+- ✅ Color extraction and mapping
+- ✅ Sprite generation and customization
+- ✅ Center point alignment tools
 
 ## Quick Start
 
