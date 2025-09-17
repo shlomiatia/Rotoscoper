@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotoscoper Tools</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .tool-card {
+            background-color: #f8f9fa;
+            padding: 30px 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #007bff;
+        }
+
+        .tool-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .tool-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .tool-description {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .animation-tool {
+            border-color: #28a745;
+        }
+
+        .animation-tool:hover {
+            border-color: #28a745;
+        }
+
+        .animation-tool .tool-icon {
+            color: #28a745;
+        }
+
+        .sprite-tool {
+            border-color: #6f42c1;
+        }
+
+        .sprite-tool:hover {
+            border-color: #6f42c1;
+        }
+
+        .sprite-tool .tool-icon {
+            color: #6f42c1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rotoscoper Tools</h1>
+        <p>Choose a tool to get started with your animation work:</p>
+
+        <div class="tools-grid">
+            <a href="new-animation-tool.html" class="tool-card animation-tool">
+                <span class="tool-icon">🎬</span>
+                <div class="tool-title">New Animation Tool</div>
+                <div class="tool-description">
+                    Create new animations from frame ranges with center point adjustment.
+                    Features animation preview, timing controls, and frame alignment tools.
+                </div>
+            </a>
+
+            <a href="sprite-tool.html" class="tool-card sprite-tool">
+                <span class="tool-icon">🎨</span>
+                <div class="tool-title">Sprite Tool</div>
+                <div class="tool-description">
+                    Generate and customize sprites from animations with color mapping.
+                    Extract colors, apply color changes, and preview results in real-time.
+                </div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

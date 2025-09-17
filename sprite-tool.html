@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animation Player</title>
+    <title>Sprite Tool</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,6 +18,28 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background-color: #5a6268;
         }
 
         .animation-container {
@@ -50,93 +72,29 @@
             display: none;
             max-width: 100%;
             height: auto;
-            transition: transform 0.1s ease;
         }
 
         .frame-image.active {
             display: block;
         }
 
-        .center-indicator {
+        .sprite-canvas-container {
             position: absolute;
             top: 0;
-            bottom: 0;
-            left: 50%;
-            width: 2px;
-            background-color: #ff4444;
-            pointer-events: none;
-            z-index: 10;
-            transform: translateX(-50%);
-        }
-
-
-
-        .range-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .range-group input[type="number"] {
+            left: 0;
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-size: 14px;
+            height: 100%;
+            pointer-events: none;
         }
 
-        .animation-creation {
-            background-color: #f8f8f8;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-
-        .creation-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .creation-controls input[type="text"] {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-        }
-
-        .create-btn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 3px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .create-btn:hover {
-            background-color: #218838;
-        }
-
-        .create-btn:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
-
-        .apply-center-btn {
-            background-color: #17a2b8;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-
-        .apply-center-btn:hover {
-            background-color: #138496;
+        .sprite-canvas {
+            position: absolute;
+            top: -3px;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
         .animation-selector {
@@ -197,27 +155,6 @@
 
         .play-pause-btn:hover {
             background-color: #0056b3;
-        }
-
-        .info {
-            background-color: #e9ecef;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .info-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .info-label {
-            font-weight: bold;
         }
 
         .sprite-controls {
@@ -327,34 +264,6 @@
             cursor: not-allowed;
         }
 
-        .color-picker-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .color-picker-group label {
-            font-weight: bold;
-            min-width: 100px;
-        }
-
-        .color-picker {
-            width: 50px;
-            height: 30px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-
-        .hex-input {
-            width: 80px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-family: monospace;
-        }
-
         .opacity-input {
             width: 60px;
             padding: 5px;
@@ -362,53 +271,46 @@
             border-radius: 3px;
         }
 
-        .sprite-canvas-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+        .info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
         }
 
-        .sprite-canvas {
-            position: absolute;
-            top: -3px;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background-color: #ddd;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
+        .info-item:last-child {
+            margin-bottom: 0;
         }
 
-        .progress-fill {
-            height: 100%;
-            background-color: #007bff;
-            width: 0%;
-            transition: width 0.1s;
+        .info-label {
+            font-weight: bold;
         }
-
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Walking Animation Player</h1>
+        <div class="header">
+            <h1>Sprite Tool</h1>
+            <a href="index.html" class="back-btn">← Back to Tools</a>
+        </div>
 
         <div class="animation-container">
             <div class="frame-preview-container">
                 <div id="frame-container"></div>
                 <div class="sprite-canvas-container" id="sprite-canvas-container"></div>
-                <div class="center-indicator" id="center-indicator"></div>
             </div>
+        </div>
+
+        <div class="animation-selector">
+            <select id="animation-select">
+                <option value="Walk">Walk</option>
+            </select>
         </div>
 
         <div class="sprite-controls">
@@ -452,36 +354,8 @@
             </div>
 
             <div class="input-group">
-                <label>Center X Offset:</label>
-                <input type="number" id="center-input" value="0" step="1">
-                <span>px</span>
-                <button id="apply-center-btn" class="apply-center-btn">Apply to Rest</button>
-            </div>
-
-            <div class="input-group">
                 <label>Elapsed Time:</label>
                 <span id="elapsed-time-display">0.00s</span>
-            </div>
-        </div>
-
-        <div class="animation-creation">
-            <h3>Create Animation from Frame Range</h3>
-            <div class="animation-selector">
-                <select id="animation-select">
-                    <option value="Walk">Walk</option>
-                </select>
-            </div>
-            <div class="range-controls">
-                <div class="range-group">
-                    <input type="number" id="start-frame-input" min="0" max="149" value="0" placeholder="Start frame">
-                </div>
-                <div class="range-group">
-                    <input type="number" id="end-frame-input" min="0" max="149" value="149" placeholder="End frame">
-                </div>
-            </div>
-            <div class="creation-controls">
-                <input type="text" id="animation-name" placeholder="New animation name" maxlength="50">
-                <button class="create-btn" id="create-animation-btn">Create Animation</button>
             </div>
         </div>
 
@@ -509,73 +383,9 @@
                 <span id="total-length-display">4.50s</span>
             </div>
         </div>
-
     </div>
 
     <script>
-        // HSL utility functions
-        function rgbToHsl(r, g, b) {
-            r /= 255;
-            g /= 255;
-            b /= 255;
-
-            const max = Math.max(r, g, b);
-            const min = Math.min(r, g, b);
-            let h, s, l = (max + min) / 2;
-
-            if (max === min) {
-                h = s = 0; // achromatic
-            } else {
-                const d = max - min;
-                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-                switch (max) {
-                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                    case g: h = (b - r) / d + 2; break;
-                    case b: h = (r - g) / d + 4; break;
-                }
-                h /= 6;
-            }
-
-            return {
-                h: Math.round(h * 360),
-                s: Math.round(s * 100),
-                l: Math.round(l * 100)
-            };
-        }
-
-        function hslToRgb(h, s, l) {
-            h /= 360;
-            s /= 100;
-            l /= 100;
-
-            const hue2rgb = (p, q, t) => {
-                if (t < 0) t += 1;
-                if (t > 1) t -= 1;
-                if (t < 1/6) return p + (q - p) * 6 * t;
-                if (t < 1/2) return q;
-                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-                return p;
-            };
-
-            let r, g, b;
-
-            if (s === 0) {
-                r = g = b = l; // achromatic
-            } else {
-                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-                const p = 2 * l - q;
-                r = hue2rgb(p, q, h + 1/3);
-                g = hue2rgb(p, q, h);
-                b = hue2rgb(p, q, h - 1/3);
-            }
-
-            return {
-                r: Math.round(r * 255),
-                g: Math.round(g * 255),
-                b: Math.round(b * 255)
-            };
-        }
-
         function hexToRgb(hex) {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
             return result ? {
@@ -585,44 +395,30 @@
             } : null;
         }
 
-        class AnimationPlayer {
+        class SpriteTool {
             constructor() {
                 this.currentFrame = 0;
                 this.totalFrames = 150;
-                this.startFrame = 0;
-                this.endFrame = 149;
-                this.delay = 30; // milliseconds
+                this.delay = 30;
                 this.isPlaying = true;
                 this.animationId = null;
-                this.startTime = Date.now();
-                this.elapsedTime = 0;
                 this.currentAnimation = 'Walk';
-                this.animations = []; // Available animations
-                this.animationData = {}; // Store animation metadata
-                this.isCreating = false;
+                this.animations = [];
+                this.animationData = {};
 
-                // Center point data: stores relative center offset for each frame of each animation
-                this.centerPoints = {}; // { animationName: { frameIndex: offsetPixels } }
-                this.currentCenterPoint = 0; // Current center offset in pixels (0=center, -1=right, +1=left)
-
-                // Frame dimensions for calculations
                 this.frameWidth = 0;
                 this.frameHeight = 0;
-
-                // Frame management for smooth animation
-                this.frameElements = {}; // { animationName: { frameIndex: HTMLImageElement } }
+                this.frameElements = {};
                 this.currentFrameElement = null;
 
-                // Sprite management
-                this.spriteCanvases = {}; // { animationName: { frameIndex: HTMLCanvasElement } }
-                this.spriteData = {}; // { animationName: { frameIndex: ImageData } }
+                this.spriteCanvases = {};
+                this.spriteData = {};
                 this.currentSpriteCanvas = null;
                 this.showFrames = true;
                 this.spriteOpacity = 70;
 
-                // Color mapping system
-                this.uniqueColors = {}; // { animationName: [{ hex: '#rrggbb', count: number }] }
-                this.colorMappings = {}; // { animationName: { '#rrggbb': '#targetcolor' } }
+                this.uniqueColors = {};
+                this.colorMappings = {};
                 this.isAnalyzing = false;
 
                 this.initializeElements();
@@ -631,7 +427,6 @@
                 this.startAnimation();
                 this.updateDisplays();
 
-                // Create frame elements after initial setup
                 setTimeout(() => this.createFrameElements(), 100);
             }
 
@@ -640,40 +435,20 @@
                 this.playPauseBtn = document.getElementById('play-pause-btn');
                 this.frameSlider = document.getElementById('frame-slider');
                 this.frameInput = document.getElementById('frame-input');
-                this.centerInput = document.getElementById('center-input');
-                this.centerIndicator = document.getElementById('center-indicator');
-                this.applyCenterBtn = document.getElementById('apply-center-btn');
                 this.delaySlider = document.getElementById('delay-slider');
                 this.delayInput = document.getElementById('delay-input');
                 this.fpsDisplay = document.getElementById('fps-display');
                 this.currentAnimationFrames = document.getElementById('current-animation-frames');
                 this.totalLengthDisplay = document.getElementById('total-length-display');
                 this.elapsedTimeDisplay = document.getElementById('elapsed-time-display');
-                this.startFrameInput = document.getElementById('start-frame-input');
-                this.endFrameInput = document.getElementById('end-frame-input');
                 this.animationSelect = document.getElementById('animation-select');
-                this.animationNameInput = document.getElementById('animation-name');
-                this.createAnimationBtn = document.getElementById('create-animation-btn');
                 this.spriteOpacityInput = document.getElementById('sprite-opacity-input');
                 this.initSpritesBtn = document.getElementById('init-sprites-btn');
                 this.showFramesCheckbox = document.getElementById('show-frames-checkbox');
                 this.spriteCanvasContainer = document.getElementById('sprite-canvas-container');
-
-                // Color mapping controls
                 this.analyzeFramesBtn = document.getElementById('analyze-frames-btn');
                 this.colorMappingContainer = document.getElementById('color-mapping-container');
-
-                // Will set frame dimensions when frames are created
             }
-
-            initializeCenterInput() {
-                // Remove min/max constraints for relative offsets
-                this.centerInput.removeAttribute('min');
-                this.centerInput.removeAttribute('max');
-                // Initialize to 0 (center) by default
-                this.centerInput.value = this.currentCenterPoint;
-            }
-
 
             bindEvents() {
                 this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
@@ -686,14 +461,6 @@
                     this.setFrame(parseInt(e.target.value));
                 });
 
-                this.centerInput.addEventListener('change', (e) => {
-                    this.setCenterPoint(parseInt(e.target.value) || 0);
-                });
-
-                this.applyCenterBtn.addEventListener('click', () => {
-                    this.applyCenterToSubsequentFrames();
-                });
-
                 this.delaySlider.addEventListener('input', (e) => {
                     this.setDelay(parseInt(e.target.value));
                 });
@@ -702,20 +469,8 @@
                     this.setDelay(parseInt(e.target.value));
                 });
 
-                this.startFrameInput.addEventListener('change', (e) => {
-                    this.setStartFrame(parseInt(e.target.value));
-                });
-
-                this.endFrameInput.addEventListener('change', (e) => {
-                    this.setEndFrame(parseInt(e.target.value));
-                });
-
                 this.animationSelect.addEventListener('change', (e) => {
                     this.switchAnimation(e.target.value);
-                });
-
-                this.createAnimationBtn.addEventListener('click', () => {
-                    this.createAnimation();
                 });
 
                 this.initSpritesBtn.addEventListener('click', () => {
@@ -732,90 +487,14 @@
                     this.updateSpriteOpacity();
                 });
 
-
-                // Color mapping control events
                 this.analyzeFramesBtn.addEventListener('click', () => {
                     this.extractAllColors();
                 });
             }
 
             setFrame(frame) {
-                this.currentFrame = Math.max(this.startFrame, Math.min(frame, this.endFrame));
-                this.loadCurrentFrameCenterPoint();
+                this.currentFrame = Math.max(0, Math.min(frame, this.totalFrames - 1));
                 this.updateFrame();
-                this.updateDisplays();
-            }
-
-            setCenterPoint(offsetPixels) {
-                this.currentCenterPoint = offsetPixels;
-                this.saveCenterPoint();
-                this.centerInput.value = this.currentCenterPoint;
-                this.updatePreview();
-            }
-
-            applyCenterToSubsequentFrames() {
-                if (!this.centerPoints[this.currentAnimation]) {
-                    this.centerPoints[this.currentAnimation] = {};
-                }
-
-                // Set the same center offset for all frames from current frame to the end
-                for (let frameIndex = this.currentFrame; frameIndex < this.totalFrames; frameIndex++) {
-                    this.centerPoints[this.currentAnimation][frameIndex] = this.currentCenterPoint;
-                }
-            }
-
-            loadCurrentFrameCenterPoint() {
-                if (!this.centerPoints[this.currentAnimation]) {
-                    this.centerPoints[this.currentAnimation] = {};
-                }
-
-                const savedCenter = this.centerPoints[this.currentAnimation][this.currentFrame];
-                if (savedCenter !== undefined) {
-                    this.currentCenterPoint = savedCenter;
-                } else {
-                    // Default to no offset (center)
-                    this.currentCenterPoint = 0;
-                }
-
-                this.centerInput.value = this.currentCenterPoint;
-            }
-
-            saveCenterPoint() {
-                if (!this.centerPoints[this.currentAnimation]) {
-                    this.centerPoints[this.currentAnimation] = {};
-                }
-                this.centerPoints[this.currentAnimation][this.currentFrame] = this.currentCenterPoint;
-            }
-
-            setStartFrame(startFrame) {
-                this.startFrame = Math.max(0, Math.min(startFrame, this.endFrame - 1));
-                this.startFrameInput.value = this.startFrame;
-
-                // Update frame slider constraints
-                this.frameSlider.min = this.startFrame;
-
-                // If current frame is before start, move to start
-                if (this.currentFrame < this.startFrame) {
-                    this.currentFrame = this.startFrame;
-                    this.updateFrame();
-                }
-
-                this.updateDisplays();
-            }
-
-            setEndFrame(endFrame) {
-                this.endFrame = Math.max(this.startFrame + 1, Math.min(endFrame, this.totalFrames - 1));
-                this.endFrameInput.value = this.endFrame;
-
-                // Update frame slider constraints
-                this.frameSlider.max = this.endFrame;
-
-                // If current frame is after end, move to end
-                if (this.currentFrame > this.endFrame) {
-                    this.currentFrame = this.endFrame;
-                    this.updateFrame();
-                }
-
                 this.updateDisplays();
             }
 
@@ -832,17 +511,14 @@
             }
 
             updateFrame() {
-                // Hide current frame
                 if (this.currentFrameElement) {
                     this.currentFrameElement.classList.remove('active');
                 }
 
-                // Hide current sprite canvas
                 if (this.currentSpriteCanvas) {
                     this.currentSpriteCanvas.style.display = 'none';
                 }
 
-                // Show new frame
                 if (this.frameElements[this.currentAnimation] &&
                     this.frameElements[this.currentAnimation][this.currentFrame]) {
                     this.currentFrameElement = this.frameElements[this.currentAnimation][this.currentFrame];
@@ -851,7 +527,6 @@
                     }
                 }
 
-                // Show new sprite canvas (always show if exists, opacity controls visibility)
                 if (this.spriteCanvases[this.currentAnimation] &&
                     this.spriteCanvases[this.currentAnimation][this.currentFrame]) {
                     this.currentSpriteCanvas = this.spriteCanvases[this.currentAnimation][this.currentFrame];
@@ -861,7 +536,6 @@
             }
 
             createFrameElements() {
-                // Clear existing frames
                 this.frameContainer.innerHTML = '';
                 this.currentFrameElement = null;
 
@@ -869,7 +543,6 @@
                     this.frameElements[this.currentAnimation] = {};
                 }
 
-                // Create image elements for all frames
                 for (let frame = 0; frame < this.totalFrames; frame++) {
                     if (!this.frameElements[this.currentAnimation][frame]) {
                         const frameNumber = String(frame).padStart(3, '0');
@@ -880,18 +553,13 @@
                         img.src = frameSrc;
                         img.alt = `Frame ${frame}`;
 
-                        // Set dimensions on first frame load
                         if (frame === 0) {
                             img.onload = () => {
                                 this.frameWidth = img.naturalWidth;
                                 this.frameHeight = img.naturalHeight;
-                                this.initializeCenterInput();
                                 this.setContainerDimensions();
-                                this.updatePreview();
-                                console.log(`Frame 0 loaded: ${this.frameWidth}x${this.frameHeight}`);
                             };
                         } else {
-                            // For subsequent frames, ensure container dimensions are maintained
                             img.onload = () => {
                                 if (!this.frameWidth || !this.frameHeight) {
                                     this.frameWidth = img.naturalWidth;
@@ -906,38 +574,16 @@
                     }
                 }
 
-                // Show current frame
                 this.updateFrame();
-            }
-
-            updatePreview() {
-                if (this.frameWidth === 0 || !this.currentFrameElement) return; // Wait for frame to load
-
-                // Get the actual displayed width of the image (after scaling)
-                const displayedWidth = this.currentFrameElement.clientWidth;
-                const scale = displayedWidth / this.frameWidth;
-
-                // Calculate the scaled offset (negative because -1 means move right, +1 means move left)
-                const scaledOffset = -this.currentCenterPoint * scale;
-
-                // Apply transform to move the frame
-                this.currentFrameElement.style.transform = `translateX(${scaledOffset}px)`;
-
-                // Apply same transform to sprite canvas
-                if (this.currentSpriteCanvas) {
-                    this.currentSpriteCanvas.style.transform = `translateX(${scaledOffset}px)`;
-                }
             }
 
             nextFrame() {
                 this.currentFrame++;
-                if (this.currentFrame > this.endFrame) {
-                    this.currentFrame = this.startFrame;
+                if (this.currentFrame >= this.totalFrames) {
+                    this.currentFrame = 0;
                 }
-                this.loadCurrentFrameCenterPoint();
                 this.updateFrame();
                 this.updateDisplays();
-                this.updatePreview();
             }
 
             togglePlayPause() {
@@ -951,7 +597,6 @@
             startAnimation() {
                 this.isPlaying = true;
                 this.playPauseBtn.textContent = 'Pause';
-                this.startTime = Date.now() - (this.currentFrame * this.delay);
 
                 const animate = () => {
                     if (this.isPlaying) {
@@ -973,23 +618,18 @@
             }
 
             updateDisplays() {
-                // Update frame controls
                 this.frameSlider.value = this.currentFrame;
                 this.frameInput.value = this.currentFrame;
 
-                // Update timing displays
                 const fps = (1000 / this.delay).toFixed(1);
                 this.fpsDisplay.textContent = fps;
 
-                // Update animation info to reflect current animation
                 this.currentAnimationFrames.textContent = this.totalFrames;
                 const totalLength = (this.totalFrames * this.delay / 1000).toFixed(2);
                 this.totalLengthDisplay.textContent = totalLength + 's';
 
-                // Update elapsed time based on current frame position
                 const elapsedTime = (this.currentFrame * this.delay / 1000).toFixed(2);
                 this.elapsedTimeDisplay.textContent = elapsedTime + 's';
-
             }
 
             async loadAvailableAnimations() {
@@ -1001,14 +641,12 @@
                         this.animations = data.animations.map(anim => anim.name);
                         this.animationData = {};
 
-                        // Store animation metadata
                         data.animations.forEach(anim => {
                             this.animationData[anim.name] = {
                                 frameCount: anim.frameCount
                             };
                         });
 
-                        // Set default animation - prefer Walk, but use first available if Walk doesn't exist
                         if (this.animations.includes('Walk')) {
                             this.currentAnimation = 'Walk';
                         } else if (this.animations.length > 0) {
@@ -1017,28 +655,21 @@
 
                         if (this.currentAnimation && this.animationData[this.currentAnimation]) {
                             this.totalFrames = this.animationData[this.currentAnimation].frameCount;
-                            this.endFrame = this.totalFrames - 1;
                         }
 
                         this.updateAnimationSelect();
                     } else {
-                        console.error('Failed to load animations:', data.error);
-                        // Fallback to just Walk
                         this.animations = ['Walk'];
                         this.animationData = { 'Walk': { frameCount: 150 } };
                         this.currentAnimation = 'Walk';
                         this.totalFrames = 150;
-                        this.endFrame = 149;
                         this.updateAnimationSelect();
                     }
                 } catch (error) {
-                    console.error('Error loading animations:', error);
-                    // Fallback to just Walk
                     this.animations = ['Walk'];
                     this.animationData = { 'Walk': { frameCount: 150 } };
                     this.currentAnimation = 'Walk';
                     this.totalFrames = 150;
-                    this.endFrame = 149;
                     this.updateAnimationSelect();
                 }
             }
@@ -1056,134 +687,6 @@
                 });
             }
 
-            async createAnimation() {
-                const name = this.animationNameInput.value.trim();
-                if (!name) {
-                    alert('Please enter an animation name');
-                    return;
-                }
-
-                if (this.animations.includes(name)) {
-                    alert('Animation with this name already exists');
-                    return;
-                }
-
-                if (this.startFrame >= this.endFrame) {
-                    alert('Start frame must be less than end frame');
-                    return;
-                }
-
-                if (this.isCreating) return;
-
-                this.isCreating = true;
-                this.createAnimationBtn.disabled = true;
-                this.createAnimationBtn.textContent = 'Creating...';
-
-                try {
-                    const result = await this.copyFramesToNewAnimation(name);
-
-                    // Copy center points from source animation for the selected range
-                    this.copyCenterPointsToNewAnimation(name);
-
-                    // Add to animations list and switch to it
-                    this.animations.push(name);
-                    this.animationData[name] = { frameCount: result.frameCount };
-                    this.currentAnimation = name;
-                    this.updateAnimationSelect();
-
-                    // Reset range to full range for new animation
-                    this.totalFrames = result.frameCount;
-                    this.startFrame = 0;
-                    this.endFrame = this.totalFrames - 1;
-                    this.currentFrame = 0;
-
-                    // Clear center point for new animation
-                    this.currentCenterPoint = 0;
-                    this.centerInput.value = 0;
-
-                    // Update input constraints
-                    this.startFrameInput.max = this.endFrame;
-                    this.endFrameInput.max = this.endFrame;
-                    this.frameSlider.min = this.startFrame;
-                    this.frameSlider.max = this.endFrame;
-                    this.startFrameInput.value = this.startFrame;
-                    this.endFrameInput.value = this.endFrame;
-
-                    // Create frame elements for new animation
-                    this.createFrameElements();
-                    this.updateDisplays();
-
-                    this.animationNameInput.value = '';
-                    alert(`Animation "${name}" created successfully with ${result.frameCount} frames!`);
-
-                } catch (error) {
-                    console.error('Error creating animation:', error);
-                    alert(`Failed to create animation: ${error.message}`);
-                } finally {
-                    this.isCreating = false;
-                    this.createAnimationBtn.disabled = false;
-                    this.createAnimationBtn.textContent = 'Create Animation';
-                }
-            }
-
-            copyCenterPointsToNewAnimation(newAnimationName) {
-                // Initialize center points for the new animation
-                this.centerPoints[newAnimationName] = {};
-
-                // Get the source animation name before switching
-                const sourceAnimation = this.currentAnimation;
-
-                // Copy center offsets from the selected frame range to the new animation
-                let newFrameIndex = 0;
-                for (let sourceFrameIndex = this.startFrame; sourceFrameIndex <= this.endFrame; sourceFrameIndex++) {
-                    const sourceCenterOffset = this.centerPoints[sourceAnimation]?.[sourceFrameIndex] || 0;
-                    this.centerPoints[newAnimationName][newFrameIndex] = sourceCenterOffset;
-                    newFrameIndex++;
-                }
-            }
-
-            calculateCenterOffsetsForRange() {
-                const offsets = [];
-                for (let frameIndex = this.startFrame; frameIndex <= this.endFrame; frameIndex++) {
-                    const offset = this.centerPoints[this.currentAnimation]?.[frameIndex] || 0;
-                    offsets.push(offset);
-                }
-                return offsets;
-            }
-
-            async copyFramesToNewAnimation(animationName) {
-                try {
-                    const response = await fetch('/api/animations', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            name: animationName,
-                            sourceAnimation: this.currentAnimation,
-                            startFrame: this.startFrame,
-                            endFrame: this.endFrame,
-                            centerOffsets: this.calculateCenterOffsetsForRange()
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || `HTTP error! status: ${response.status}`);
-                    }
-
-                    if (!data.success) {
-                        throw new Error(data.error || 'Unknown error occurred');
-                    }
-
-                    return data;
-                } catch (error) {
-                    console.error('Error copying frames:', error);
-                    throw error;
-                }
-            }
-
             async extractAllColors() {
                 if (this.isAnalyzing) return;
 
@@ -1192,20 +695,16 @@
                 this.analyzeFramesBtn.textContent = 'Extracting...';
 
                 try {
-                    const colorMap = new Map(); // hex -> count
+                    const colorMap = new Map();
                     let totalPixelsProcessed = 0;
-                    const MAX_PIXELS = 500000; // Limit to prevent memory issues
-
-                    console.log(`Extracting colors from ${this.totalFrames} frames`);
+                    const MAX_PIXELS = 500000;
 
                     for (let frame = 0; frame < this.totalFrames; frame++) {
                         const frameImg = this.frameElements[this.currentAnimation]?.[frame];
                         if (!frameImg || !frameImg.complete) {
-                            console.log(`Skipping frame ${frame} - not loaded`);
                             continue;
                         }
 
-                        // Create temporary canvas to read pixel data
                         const tempCanvas = document.createElement('canvas');
                         const tempCtx = tempCanvas.getContext('2d');
                         tempCanvas.width = frameImg.naturalWidth || frameImg.width;
@@ -1214,19 +713,15 @@
                         tempCtx.drawImage(frameImg, 0, 0);
                         const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
 
-                        console.log(`Extracting colors from frame ${frame}: ${tempCanvas.width}x${tempCanvas.height}`);
-
-                        // Sample pixels to find unique colors
-                        const step = Math.max(4, Math.floor(imageData.data.length / (4 * 5000))); // Sample max 5k pixels per frame
+                        const step = Math.max(4, Math.floor(imageData.data.length / (4 * 5000)));
 
                         for (let i = 0; i < imageData.data.length && totalPixelsProcessed < MAX_PIXELS; i += step) {
                             const alpha = imageData.data[i + 3];
-                            if (alpha > 0) { // Non-transparent pixel
+                            if (alpha > 0) {
                                 const r = imageData.data[i];
                                 const g = imageData.data[i + 1];
                                 const b = imageData.data[i + 2];
 
-                                // Convert to hex
                                 const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 
                                 colorMap.set(hex, (colorMap.get(hex) || 0) + 1);
@@ -1235,21 +730,16 @@
                         }
 
                         if (totalPixelsProcessed >= MAX_PIXELS) {
-                            console.log(`Reached pixel limit at frame ${frame}`);
                             break;
                         }
                     }
 
-                    // Convert to sorted array (most frequent first)
                     const uniqueColors = Array.from(colorMap.entries())
                         .map(([hex, count]) => ({ hex, count }))
                         .sort((a, b) => b.count - a.count);
 
                     this.uniqueColors[this.currentAnimation] = uniqueColors;
 
-                    console.log(`Found ${uniqueColors.length} unique colors from ${totalPixelsProcessed} pixels`);
-
-                    // Initialize color mappings if not exist
                     if (!this.colorMappings[this.currentAnimation]) {
                         this.colorMappings[this.currentAnimation] = {};
                     }
@@ -1258,7 +748,6 @@
                     alert(`Color extraction complete! Found ${uniqueColors.length} unique colors.`);
 
                 } catch (error) {
-                    console.error('Error extracting colors:', error);
                     alert('Failed to extract colors: ' + error.message);
                 } finally {
                     this.isAnalyzing = false;
@@ -1271,7 +760,6 @@
                 const colors = this.uniqueColors[this.currentAnimation] || [];
                 const container = this.colorMappingContainer;
 
-                // Clear existing items
                 container.innerHTML = '';
 
                 if (colors.length === 0) {
@@ -1283,12 +771,10 @@
                     const item = document.createElement('div');
                     item.className = 'color-mapping-item';
 
-                    // Source color preview
                     const sourcePreview = document.createElement('div');
                     sourcePreview.className = 'source-color-preview';
                     sourcePreview.style.backgroundColor = colorInfo.hex;
 
-                    // Color info
                     const info = document.createElement('div');
                     info.className = 'color-mapping-info';
                     info.innerHTML = `
@@ -1296,13 +782,11 @@
                         <div class="color-count">${colorInfo.count} pixels</div>
                     `;
 
-                    // Target color picker
                     const targetPicker = document.createElement('input');
                     targetPicker.type = 'color';
                     targetPicker.className = 'target-color-picker';
                     targetPicker.value = this.colorMappings[this.currentAnimation][colorInfo.hex] || colorInfo.hex;
 
-                    // Update mapping when color changes
                     targetPicker.addEventListener('change', (e) => {
                         this.colorMappings[this.currentAnimation][colorInfo.hex] = e.target.value;
                         this.updateAllSprites();
@@ -1327,20 +811,16 @@
                         this.spriteData[this.currentAnimation] = {};
                     }
 
-                    // Clear existing sprites for this animation
                     this.spriteCanvasContainer.innerHTML = '';
 
-                    // Initialize sprites for all frames
                     for (let frame = 0; frame < this.totalFrames; frame++) {
                         await this.createSpriteForFrame(frame);
                     }
 
-                    // Show current sprite
                     this.updateFrame();
                     alert(`Sprites generated for ${this.totalFrames} frames!`);
 
                 } catch (error) {
-                    console.error('Error generating sprites:', error);
                     alert('Failed to generate sprites: ' + error.message);
                 } finally {
                     this.initSpritesBtn.disabled = false;
@@ -1350,17 +830,14 @@
 
             async createSpriteForFrame(frameIndex) {
                 return new Promise((resolve, reject) => {
-                    // Get the frame image element
                     const frameImg = this.frameElements[this.currentAnimation]?.[frameIndex];
                     if (!frameImg) {
                         reject(new Error(`Frame ${frameIndex} not found`));
                         return;
                     }
 
-                    // Wait for image to load if necessary
                     const processImage = () => {
                         try {
-                            // Create canvas for sprite
                             const canvas = document.createElement('canvas');
                             const ctx = canvas.getContext('2d');
 
@@ -1369,58 +846,47 @@
                             canvas.height = frameImg.naturalHeight || frameImg.height;
                             canvas.style.display = 'none';
 
-                            // Ensure pixel-perfect alignment
                             canvas.style.imageRendering = 'pixelated';
                             canvas.style.imageRendering = 'crisp-edges';
 
-                            // Create temporary canvas to read pixel data from image
                             const tempCanvas = document.createElement('canvas');
                             const tempCtx = tempCanvas.getContext('2d');
                             tempCanvas.width = canvas.width;
                             tempCanvas.height = canvas.height;
 
-                            // Draw frame image to temporary canvas
                             tempCtx.drawImage(frameImg, 0, 0);
 
-                            // Get pixel data
                             const imageData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
                             const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
 
-                            // Get color mappings for current animation
                             const colorMappings = this.colorMappings[this.currentAnimation] || {};
 
-                            // Create sprite with direct color mapping
                             for (let i = 0; i < imageData.data.length; i += 4) {
                                 const alpha = imageData.data[i + 3];
-                                if (alpha > 0) { // Non-transparent pixel
+                                if (alpha > 0) {
                                     const r = imageData.data[i];
                                     const g = imageData.data[i + 1];
                                     const b = imageData.data[i + 2];
 
-                                    // Convert to hex
                                     const sourceHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 
-                                    // Get target color from mapping, or use original if no mapping
                                     const targetHex = colorMappings[sourceHex] || sourceHex;
                                     const targetRgb = hexToRgb(targetHex);
 
-                                    spriteImageData.data[i] = targetRgb.r;     // Red
-                                    spriteImageData.data[i + 1] = targetRgb.g; // Green
-                                    spriteImageData.data[i + 2] = targetRgb.b; // Blue
-                                    spriteImageData.data[i + 3] = 255; // Alpha
+                                    spriteImageData.data[i] = targetRgb.r;
+                                    spriteImageData.data[i + 1] = targetRgb.g;
+                                    spriteImageData.data[i + 2] = targetRgb.b;
+                                    spriteImageData.data[i + 3] = 255;
                                 } else {
-                                    spriteImageData.data[i + 3] = 0; // Transparent
+                                    spriteImageData.data[i + 3] = 0;
                                 }
                             }
 
-                            // Draw sprite to canvas
                             ctx.putImageData(spriteImageData, 0, 0);
 
-                            // Store sprite
                             this.spriteCanvases[this.currentAnimation][frameIndex] = canvas;
                             this.spriteData[this.currentAnimation][frameIndex] = spriteImageData;
 
-                            // Add to container
                             this.spriteCanvasContainer.appendChild(canvas);
 
                             resolve();
@@ -1439,7 +905,6 @@
             }
 
             updateVisibility() {
-                // Update frame visibility
                 if (this.currentFrameElement) {
                     if (this.showFrames) {
                         this.currentFrameElement.classList.add('active');
@@ -1448,7 +913,6 @@
                     }
                 }
 
-                // Update sprite opacity (sprites are always shown if they exist)
                 if (this.currentSpriteCanvas) {
                     this.currentSpriteCanvas.style.opacity = this.spriteOpacity / 100;
                 }
@@ -1461,15 +925,12 @@
             }
 
             async updateAllSprites() {
-                // Update all sprites for current animation with current color mappings
                 if (!this.spriteCanvases[this.currentAnimation] || !this.colorMappings[this.currentAnimation]) {
                     return;
                 }
 
                 const colorMappings = this.colorMappings[this.currentAnimation];
-                console.log('Updating all sprites with new color mappings');
 
-                // Update all existing sprite canvases
                 for (let frameIndex = 0; frameIndex < this.totalFrames; frameIndex++) {
                     const canvas = this.spriteCanvases[this.currentAnimation][frameIndex];
                     if (!canvas) continue;
@@ -1477,11 +938,8 @@
                     const frameImg = this.frameElements[this.currentAnimation]?.[frameIndex];
                     if (!frameImg || !frameImg.complete) continue;
 
-                    // Recreate the sprite with new mappings
                     await this.updateSpriteForFrame(frameIndex, canvas, frameImg, colorMappings);
                 }
-
-                console.log('All sprites updated');
             }
 
             async updateSpriteForFrame(frameIndex, canvas, frameImg, colorMappings) {
@@ -1489,7 +947,6 @@
                     try {
                         const ctx = canvas.getContext('2d');
 
-                        // Create temporary canvas to read pixel data from frame
                         const tempCanvas = document.createElement('canvas');
                         const tempCtx = tempCanvas.getContext('2d');
                         tempCanvas.width = frameImg.naturalWidth || frameImg.width;
@@ -1499,18 +956,15 @@
                         const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
                         const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
 
-                        // Update sprite with direct color mapping
                         for (let i = 0; i < imageData.data.length; i += 4) {
                             const alpha = imageData.data[i + 3];
-                            if (alpha > 0) { // Non-transparent pixel
+                            if (alpha > 0) {
                                 const r = imageData.data[i];
                                 const g = imageData.data[i + 1];
                                 const b = imageData.data[i + 2];
 
-                                // Convert to hex
                                 const sourceHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 
-                                // Get target color from mapping, or use original if no mapping
                                 const targetHex = colorMappings[sourceHex] || sourceHex;
                                 const targetRgb = hexToRgb(targetHex);
 
@@ -1519,31 +973,26 @@
                                 spriteImageData.data[i + 2] = targetRgb.b;
                                 spriteImageData.data[i + 3] = 255;
                             } else {
-                                spriteImageData.data[i + 3] = 0; // Transparent
+                                spriteImageData.data[i + 3] = 0;
                             }
                         }
 
-                        // Update the canvas
                         ctx.putImageData(spriteImageData, 0, 0);
                         resolve();
                     } catch (error) {
-                        console.error(`Error updating sprite for frame ${frameIndex}:`, error);
                         resolve();
                     }
                 });
             }
 
             setContainerDimensions() {
-                // Set fixed container dimensions based on frame size so sprites are visible even when frames are hidden
                 if (this.frameWidth && this.frameHeight) {
                     let displayedWidth, displayedHeight;
 
                     if (this.currentFrameElement && this.currentFrameElement.clientWidth > 0) {
-                        // Use actual displayed dimensions if available
                         displayedWidth = this.currentFrameElement.clientWidth;
                         displayedHeight = this.currentFrameElement.clientHeight;
                     } else {
-                        // Fallback to natural dimensions with reasonable scaling
                         const maxWidth = 400;
                         const maxHeight = 400;
                         const aspectRatio = this.frameWidth / this.frameHeight;
@@ -1562,18 +1011,14 @@
                         }
                     }
 
-                    // Set the frame container to maintain these dimensions
                     this.frameContainer.style.width = displayedWidth + 'px';
                     this.frameContainer.style.height = displayedHeight + 'px';
-
-                    console.log(`Set container dimensions: ${displayedWidth}x${displayedHeight}`);
                 }
             }
 
             switchAnimation(animationName) {
                 if (animationName === this.currentAnimation) return;
 
-                // Clear current sprite canvas
                 if (this.currentSpriteCanvas) {
                     this.currentSpriteCanvas.style.display = 'none';
                     this.currentSpriteCanvas = null;
@@ -1581,55 +1026,31 @@
 
                 this.currentAnimation = animationName;
 
-                // Get frame count from stored animation data
                 if (this.animationData[animationName]) {
                     this.totalFrames = this.animationData[animationName].frameCount;
                 } else {
-                    // Fallback default
                     this.totalFrames = 150;
                 }
 
-                this.startFrame = 0;
-                this.endFrame = this.totalFrames - 1;
-                this.currentFrame = this.startFrame;
+                this.currentFrame = 0;
 
-                // Initialize center points for new animation if they don't exist
-                if (!this.centerPoints[animationName]) {
-                    this.centerPoints[animationName] = {};
-                }
+                this.frameSlider.max = this.totalFrames - 1;
+                this.frameInput.max = this.totalFrames - 1;
 
-                // Clear center points when switching animations
-                this.currentCenterPoint = 0;
-                this.centerInput.value = 0;
-
-                // Update input constraints
-                this.startFrameInput.max = this.totalFrames - 1;
-                this.endFrameInput.max = this.totalFrames - 1;
-                this.frameSlider.min = this.startFrame;
-                this.frameSlider.max = this.endFrame;
-                this.startFrameInput.value = this.startFrame;
-                this.endFrameInput.value = this.endFrame;
-
-                // Clear sprite canvas container when switching animations
                 this.spriteCanvasContainer.innerHTML = '';
 
-                // Update color mapping UI for new animation
                 this.createColorMappingUI();
 
-                // Reset frame dimensions when switching animations
                 this.frameWidth = 0;
                 this.frameHeight = 0;
 
-                // Create frame elements for smoother animation
                 this.createFrameElements();
                 this.updateDisplays();
             }
-
         }
 
-        // Initialize the animation player when the page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new AnimationPlayer();
+            new SpriteTool();
         });
     </script>
 </body>

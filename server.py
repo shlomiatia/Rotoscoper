@@ -118,7 +118,7 @@ def pad_image(image_path, output_path, left_pad, right_pad):
 @app.route('/')
 def index():
     """Serve the main HTML file"""
-    return send_from_directory('.', 'animation-player.html')
+    return send_from_directory('.', 'index.html')
 
 @app.route('/<path:filename>')
 def serve_file(filename):
