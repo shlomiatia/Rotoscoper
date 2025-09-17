@@ -232,7 +232,68 @@
             color: #333;
         }
 
-        .hsl-controls {
+        .color-mapping-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 15px;
+            background-color: #ffffff;
+        }
+
+        .color-mapping-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #eee;
+            border-radius: 3px;
+            background-color: #f9f9f9;
+        }
+
+        .color-mapping-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .source-color-preview {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .color-mapping-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .color-hex {
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .color-count {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .target-color-picker {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .color-mapping-controls {
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 15px;
@@ -240,103 +301,10 @@
             background-color: #ffffff;
         }
 
-        .hsl-controls h4 {
+        .color-mapping-controls h4 {
             margin: 0 0 10px 0;
             color: #333;
             font-size: 14px;
-        }
-
-        .hue-slider-container {
-            position: relative;
-            margin-bottom: 15px;
-        }
-
-        .hue-slider {
-            width: 100%;
-            height: 20px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-            border-radius: 10px;
-            outline: none;
-        }
-
-        .hue-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #333;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .hue-slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #333;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .hue-slider.disabled {
-            opacity: 0.3;
-        }
-
-        .hsl-input-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .hsl-input-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .hsl-input-item label {
-            font-size: 12px;
-            font-weight: bold;
-            color: #555;
-        }
-
-        .hsl-input-item input {
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-size: 14px;
-        }
-
-        .color-mapping-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .color-mapping-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .color-mapping-item label {
-            font-size: 11px;
-            font-weight: bold;
-            text-align: center;
-            color: #555;
-        }
-
-        .color-mapping-item .color-picker {
-            width: 40px;
-            height: 25px;
         }
 
         .sprite-button {
@@ -446,44 +414,16 @@
         <div class="sprite-controls">
             <h3>Sprite Controls</h3>
 
-            <div class="hsl-controls">
-                <h4>HSL Color Mapping</h4>
-
-                <div class="hue-slider-container">
-                    <label>Hue:</label>
-                    <input type="range" id="hue-slider" class="hue-slider" min="0" max="360" value="0">
-                    <span id="hue-value-display">0°</span>
-                </div>
-
-                <div class="hsl-input-group">
-                    <div class="hsl-input-item">
-                        <label>Saturation Threshold:</label>
-                        <input type="number" id="saturation-input" min="0" max="100" value="0" step="1">
-                    </div>
-                    <div class="hsl-input-item">
-                        <label>Lightness Threshold:</label>
-                        <input type="number" id="lightness-input" min="0" max="100" value="100" step="1">
-                    </div>
-                </div>
-
-                <div class="color-mapping-controls">
-                    <div class="color-mapping-item">
-                        <label>Low Saturation</label>
-                        <input type="color" id="color1-picker" class="color-picker" value="#404040">
-                    </div>
-                    <div class="color-mapping-item">
-                        <label>High Sat + Light</label>
-                        <input type="color" id="color2-picker" class="color-picker" value="#ffffff">
-                    </div>
-                    <div class="color-mapping-item">
-                        <label>Other Colors</label>
-                        <input type="color" id="color3-picker" class="color-picker" value="#ff0000">
-                    </div>
-                </div>
+            <div class="color-mapping-controls">
+                <h4>Color Mapping</h4>
 
                 <div class="input-group">
-                    <button class="sprite-button" id="analyze-frames-btn">Analyze Frames</button>
+                    <button class="sprite-button" id="analyze-frames-btn">Extract Colors</button>
                     <button class="sprite-button" id="init-sprites-btn">Generate Sprites</button>
+                </div>
+
+                <div id="color-mapping-container" class="color-mapping-list">
+                    <!-- Color mapping items will be dynamically inserted here -->
                 </div>
             </div>
 
@@ -680,21 +620,16 @@
                 this.showFrames = true;
                 this.spriteOpacity = 70;
 
-                // HSL-based color mapping
-                this.hslData = {}; // { animationName: { hueRanges: [], saturationRange: [], lightnessRange: [] } }
-                this.selectedHue = 0;
-                this.saturationThreshold = 0;
-                this.lightnessThreshold = 100;
-                this.color1 = '#404040'; // Low saturation
-                this.color2 = '#ffffff'; // High sat + light
-                this.color3 = '#ff0000'; // Other colors
+                // Color mapping system
+                this.uniqueColors = {}; // { animationName: [{ hex: '#rrggbb', count: number }] }
+                this.colorMappings = {}; // { animationName: { '#rrggbb': '#targetcolor' } }
+                this.isAnalyzing = false;
 
                 this.initializeElements();
                 this.bindEvents();
                 this.loadAvailableAnimations();
                 this.startAnimation();
                 this.updateDisplays();
-                this.initializeHSLControls();
 
                 // Create frame elements after initial setup
                 setTimeout(() => this.createFrameElements(), 100);
@@ -724,15 +659,9 @@
                 this.showFramesCheckbox = document.getElementById('show-frames-checkbox');
                 this.spriteCanvasContainer = document.getElementById('sprite-canvas-container');
 
-                // HSL controls
-                this.hueSlider = document.getElementById('hue-slider');
-                this.hueValueDisplay = document.getElementById('hue-value-display');
-                this.saturationInput = document.getElementById('saturation-input');
-                this.lightnessInput = document.getElementById('lightness-input');
-                this.color1Picker = document.getElementById('color1-picker');
-                this.color2Picker = document.getElementById('color2-picker');
-                this.color3Picker = document.getElementById('color3-picker');
+                // Color mapping controls
                 this.analyzeFramesBtn = document.getElementById('analyze-frames-btn');
+                this.colorMappingContainer = document.getElementById('color-mapping-container');
 
                 // Will set frame dimensions when frames are created
             }
@@ -745,16 +674,6 @@
                 this.centerInput.value = this.currentCenterPoint;
             }
 
-            initializeHSLControls() {
-                // Set initial values
-                this.hueSlider.value = this.selectedHue;
-                this.hueValueDisplay.textContent = this.selectedHue + '°';
-                this.saturationInput.value = this.saturationThreshold;
-                this.lightnessInput.value = this.lightnessThreshold;
-                this.color1Picker.value = this.color1;
-                this.color2Picker.value = this.color2;
-                this.color3Picker.value = this.color3;
-            }
 
             bindEvents() {
                 this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
@@ -814,40 +733,9 @@
                 });
 
 
-                // HSL control events
-                this.hueSlider.addEventListener('input', (e) => {
-                    this.selectedHue = parseInt(e.target.value);
-                    this.hueValueDisplay.textContent = this.selectedHue + '°';
-                    this.updateSpritePreview();
-                });
-
-                this.saturationInput.addEventListener('input', (e) => {
-                    this.saturationThreshold = parseInt(e.target.value) || 0;
-                    this.updateSpritePreview();
-                });
-
-                this.lightnessInput.addEventListener('input', (e) => {
-                    this.lightnessThreshold = parseInt(e.target.value) || 0;
-                    this.updateSpritePreview();
-                });
-
-                this.color1Picker.addEventListener('change', (e) => {
-                    this.color1 = e.target.value;
-                    this.updateSpritePreview();
-                });
-
-                this.color2Picker.addEventListener('change', (e) => {
-                    this.color2 = e.target.value;
-                    this.updateSpritePreview();
-                });
-
-                this.color3Picker.addEventListener('change', (e) => {
-                    this.color3 = e.target.value;
-                    this.updateSpritePreview();
-                });
-
+                // Color mapping control events
                 this.analyzeFramesBtn.addEventListener('click', () => {
-                    this.analyzeAllFrames();
+                    this.extractAllColors();
                 });
             }
 
@@ -1296,18 +1184,19 @@
                 }
             }
 
-            async analyzeAllFrames() {
+            async extractAllColors() {
+                if (this.isAnalyzing) return;
+
+                this.isAnalyzing = true;
                 this.analyzeFramesBtn.disabled = true;
-                this.analyzeFramesBtn.textContent = 'Analyzing...';
+                this.analyzeFramesBtn.textContent = 'Extracting...';
 
                 try {
-                    const hueSet = new Set();
-                    const saturationValues = [];
-                    const lightnessValues = [];
+                    const colorMap = new Map(); // hex -> count
                     let totalPixelsProcessed = 0;
-                    const MAX_PIXELS = 1000000; // Limit to prevent memory issues
+                    const MAX_PIXELS = 500000; // Limit to prevent memory issues
 
-                    console.log(`Starting analysis of ${this.totalFrames} frames`);
+                    console.log(`Extracting colors from ${this.totalFrames} frames`);
 
                     for (let frame = 0; frame < this.totalFrames; frame++) {
                         const frameImg = this.frameElements[this.currentAnimation]?.[frame];
@@ -1325,10 +1214,10 @@
                         tempCtx.drawImage(frameImg, 0, 0);
                         const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
 
-                        console.log(`Analyzing frame ${frame}: ${tempCanvas.width}x${tempCanvas.height}`);
+                        console.log(`Extracting colors from frame ${frame}: ${tempCanvas.width}x${tempCanvas.height}`);
 
-                        // Sample pixels (every 4th pixel to reduce processing load)
-                        const step = Math.max(4, Math.floor(imageData.data.length / (4 * 10000))); // Sample max 10k pixels per frame
+                        // Sample pixels to find unique colors
+                        const step = Math.max(4, Math.floor(imageData.data.length / (4 * 5000))); // Sample max 5k pixels per frame
 
                         for (let i = 0; i < imageData.data.length && totalPixelsProcessed < MAX_PIXELS; i += step) {
                             const alpha = imageData.data[i + 3];
@@ -1337,10 +1226,10 @@
                                 const g = imageData.data[i + 1];
                                 const b = imageData.data[i + 2];
 
-                                const hsl = rgbToHsl(r, g, b);
-                                hueSet.add(hsl.h);
-                                saturationValues.push(hsl.s);
-                                lightnessValues.push(hsl.l);
+                                // Convert to hex
+                                const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+
+                                colorMap.set(hex, (colorMap.get(hex) || 0) + 1);
                                 totalPixelsProcessed++;
                             }
                         }
@@ -1351,54 +1240,79 @@
                         }
                     }
 
-                    console.log(`Processed ${totalPixelsProcessed} pixels from ${hueSet.size} unique hues`);
+                    // Convert to sorted array (most frequent first)
+                    const uniqueColors = Array.from(colorMap.entries())
+                        .map(([hex, count]) => ({ hex, count }))
+                        .sort((a, b) => b.count - a.count);
 
-                    // Store analysis results
-                    if (saturationValues.length === 0 || lightnessValues.length === 0) {
-                        throw new Error('No pixel data found in animation frames');
+                    this.uniqueColors[this.currentAnimation] = uniqueColors;
+
+                    console.log(`Found ${uniqueColors.length} unique colors from ${totalPixelsProcessed} pixels`);
+
+                    // Initialize color mappings if not exist
+                    if (!this.colorMappings[this.currentAnimation]) {
+                        this.colorMappings[this.currentAnimation] = {};
                     }
 
-                    // Handle large arrays safely to avoid stack overflow
-                    const minSaturation = saturationValues.reduce((min, val) => Math.min(min, val), 100);
-                    const maxSaturation = saturationValues.reduce((max, val) => Math.max(max, val), 0);
-                    const minLightness = lightnessValues.reduce((min, val) => Math.min(min, val), 100);
-                    const maxLightness = lightnessValues.reduce((max, val) => Math.max(max, val), 0);
-
-                    this.hslData[this.currentAnimation] = {
-                        hueRanges: Array.from(hueSet).sort((a, b) => a - b),
-                        saturationRange: [minSaturation, maxSaturation],
-                        lightnessRange: [minLightness, maxLightness]
-                    };
-
-                    console.log(`Analysis results:`, this.hslData[this.currentAnimation]);
-
-                    this.updateHueSlider();
-                    alert(`Analysis complete! Found ${hueSet.size} unique hues.`);
+                    this.createColorMappingUI();
+                    alert(`Color extraction complete! Found ${uniqueColors.length} unique colors.`);
 
                 } catch (error) {
-                    console.error('Error analyzing frames:', error);
-                    alert('Failed to analyze frames: ' + error.message);
+                    console.error('Error extracting colors:', error);
+                    alert('Failed to extract colors: ' + error.message);
                 } finally {
+                    this.isAnalyzing = false;
                     this.analyzeFramesBtn.disabled = false;
-                    this.analyzeFramesBtn.textContent = 'Analyze Frames';
+                    this.analyzeFramesBtn.textContent = 'Extract Colors';
                 }
             }
 
-            updateHueSlider() {
-                if (!this.hslData[this.currentAnimation]) return;
+            createColorMappingUI() {
+                const colors = this.uniqueColors[this.currentAnimation] || [];
+                const container = this.colorMappingContainer;
 
-                const availableHues = this.hslData[this.currentAnimation].hueRanges;
+                // Clear existing items
+                container.innerHTML = '';
 
-                // Create a gradient that greys out unavailable hues
-                let gradientStops = [];
-                for (let h = 0; h <= 360; h += 10) {
-                    const isAvailable = availableHues.some(hue => Math.abs(hue - h) < 5);
-                    const opacity = isAvailable ? 1 : 0.3;
-                    const rgb = hslToRgb(h, 100, 50);
-                    gradientStops.push(`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity}) ${(h/360*100).toFixed(1)}%`);
+                if (colors.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No colors found. Click "Extract Colors" first.</p>';
+                    return;
                 }
 
-                this.hueSlider.style.background = `linear-gradient(to right, ${gradientStops.join(', ')})`;
+                colors.forEach((colorInfo, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'color-mapping-item';
+
+                    // Source color preview
+                    const sourcePreview = document.createElement('div');
+                    sourcePreview.className = 'source-color-preview';
+                    sourcePreview.style.backgroundColor = colorInfo.hex;
+
+                    // Color info
+                    const info = document.createElement('div');
+                    info.className = 'color-mapping-info';
+                    info.innerHTML = `
+                        <div class="color-hex">${colorInfo.hex}</div>
+                        <div class="color-count">${colorInfo.count} pixels</div>
+                    `;
+
+                    // Target color picker
+                    const targetPicker = document.createElement('input');
+                    targetPicker.type = 'color';
+                    targetPicker.className = 'target-color-picker';
+                    targetPicker.value = this.colorMappings[this.currentAnimation][colorInfo.hex] || colorInfo.hex;
+
+                    // Update mapping when color changes
+                    targetPicker.addEventListener('change', (e) => {
+                        this.colorMappings[this.currentAnimation][colorInfo.hex] = e.target.value;
+                        this.updateAllSprites();
+                    });
+
+                    item.appendChild(sourcePreview);
+                    item.appendChild(info);
+                    item.appendChild(targetPicker);
+                    container.appendChild(item);
+                });
             }
 
             async initializeSprites() {
@@ -1472,12 +1386,10 @@
                             const imageData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
                             const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
 
-                            // Parse colors
-                            const color1Rgb = hexToRgb(this.color1);
-                            const color2Rgb = hexToRgb(this.color2);
-                            const color3Rgb = hexToRgb(this.color3);
+                            // Get color mappings for current animation
+                            const colorMappings = this.colorMappings[this.currentAnimation] || {};
 
-                            // Create sprite with 3-color mapping based on HSL
+                            // Create sprite with direct color mapping
                             for (let i = 0; i < imageData.data.length; i += 4) {
                                 const alpha = imageData.data[i + 3];
                                 if (alpha > 0) { // Non-transparent pixel
@@ -1485,24 +1397,16 @@
                                     const g = imageData.data[i + 1];
                                     const b = imageData.data[i + 2];
 
-                                    const hsl = rgbToHsl(r, g, b);
-                                    let targetColor;
+                                    // Convert to hex
+                                    const sourceHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 
-                                    // Map colors based on HSL thresholds
-                                    if (hsl.s < this.saturationThreshold) {
-                                        // Low saturation -> Color 1
-                                        targetColor = color1Rgb;
-                                    } else if (hsl.s >= this.saturationThreshold && hsl.l >= this.lightnessThreshold) {
-                                        // High saturation and high lightness -> Color 2
-                                        targetColor = color2Rgb;
-                                    } else {
-                                        // All other colors -> Color 3
-                                        targetColor = color3Rgb;
-                                    }
+                                    // Get target color from mapping, or use original if no mapping
+                                    const targetHex = colorMappings[sourceHex] || sourceHex;
+                                    const targetRgb = hexToRgb(targetHex);
 
-                                    spriteImageData.data[i] = targetColor.r;     // Red
-                                    spriteImageData.data[i + 1] = targetColor.g; // Green
-                                    spriteImageData.data[i + 2] = targetColor.b; // Blue
+                                    spriteImageData.data[i] = targetRgb.r;     // Red
+                                    spriteImageData.data[i + 1] = targetRgb.g; // Green
+                                    spriteImageData.data[i + 2] = targetRgb.b; // Blue
                                     spriteImageData.data[i + 3] = 255; // Alpha
                                 } else {
                                     spriteImageData.data[i + 3] = 0; // Transparent
@@ -1556,68 +1460,77 @@
                 }
             }
 
-            updateSpritePreview() {
-                // Update current sprite if it exists
-                if (this.currentSpriteCanvas && this.spriteData[this.currentAnimation] &&
-                    this.spriteData[this.currentAnimation][this.currentFrame]) {
-
-                    const ctx = this.currentSpriteCanvas.getContext('2d');
-                    const canvas = this.currentSpriteCanvas;
-
-                    // Get the original frame data
-                    const frameImg = this.frameElements[this.currentAnimation]?.[this.currentFrame];
-                    if (!frameImg || !frameImg.complete) return;
-
-                    // Create temporary canvas to read pixel data from frame
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCanvas.width = frameImg.naturalWidth || frameImg.width;
-                    tempCanvas.height = frameImg.naturalHeight || frameImg.height;
-
-                    tempCtx.drawImage(frameImg, 0, 0);
-                    const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-                    const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
-
-                    // Parse colors
-                    const color1Rgb = hexToRgb(this.color1);
-                    const color2Rgb = hexToRgb(this.color2);
-                    const color3Rgb = hexToRgb(this.color3);
-
-                    // Update sprite with current HSL mapping
-                    for (let i = 0; i < imageData.data.length; i += 4) {
-                        const alpha = imageData.data[i + 3];
-                        if (alpha > 0) { // Non-transparent pixel
-                            const r = imageData.data[i];
-                            const g = imageData.data[i + 1];
-                            const b = imageData.data[i + 2];
-
-                            const hsl = rgbToHsl(r, g, b);
-                            let targetColor;
-
-                            // Map colors based on HSL thresholds
-                            if (hsl.s < this.saturationThreshold) {
-                                // Low saturation -> Color 1
-                                targetColor = color1Rgb;
-                            } else if (hsl.s >= this.saturationThreshold && hsl.l >= this.lightnessThreshold) {
-                                // High saturation and high lightness -> Color 2
-                                targetColor = color2Rgb;
-                            } else {
-                                // All other colors -> Color 3
-                                targetColor = color3Rgb;
-                            }
-
-                            spriteImageData.data[i] = targetColor.r;
-                            spriteImageData.data[i + 1] = targetColor.g;
-                            spriteImageData.data[i + 2] = targetColor.b;
-                            spriteImageData.data[i + 3] = 255;
-                        } else {
-                            spriteImageData.data[i + 3] = 0; // Transparent
-                        }
-                    }
-
-                    // Update the canvas
-                    ctx.putImageData(spriteImageData, 0, 0);
+            async updateAllSprites() {
+                // Update all sprites for current animation with current color mappings
+                if (!this.spriteCanvases[this.currentAnimation] || !this.colorMappings[this.currentAnimation]) {
+                    return;
                 }
+
+                const colorMappings = this.colorMappings[this.currentAnimation];
+                console.log('Updating all sprites with new color mappings');
+
+                // Update all existing sprite canvases
+                for (let frameIndex = 0; frameIndex < this.totalFrames; frameIndex++) {
+                    const canvas = this.spriteCanvases[this.currentAnimation][frameIndex];
+                    if (!canvas) continue;
+
+                    const frameImg = this.frameElements[this.currentAnimation]?.[frameIndex];
+                    if (!frameImg || !frameImg.complete) continue;
+
+                    // Recreate the sprite with new mappings
+                    await this.updateSpriteForFrame(frameIndex, canvas, frameImg, colorMappings);
+                }
+
+                console.log('All sprites updated');
+            }
+
+            async updateSpriteForFrame(frameIndex, canvas, frameImg, colorMappings) {
+                return new Promise((resolve) => {
+                    try {
+                        const ctx = canvas.getContext('2d');
+
+                        // Create temporary canvas to read pixel data from frame
+                        const tempCanvas = document.createElement('canvas');
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCanvas.width = frameImg.naturalWidth || frameImg.width;
+                        tempCanvas.height = frameImg.naturalHeight || frameImg.height;
+
+                        tempCtx.drawImage(frameImg, 0, 0);
+                        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                        const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
+
+                        // Update sprite with direct color mapping
+                        for (let i = 0; i < imageData.data.length; i += 4) {
+                            const alpha = imageData.data[i + 3];
+                            if (alpha > 0) { // Non-transparent pixel
+                                const r = imageData.data[i];
+                                const g = imageData.data[i + 1];
+                                const b = imageData.data[i + 2];
+
+                                // Convert to hex
+                                const sourceHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+
+                                // Get target color from mapping, or use original if no mapping
+                                const targetHex = colorMappings[sourceHex] || sourceHex;
+                                const targetRgb = hexToRgb(targetHex);
+
+                                spriteImageData.data[i] = targetRgb.r;
+                                spriteImageData.data[i + 1] = targetRgb.g;
+                                spriteImageData.data[i + 2] = targetRgb.b;
+                                spriteImageData.data[i + 3] = 255;
+                            } else {
+                                spriteImageData.data[i + 3] = 0; // Transparent
+                            }
+                        }
+
+                        // Update the canvas
+                        ctx.putImageData(spriteImageData, 0, 0);
+                        resolve();
+                    } catch (error) {
+                        console.error(`Error updating sprite for frame ${frameIndex}:`, error);
+                        resolve();
+                    }
+                });
             }
 
             setContainerDimensions() {
@@ -1700,8 +1613,8 @@
                 // Clear sprite canvas container when switching animations
                 this.spriteCanvasContainer.innerHTML = '';
 
-                // Update hue slider for new animation
-                this.updateHueSlider();
+                // Update color mapping UI for new animation
+                this.createColorMappingUI();
 
                 // Reset frame dimensions when switching animations
                 this.frameWidth = 0;
