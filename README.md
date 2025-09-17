@@ -62,22 +62,44 @@ python server.py
 
 Navigate to: http://localhost:5000
 
+You'll see the main tools page with links to both tools.
+
 ## Usage
 
-### Basic Playback
+### New Animation Tool
+**Basic Playback:**
 - Use **Play/Pause** button to control animation
 - Adjust **Delay** slider to change playback speed
 - Use **Frame** slider to scrub through frames
 
-### Creating New Animations
+**Center Point Adjustment:**
+- Use **Center X Offset** to adjust frame alignment
+- Red indicator line shows current center position
+- Click **Apply to Rest** to apply current offset to subsequent frames
+
+**Creating New Animations:**
 1. Set **Start Frame** and **End Frame** to select your range
 2. Enter a **New animation name**
 3. Click **Create Animation**
-4. The new animation will be created and automatically selected
+4. The new animation will be created with center adjustments applied
 
-### Switching Animations
+### Sprite Tool
+**Color Extraction:**
+1. Click **Extract Colors** to analyze all frames
+2. Unique colors will be listed with pixel counts
+
+**Color Mapping:**
+1. Use color pickers to map source colors to target colors
+2. Changes apply in real-time to all sprites
+
+**Sprite Generation:**
+1. Click **Generate Sprites** to create sprite overlays
+2. Adjust **Sprite Opacity** to control visibility
+3. Toggle **Show Frames** to hide/show original frames
+
+**Switching Animations:**
 - Use the **Animation dropdown** to switch between created animations
-- Each animation maintains its own frame count and range
+- Each tool maintains independent settings per animation
 
 ## API Endpoints
 
@@ -92,7 +114,9 @@ The Flask server provides these endpoints:
 
 ```
 Rotoscoper/
-├── animation-player.html    # Main web interface
+├── index.html               # Main tools landing page
+├── new-animation-tool.html  # New animation creation tool
+├── sprite-tool.html         # Sprite generation tool
 ├── server.py               # Flask backend server
 ├── setup.py               # Setup script
 ├── requirements.txt       # Python dependencies
@@ -109,13 +133,16 @@ Rotoscoper/
 
 ### Server-Side Features
 - **Frame copying**: Copies selected frame ranges to new folders
+- **Center point padding**: Applies frame alignment adjustments during creation
 - **Automatic renaming**: Renumbers frames sequentially (0, 1, 2, ...)
 - **Validation**: Checks for duplicate names, invalid ranges
 - **CORS support**: Enables cross-origin requests
 
 ### Client-Side Features
+- **Isolated tools**: Each tool runs independently with its own functionality
 - **Dynamic loading**: Fetches available animations from server
 - **Real-time updates**: Updates UI based on server responses
+- **Color processing**: Client-side color extraction and sprite generation
 - **Error handling**: Graceful fallbacks for network issues
 
 ## Troubleshooting
@@ -137,10 +164,12 @@ Rotoscoper/
 
 ## Development
 
-To modify the application:
+To modify the tools:
 
-1. **Frontend**: Edit `animation-player.html`
-2. **Backend**: Edit `server.py`
-3. **Restart server** to see changes
+1. **Main Page**: Edit `index.html`
+2. **New Animation Tool**: Edit `new-animation-tool.html`
+3. **Sprite Tool**: Edit `sprite-tool.html`
+4. **Backend**: Edit `server.py`
+5. **Restart server** to see changes (for HTML files)
 
-The server runs in debug mode by default, so Python changes are auto-reloaded.
+The server runs in debug mode by default, so Python changes are auto-reloaded. Each tool is completely isolated, so changes to one won't affect the other.

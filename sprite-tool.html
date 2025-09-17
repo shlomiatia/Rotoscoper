@@ -291,6 +291,73 @@
         .info-label {
             font-weight: bold;
         }
+
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .sort-controls label {
+            font-weight: bold;
+            min-width: auto;
+        }
+
+        .sort-select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background-color: white;
+        }
+
+        .global-color-picker {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+
+        .global-color-picker label {
+            font-weight: bold;
+            min-width: auto;
+        }
+
+        .global-color-input {
+            width: 50px;
+            height: 30px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .color-mapping-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #eee;
+            border-radius: 3px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+
+        .color-mapping-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .color-mapping-item.selected {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .color-checkbox {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -322,6 +389,22 @@
                 <div class="input-group">
                     <button class="sprite-button" id="analyze-frames-btn">Extract Colors</button>
                     <button class="sprite-button" id="init-sprites-btn">Generate Sprites</button>
+                </div>
+
+                <div class="global-color-picker">
+                    <label>Map selected colors to:</label>
+                    <input type="color" id="global-color-input" class="global-color-input" value="#ff0000">
+                    <span id="selected-count">0 colors selected</span>
+                </div>
+
+                <div class="sort-controls">
+                    <label>Sort by:</label>
+                    <select id="color-sort-select" class="sort-select">
+                        <option value="frequency">Frequency (default)</option>
+                        <option value="hue">Hue</option>
+                        <option value="saturation">Saturation</option>
+                        <option value="lightness">Lightness</option>
+                    </select>
                 </div>
 
                 <div id="color-mapping-container" class="color-mapping-list">
@@ -395,6 +478,40 @@
             } : null;
         }
 
+        function rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0; // achromatic
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return {
+                h: Math.round(h * 360),
+                s: Math.round(s * 100),
+                l: Math.round(l * 100)
+            };
+        }
+
+        function hexToHsl(hex) {
+            const rgb = hexToRgb(hex);
+            return rgb ? rgbToHsl(rgb.r, rgb.g, rgb.b) : null;
+        }
+
         class SpriteTool {
             constructor() {
                 this.currentFrame = 0;
@@ -419,6 +536,8 @@
 
                 this.uniqueColors = {};
                 this.colorMappings = {};
+                this.selectedColors = {}; // Track selected colors per animation
+                this.globalColor = '#ff0000';
                 this.isAnalyzing = false;
 
                 this.initializeElements();
@@ -448,6 +567,9 @@
                 this.spriteCanvasContainer = document.getElementById('sprite-canvas-container');
                 this.analyzeFramesBtn = document.getElementById('analyze-frames-btn');
                 this.colorMappingContainer = document.getElementById('color-mapping-container');
+                this.colorSortSelect = document.getElementById('color-sort-select');
+                this.globalColorInput = document.getElementById('global-color-input');
+                this.selectedCountSpan = document.getElementById('selected-count');
             }
 
             bindEvents() {
@@ -489,6 +611,15 @@
 
                 this.analyzeFramesBtn.addEventListener('click', () => {
                     this.extractAllColors();
+                });
+
+                this.colorSortSelect.addEventListener('change', () => {
+                    this.createColorMappingUI();
+                });
+
+                this.globalColorInput.addEventListener('change', (e) => {
+                    this.globalColor = e.target.value;
+                    this.updateSelectedColorMappings();
                 });
             }
 
@@ -767,9 +898,22 @@
                     return;
                 }
 
-                colors.forEach((colorInfo, index) => {
+                // Initialize selected colors for this animation if not exists
+                if (!this.selectedColors[this.currentAnimation]) {
+                    this.selectedColors[this.currentAnimation] = new Set();
+                }
+
+                // Sort colors based on selected option
+                const sortedColors = this.sortColors([...colors]);
+
+                sortedColors.forEach((colorInfo, index) => {
                     const item = document.createElement('div');
                     item.className = 'color-mapping-item';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'color-checkbox';
+                    checkbox.checked = this.selectedColors[this.currentAnimation].has(colorInfo.hex);
 
                     const sourcePreview = document.createElement('div');
                     sourcePreview.className = 'source-color-preview';
@@ -782,21 +926,119 @@
                         <div class="color-count">${colorInfo.count} pixels</div>
                     `;
 
-                    const targetPicker = document.createElement('input');
-                    targetPicker.type = 'color';
-                    targetPicker.className = 'target-color-picker';
-                    targetPicker.value = this.colorMappings[this.currentAnimation][colorInfo.hex] || colorInfo.hex;
+                    // Update item appearance based on selection
+                    if (checkbox.checked) {
+                        item.classList.add('selected');
+                    }
 
-                    targetPicker.addEventListener('change', (e) => {
-                        this.colorMappings[this.currentAnimation][colorInfo.hex] = e.target.value;
-                        this.updateAllSprites();
+                    // Add event listeners
+                    checkbox.addEventListener('change', (e) => {
+                        this.toggleColorSelection(colorInfo.hex, e.target.checked);
                     });
 
+                    item.addEventListener('click', (e) => {
+                        if (e.target !== checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                            this.toggleColorSelection(colorInfo.hex, checkbox.checked);
+                        }
+                    });
+
+                    item.appendChild(checkbox);
                     item.appendChild(sourcePreview);
                     item.appendChild(info);
-                    item.appendChild(targetPicker);
                     container.appendChild(item);
                 });
+
+                this.updateSelectedCount();
+            }
+
+            sortColors(colors) {
+                const sortBy = this.colorSortSelect.value;
+
+                switch (sortBy) {
+                    case 'hue':
+                        return colors.sort((a, b) => {
+                            const hslA = hexToHsl(a.hex);
+                            const hslB = hexToHsl(b.hex);
+                            if (!hslA || !hslB) return 0;
+                            return hslA.h - hslB.h;
+                        });
+
+                    case 'saturation':
+                        return colors.sort((a, b) => {
+                            const hslA = hexToHsl(a.hex);
+                            const hslB = hexToHsl(b.hex);
+                            if (!hslA || !hslB) return 0;
+                            return hslB.s - hslA.s; // Descending (most saturated first)
+                        });
+
+                    case 'lightness':
+                        return colors.sort((a, b) => {
+                            const hslA = hexToHsl(a.hex);
+                            const hslB = hexToHsl(b.hex);
+                            if (!hslA || !hslB) return 0;
+                            return hslA.l - hslB.l; // Ascending (darkest first)
+                        });
+
+                    case 'frequency':
+                    default:
+                        return colors.sort((a, b) => b.count - a.count); // Descending frequency
+                }
+            }
+
+            toggleColorSelection(hex, isSelected) {
+                if (!this.selectedColors[this.currentAnimation]) {
+                    this.selectedColors[this.currentAnimation] = new Set();
+                }
+
+                if (isSelected) {
+                    this.selectedColors[this.currentAnimation].add(hex);
+                } else {
+                    this.selectedColors[this.currentAnimation].delete(hex);
+                }
+
+                this.updateSelectedCount();
+                this.updateSelectedColorMappings();
+                this.updateColorItemAppearance();
+            }
+
+            updateSelectedCount() {
+                const count = this.selectedColors[this.currentAnimation] ?
+                    this.selectedColors[this.currentAnimation].size : 0;
+                this.selectedCountSpan.textContent = `${count} color${count !== 1 ? 's' : ''} selected`;
+            }
+
+            updateColorItemAppearance() {
+                const items = this.colorMappingContainer.querySelectorAll('.color-mapping-item');
+                items.forEach(item => {
+                    const checkbox = item.querySelector('.color-checkbox');
+                    if (checkbox && checkbox.checked) {
+                        item.classList.add('selected');
+                    } else {
+                        item.classList.remove('selected');
+                    }
+                });
+            }
+
+            updateSelectedColorMappings() {
+                if (!this.colorMappings[this.currentAnimation]) {
+                    this.colorMappings[this.currentAnimation] = {};
+                }
+
+                if (!this.selectedColors[this.currentAnimation]) {
+                    return;
+                }
+
+                // Update mappings for selected colors
+                this.selectedColors[this.currentAnimation].forEach(hex => {
+                    this.colorMappings[this.currentAnimation][hex] = this.globalColor;
+                });
+
+                // Regenerate sprites if they exist
+                if (this.spriteCanvases[this.currentAnimation] &&
+                    Object.keys(this.spriteCanvases[this.currentAnimation]).length > 0) {
+                    this.updateAllSprites();
+                }
             }
 
             async initializeSprites() {
@@ -870,13 +1112,17 @@
 
                                     const sourceHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 
-                                    const targetHex = colorMappings[sourceHex] || sourceHex;
-                                    const targetRgb = hexToRgb(targetHex);
-
-                                    spriteImageData.data[i] = targetRgb.r;
-                                    spriteImageData.data[i + 1] = targetRgb.g;
-                                    spriteImageData.data[i + 2] = targetRgb.b;
-                                    spriteImageData.data[i + 3] = 255;
+                                    // Only show mapped colors, everything else is transparent
+                                    if (colorMappings[sourceHex]) {
+                                        const targetRgb = hexToRgb(colorMappings[sourceHex]);
+                                        spriteImageData.data[i] = targetRgb.r;
+                                        spriteImageData.data[i + 1] = targetRgb.g;
+                                        spriteImageData.data[i + 2] = targetRgb.b;
+                                        spriteImageData.data[i + 3] = 255;
+                                    } else {
+                                        // Unmapped colors are transparent
+                                        spriteImageData.data[i + 3] = 0;
+                                    }
                                 } else {
                                     spriteImageData.data[i + 3] = 0;
                                 }
@@ -965,13 +1211,17 @@
 
                                 const sourceHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 
-                                const targetHex = colorMappings[sourceHex] || sourceHex;
-                                const targetRgb = hexToRgb(targetHex);
-
-                                spriteImageData.data[i] = targetRgb.r;
-                                spriteImageData.data[i + 1] = targetRgb.g;
-                                spriteImageData.data[i + 2] = targetRgb.b;
-                                spriteImageData.data[i + 3] = 255;
+                                // Only show mapped colors, everything else is transparent
+                                if (colorMappings[sourceHex]) {
+                                    const targetRgb = hexToRgb(colorMappings[sourceHex]);
+                                    spriteImageData.data[i] = targetRgb.r;
+                                    spriteImageData.data[i + 1] = targetRgb.g;
+                                    spriteImageData.data[i + 2] = targetRgb.b;
+                                    spriteImageData.data[i + 3] = 255;
+                                } else {
+                                    // Unmapped colors are transparent
+                                    spriteImageData.data[i + 3] = 0;
+                                }
                             } else {
                                 spriteImageData.data[i + 3] = 0;
                             }
@@ -1038,6 +1288,11 @@
                 this.frameInput.max = this.totalFrames - 1;
 
                 this.spriteCanvasContainer.innerHTML = '';
+
+                // Initialize selected colors for new animation
+                if (!this.selectedColors[animationName]) {
+                    this.selectedColors[animationName] = new Set();
+                }
 
                 this.createColorMappingUI();
 
