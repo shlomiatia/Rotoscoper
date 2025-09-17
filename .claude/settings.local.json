@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(start animation-player.html)",
+      "Bash(start http://localhost:5000)"
     ],
     "deny": [],
     "ask": []
