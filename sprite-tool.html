@@ -311,22 +311,35 @@
             background-color: white;
         }
 
-        .global-color-picker {
+        .magic-wand-controls {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             margin-bottom: 15px;
             align-items: center;
-            padding: 10px;
+            padding: 15px;
             background-color: #f0f0f0;
             border-radius: 5px;
         }
 
-        .global-color-picker label {
+        .magic-wand-controls label {
             font-weight: bold;
             min-width: auto;
         }
 
-        .global-color-input {
+        .tolerance-input {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .tolerance-btn {
+            font-size: 12px;
+            padding: 6px 10px;
+            margin-left: 5px;
+        }
+
+        .wand-color-input {
             width: 50px;
             height: 30px;
             border: none;
@@ -334,29 +347,26 @@
             cursor: pointer;
         }
 
-        .color-mapping-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding: 8px;
-            border: 1px solid #eee;
-            border-radius: 3px;
-            background-color: #f9f9f9;
-            cursor: pointer;
+        .frame-preview-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: crosshair;
         }
 
-        .color-mapping-item:hover {
-            background-color: #f0f0f0;
-        }
-
-        .color-mapping-item.selected {
-            background-color: #e3f2fd;
-            border-color: #2196f3;
-        }
-
-        .color-checkbox {
-            cursor: pointer;
+        .click-indicator {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ff0000;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20;
+            transform: translate(-50%, -50%);
+            display: none;
         }
     </style>
 </head>
@@ -368,61 +378,25 @@
         </div>
 
         <div class="animation-container">
-            <div class="frame-preview-container">
+            <div class="frame-preview-container" id="frame-preview-container">
                 <div id="frame-container"></div>
                 <div class="sprite-canvas-container" id="sprite-canvas-container"></div>
+                <div class="click-indicator" id="click-indicator"></div>
             </div>
-        </div>
-
-        <div class="animation-selector">
-            <select id="animation-select">
-                <option value="Walk">Walk</option>
-            </select>
         </div>
 
         <div class="sprite-controls">
-            <h3>Sprite Controls</h3>
+            <h3>Magic Wand Tool</h3>
 
-            <div class="color-mapping-controls">
-                <h4>Color Mapping</h4>
+            <div class="magic-wand-controls">
+                <label>Tolerance:</label>
+                <input type="number" id="tolerance-input" class="tolerance-input" value="128" min="0" max="255" step="1">
+                <button class="sprite-button tolerance-btn" id="less-btn">Less</button>
+                <button class="sprite-button tolerance-btn" id="more-btn">More</button>
+                <button class="sprite-button tolerance-btn" id="perfect-btn">Perfect</button>
 
-                <div class="input-group">
-                    <button class="sprite-button" id="analyze-frames-btn">Extract Colors</button>
-                    <button class="sprite-button" id="init-sprites-btn">Generate Sprites</button>
-                </div>
-
-                <div class="global-color-picker">
-                    <label>Map selected colors to:</label>
-                    <input type="color" id="global-color-input" class="global-color-input" value="#ff0000">
-                    <span id="selected-count">0 colors selected</span>
-                </div>
-
-                <div class="sort-controls">
-                    <label>Sort by:</label>
-                    <select id="color-sort-select" class="sort-select">
-                        <option value="frequency">Frequency (default)</option>
-                        <option value="hue">Hue</option>
-                        <option value="saturation">Saturation</option>
-                        <option value="lightness">Lightness</option>
-                    </select>
-                </div>
-
-                <div id="color-mapping-container" class="color-mapping-list">
-                    <!-- Color mapping items will be dynamically inserted here -->
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>Sprite Opacity:</label>
-                <input type="number" id="sprite-opacity-input" class="opacity-input" value="70" min="0" max="100" step="1">
-                <span>%</span>
-            </div>
-
-            <div class="input-group">
-                <label>
-                    <input type="checkbox" id="show-frames-checkbox" checked>
-                    Show Frames
-                </label>
+                <label>Paint Color:</label>
+                <input type="color" id="wand-color-input" class="wand-color-input" value="#ff0000">
             </div>
         </div>
 
@@ -456,14 +430,27 @@
             </div>
         </div>
 
-        <div class="info">
-            <div class="info-item">
-                <span class="info-label">Animation Frames:</span>
-                <span id="current-animation-frames">150</span>
+        <div class="control-group">
+            <h3>Animation Settings</h3>
+
+            <div class="input-group">
+                <label>Animation:</label>
+                <select id="animation-select">
+                    <option value="Walk">Walk</option>
+                </select>
             </div>
-            <div class="info-item">
-                <span class="info-label">Animation Length:</span>
-                <span id="total-length-display">4.50s</span>
+
+            <div class="input-group">
+                <label>Sprite Opacity:</label>
+                <input type="number" id="sprite-opacity-input" class="opacity-input" value="70" min="0" max="100" step="1">
+                <span>%</span>
+            </div>
+
+            <div class="input-group">
+                <label>
+                    <input type="checkbox" id="show-frames-checkbox" checked>
+                    Show Frames
+                </label>
             </div>
         </div>
     </div>
@@ -517,7 +504,7 @@
                 this.currentFrame = 0;
                 this.totalFrames = 150;
                 this.delay = 30;
-                this.isPlaying = true;
+                this.isPlaying = false;
                 this.animationId = null;
                 this.currentAnimation = 'Walk';
                 this.animations = [];
@@ -534,19 +521,21 @@
                 this.showFrames = true;
                 this.spriteOpacity = 70;
 
-                this.uniqueColors = {};
-                this.colorMappings = {};
-                this.selectedColors = {}; // Track selected colors per animation
-                this.globalColor = '#ff0000';
-                this.isAnalyzing = false;
+                // Magic wand tool properties
+                this.tolerance = 128;
+                this.paintColor = '#ff0000';
+                this.frameSettings = {}; // Store per-frame settings: {animationName: {frameIndex: {clickX, clickY, tolerance, minTolerance, maxTolerance}}}
+                this.magicWandMasks = {}; // Store selection masks per animation per frame
 
                 this.initializeElements();
                 this.bindEvents();
                 this.loadAvailableAnimations();
-                this.startAnimation();
                 this.updateDisplays();
 
-                setTimeout(() => this.createFrameElements(), 100);
+                setTimeout(() => {
+                    this.createFrameElements();
+                    this.initializeFrameSettings();
+                }, 100);
             }
 
             initializeElements() {
@@ -557,19 +546,18 @@
                 this.delaySlider = document.getElementById('delay-slider');
                 this.delayInput = document.getElementById('delay-input');
                 this.fpsDisplay = document.getElementById('fps-display');
-                this.currentAnimationFrames = document.getElementById('current-animation-frames');
-                this.totalLengthDisplay = document.getElementById('total-length-display');
                 this.elapsedTimeDisplay = document.getElementById('elapsed-time-display');
                 this.animationSelect = document.getElementById('animation-select');
                 this.spriteOpacityInput = document.getElementById('sprite-opacity-input');
-                this.initSpritesBtn = document.getElementById('init-sprites-btn');
                 this.showFramesCheckbox = document.getElementById('show-frames-checkbox');
                 this.spriteCanvasContainer = document.getElementById('sprite-canvas-container');
-                this.analyzeFramesBtn = document.getElementById('analyze-frames-btn');
-                this.colorMappingContainer = document.getElementById('color-mapping-container');
-                this.colorSortSelect = document.getElementById('color-sort-select');
-                this.globalColorInput = document.getElementById('global-color-input');
-                this.selectedCountSpan = document.getElementById('selected-count');
+                this.framePreviewContainer = document.getElementById('frame-preview-container');
+                this.clickIndicator = document.getElementById('click-indicator');
+                this.toleranceInput = document.getElementById('tolerance-input');
+                this.wandColorInput = document.getElementById('wand-color-input');
+                this.lessBtn = document.getElementById('less-btn');
+                this.moreBtn = document.getElementById('more-btn');
+                this.perfectBtn = document.getElementById('perfect-btn');
             }
 
             bindEvents() {
@@ -595,10 +583,6 @@
                     this.switchAnimation(e.target.value);
                 });
 
-                this.initSpritesBtn.addEventListener('click', () => {
-                    this.initializeSprites();
-                });
-
                 this.showFramesCheckbox.addEventListener('change', (e) => {
                     this.showFrames = e.target.checked;
                     this.updateVisibility();
@@ -609,22 +593,38 @@
                     this.updateSpriteOpacity();
                 });
 
-                this.analyzeFramesBtn.addEventListener('click', () => {
-                    this.extractAllColors();
+                // Magic wand tool events
+                this.framePreviewContainer.addEventListener('click', (e) => {
+                    this.handleFrameClick(e);
                 });
 
-                this.colorSortSelect.addEventListener('change', () => {
-                    this.createColorMappingUI();
+                this.toleranceInput.addEventListener('change', (e) => {
+                    this.tolerance = parseInt(e.target.value) || 0;
+                    this.updateCurrentFrameSetting();
+                    this.reapplyCurrentFrame();
                 });
 
-                this.globalColorInput.addEventListener('change', (e) => {
-                    this.globalColor = e.target.value;
-                    this.updateSelectedColorMappings();
+                this.wandColorInput.addEventListener('change', (e) => {
+                    this.paintColor = e.target.value;
+                    this.updateAllSprites();
+                });
+
+                this.lessBtn.addEventListener('click', () => {
+                    this.adjustToleranceLess();
+                });
+
+                this.moreBtn.addEventListener('click', () => {
+                    this.adjustToleranceMore();
+                });
+
+                this.perfectBtn.addEventListener('click', () => {
+                    this.markPerfectAndNextFrame();
                 });
             }
 
             setFrame(frame) {
                 this.currentFrame = Math.max(0, Math.min(frame, this.totalFrames - 1));
+                this.loadCurrentFrameSettings();
                 this.updateFrame();
                 this.updateDisplays();
             }
@@ -755,9 +755,6 @@
                 const fps = (1000 / this.delay).toFixed(1);
                 this.fpsDisplay.textContent = fps;
 
-                this.currentAnimationFrames.textContent = this.totalFrames;
-                const totalLength = (this.totalFrames * this.delay / 1000).toFixed(2);
-                this.totalLengthDisplay.textContent = totalLength + 's';
 
                 const elapsedTime = (this.currentFrame * this.delay / 1000).toFixed(2);
                 this.elapsedTimeDisplay.textContent = elapsedTime + 's';
@@ -818,336 +815,325 @@
                 });
             }
 
-            async extractAllColors() {
-                if (this.isAnalyzing) return;
+            handleFrameClick(e) {
+                const rect = this.framePreviewContainer.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
 
-                this.isAnalyzing = true;
-                this.analyzeFramesBtn.disabled = true;
-                this.analyzeFramesBtn.textContent = 'Extracting...';
+                // Get the actual image element position
+                if (this.currentFrameElement) {
+                    const imgRect = this.currentFrameElement.getBoundingClientRect();
+                    const containerRect = this.framePreviewContainer.getBoundingClientRect();
 
-                try {
-                    const colorMap = new Map();
-                    let totalPixelsProcessed = 0;
-                    const MAX_PIXELS = 500000;
+                    const imgX = e.clientX - imgRect.left;
+                    const imgY = e.clientY - imgRect.top;
 
-                    for (let frame = 0; frame < this.totalFrames; frame++) {
-                        const frameImg = this.frameElements[this.currentAnimation]?.[frame];
-                        if (!frameImg || !frameImg.complete) {
-                            continue;
-                        }
+                    // Check if click is within the image bounds
+                    if (imgX >= 0 && imgX < imgRect.width && imgY >= 0 && imgY < imgRect.height) {
+                        // Convert screen coordinates to image coordinates
+                        const scaleX = this.frameWidth / imgRect.width;
+                        const scaleY = this.frameHeight / imgRect.height;
 
-                        const tempCanvas = document.createElement('canvas');
-                        const tempCtx = tempCanvas.getContext('2d');
-                        tempCanvas.width = frameImg.naturalWidth || frameImg.width;
-                        tempCanvas.height = frameImg.naturalHeight || frameImg.height;
+                        const imageX = Math.floor(imgX * scaleX);
+                        const imageY = Math.floor(imgY * scaleY);
 
-                        tempCtx.drawImage(frameImg, 0, 0);
-                        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                        // Store settings for current frame
+                        this.saveCurrentFrameSettings(imageX, imageY, this.tolerance);
 
-                        const step = Math.max(4, Math.floor(imageData.data.length / (4 * 5000)));
+                        // Show click indicator
+                        this.clickIndicator.style.left = x + 'px';
+                        this.clickIndicator.style.top = y + 'px';
+                        this.clickIndicator.style.display = 'block';
 
-                        for (let i = 0; i < imageData.data.length && totalPixelsProcessed < MAX_PIXELS; i += step) {
-                            const alpha = imageData.data[i + 3];
-                            if (alpha > 0) {
-                                const r = imageData.data[i];
-                                const g = imageData.data[i + 1];
-                                const b = imageData.data[i + 2];
-
-                                const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-
-                                colorMap.set(hex, (colorMap.get(hex) || 0) + 1);
-                                totalPixelsProcessed++;
-                            }
-                        }
-
-                        if (totalPixelsProcessed >= MAX_PIXELS) {
-                            break;
-                        }
+                        this.performMagicWandCurrentFrame(imageX, imageY);
                     }
-
-                    const uniqueColors = Array.from(colorMap.entries())
-                        .map(([hex, count]) => ({ hex, count }))
-                        .sort((a, b) => b.count - a.count);
-
-                    this.uniqueColors[this.currentAnimation] = uniqueColors;
-
-                    if (!this.colorMappings[this.currentAnimation]) {
-                        this.colorMappings[this.currentAnimation] = {};
-                    }
-
-                    this.createColorMappingUI();
-                    alert(`Color extraction complete! Found ${uniqueColors.length} unique colors.`);
-
-                } catch (error) {
-                    alert('Failed to extract colors: ' + error.message);
-                } finally {
-                    this.isAnalyzing = false;
-                    this.analyzeFramesBtn.disabled = false;
-                    this.analyzeFramesBtn.textContent = 'Extract Colors';
                 }
             }
 
-            createColorMappingUI() {
-                const colors = this.uniqueColors[this.currentAnimation] || [];
-                const container = this.colorMappingContainer;
-
-                container.innerHTML = '';
-
-                if (colors.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No colors found. Click "Extract Colors" first.</p>';
-                    return;
+            loadCurrentFrameSettings() {
+                // Load settings for current frame and update UI
+                if (!this.frameSettings[this.currentAnimation]) {
+                    this.frameSettings[this.currentAnimation] = {};
                 }
 
-                // Initialize selected colors for this animation if not exists
-                if (!this.selectedColors[this.currentAnimation]) {
-                    this.selectedColors[this.currentAnimation] = new Set();
-                }
+                const frameSettings = this.frameSettings[this.currentAnimation][this.currentFrame];
+                if (frameSettings) {
+                    this.tolerance = frameSettings.tolerance;
+                    this.toleranceInput.value = this.tolerance;
 
-                // Sort colors based on selected option
-                const sortedColors = this.sortColors([...colors]);
-
-                sortedColors.forEach((colorInfo, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'color-mapping-item';
-
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'color-checkbox';
-                    checkbox.checked = this.selectedColors[this.currentAnimation].has(colorInfo.hex);
-
-                    const sourcePreview = document.createElement('div');
-                    sourcePreview.className = 'source-color-preview';
-                    sourcePreview.style.backgroundColor = colorInfo.hex;
-
-                    const info = document.createElement('div');
-                    info.className = 'color-mapping-info';
-                    info.innerHTML = `
-                        <div class="color-hex">${colorInfo.hex}</div>
-                        <div class="color-count">${colorInfo.count} pixels</div>
-                    `;
-
-                    // Update item appearance based on selection
-                    if (checkbox.checked) {
-                        item.classList.add('selected');
+                    // Update click indicator position if there's a saved click
+                    if (frameSettings.clickX >= 0 && frameSettings.clickY >= 0) {
+                        this.updateClickIndicatorPosition(frameSettings.clickX, frameSettings.clickY);
+                    } else {
+                        this.clickIndicator.style.display = 'none';
                     }
-
-                    // Add event listeners
-                    checkbox.addEventListener('change', (e) => {
-                        this.toggleColorSelection(colorInfo.hex, e.target.checked);
-                    });
-
-                    item.addEventListener('click', (e) => {
-                        if (e.target !== checkbox) {
-                            checkbox.checked = !checkbox.checked;
-                            this.toggleColorSelection(colorInfo.hex, checkbox.checked);
-                        }
-                    });
-
-                    item.appendChild(checkbox);
-                    item.appendChild(sourcePreview);
-                    item.appendChild(info);
-                    container.appendChild(item);
-                });
-
-                this.updateSelectedCount();
-            }
-
-            sortColors(colors) {
-                const sortBy = this.colorSortSelect.value;
-
-                switch (sortBy) {
-                    case 'hue':
-                        return colors.sort((a, b) => {
-                            const hslA = hexToHsl(a.hex);
-                            const hslB = hexToHsl(b.hex);
-                            if (!hslA || !hslB) return 0;
-                            return hslA.h - hslB.h;
-                        });
-
-                    case 'saturation':
-                        return colors.sort((a, b) => {
-                            const hslA = hexToHsl(a.hex);
-                            const hslB = hexToHsl(b.hex);
-                            if (!hslA || !hslB) return 0;
-                            return hslB.s - hslA.s; // Descending (most saturated first)
-                        });
-
-                    case 'lightness':
-                        return colors.sort((a, b) => {
-                            const hslA = hexToHsl(a.hex);
-                            const hslB = hexToHsl(b.hex);
-                            if (!hslA || !hslB) return 0;
-                            return hslA.l - hslB.l; // Ascending (darkest first)
-                        });
-
-                    case 'frequency':
-                    default:
-                        return colors.sort((a, b) => b.count - a.count); // Descending frequency
-                }
-            }
-
-            toggleColorSelection(hex, isSelected) {
-                if (!this.selectedColors[this.currentAnimation]) {
-                    this.selectedColors[this.currentAnimation] = new Set();
-                }
-
-                if (isSelected) {
-                    this.selectedColors[this.currentAnimation].add(hex);
                 } else {
-                    this.selectedColors[this.currentAnimation].delete(hex);
+                    // Reset to defaults if no settings for this frame
+                    this.clickIndicator.style.display = 'none';
+                }
+            }
+
+            saveCurrentFrameSettings(clickX, clickY, tolerance) {
+                if (!this.frameSettings[this.currentAnimation]) {
+                    this.frameSettings[this.currentAnimation] = {};
                 }
 
-                this.updateSelectedCount();
-                this.updateSelectedColorMappings();
-                this.updateColorItemAppearance();
+                this.frameSettings[this.currentAnimation][this.currentFrame] = {
+                    clickX: clickX,
+                    clickY: clickY,
+                    tolerance: tolerance,
+                    minTolerance: 0,
+                    maxTolerance: 255
+                };
             }
 
-            updateSelectedCount() {
-                const count = this.selectedColors[this.currentAnimation] ?
-                    this.selectedColors[this.currentAnimation].size : 0;
-                this.selectedCountSpan.textContent = `${count} color${count !== 1 ? 's' : ''} selected`;
-            }
+            initializeFrameSettings() {
+                // Initialize all frames with default tolerance of 128
+                if (!this.frameSettings[this.currentAnimation]) {
+                    this.frameSettings[this.currentAnimation] = {};
+                }
 
-            updateColorItemAppearance() {
-                const items = this.colorMappingContainer.querySelectorAll('.color-mapping-item');
-                items.forEach(item => {
-                    const checkbox = item.querySelector('.color-checkbox');
-                    if (checkbox && checkbox.checked) {
-                        item.classList.add('selected');
-                    } else {
-                        item.classList.remove('selected');
+                for (let frameIndex = 0; frameIndex < this.totalFrames; frameIndex++) {
+                    if (!this.frameSettings[this.currentAnimation][frameIndex]) {
+                        this.frameSettings[this.currentAnimation][frameIndex] = {
+                            clickX: -1,
+                            clickY: -1,
+                            tolerance: 128,
+                            minTolerance: 0,
+                            maxTolerance: 255
+                        };
                     }
-                });
+                }
             }
 
-            updateSelectedColorMappings() {
-                if (!this.colorMappings[this.currentAnimation]) {
-                    this.colorMappings[this.currentAnimation] = {};
-                }
-
-                if (!this.selectedColors[this.currentAnimation]) {
+            adjustToleranceLess() {
+                const settings = this.frameSettings[this.currentAnimation]?.[this.currentFrame];
+                if (!settings || settings.clickX < 0) {
+                    alert('Please click on the frame first to set a starting point');
                     return;
                 }
 
-                // Update mappings for selected colors
-                this.selectedColors[this.currentAnimation].forEach(hex => {
-                    this.colorMappings[this.currentAnimation][hex] = this.globalColor;
-                });
+                // Binary search: current tolerance becomes max, new tolerance is midpoint
+                settings.maxTolerance = settings.tolerance;
+                settings.tolerance = Math.floor((settings.minTolerance + settings.maxTolerance) / 2);
 
-                // Regenerate sprites if they exist
-                if (this.spriteCanvases[this.currentAnimation] &&
-                    Object.keys(this.spriteCanvases[this.currentAnimation]).length > 0) {
-                    this.updateAllSprites();
+                this.tolerance = settings.tolerance;
+                this.toleranceInput.value = this.tolerance;
+                this.reapplyCurrentFrame();
+            }
+
+            adjustToleranceMore() {
+                const settings = this.frameSettings[this.currentAnimation]?.[this.currentFrame];
+                if (!settings || settings.clickX < 0) {
+                    alert('Please click on the frame first to set a starting point');
+                    return;
+                }
+
+                // Binary search: current tolerance becomes min, new tolerance is midpoint
+                settings.minTolerance = settings.tolerance;
+                settings.tolerance = Math.ceil((settings.minTolerance + settings.maxTolerance) / 2);
+
+                this.tolerance = settings.tolerance;
+                this.toleranceInput.value = this.tolerance;
+                this.reapplyCurrentFrame();
+            }
+
+            markPerfectAndNextFrame() {
+                const settings = this.frameSettings[this.currentAnimation]?.[this.currentFrame];
+                if (!settings || settings.clickX < 0) {
+                    alert('Please click on the frame first to set a starting point');
+                    return;
+                }
+
+                // Move to next frame
+                if (this.currentFrame < this.totalFrames - 1) {
+                    this.setFrame(this.currentFrame + 1);
+                } else {
+                    // At last frame, loop back to first
+                    this.setFrame(0);
                 }
             }
 
-            async initializeSprites() {
-                this.initSpritesBtn.disabled = true;
-                this.initSpritesBtn.textContent = 'Generating...';
-
-                try {
-                    if (!this.spriteCanvases[this.currentAnimation]) {
-                        this.spriteCanvases[this.currentAnimation] = {};
-                    }
-                    if (!this.spriteData[this.currentAnimation]) {
-                        this.spriteData[this.currentAnimation] = {};
-                    }
-
-                    this.spriteCanvasContainer.innerHTML = '';
-
-                    for (let frame = 0; frame < this.totalFrames; frame++) {
-                        await this.createSpriteForFrame(frame);
-                    }
-
-                    this.updateFrame();
-                    alert(`Sprites generated for ${this.totalFrames} frames!`);
-
-                } catch (error) {
-                    alert('Failed to generate sprites: ' + error.message);
-                } finally {
-                    this.initSpritesBtn.disabled = false;
-                    this.initSpritesBtn.textContent = 'Generate Sprites';
+            updateCurrentFrameSetting() {
+                // Update tolerance for current frame without changing click position
+                if (this.frameSettings[this.currentAnimation] &&
+                    this.frameSettings[this.currentAnimation][this.currentFrame]) {
+                    this.frameSettings[this.currentAnimation][this.currentFrame].tolerance = this.tolerance;
                 }
             }
 
-            async createSpriteForFrame(frameIndex) {
-                return new Promise((resolve, reject) => {
-                    const frameImg = this.frameElements[this.currentAnimation]?.[frameIndex];
-                    if (!frameImg) {
-                        reject(new Error(`Frame ${frameIndex} not found`));
-                        return;
+            performMagicWandCurrentFrame(clickX, clickY) {
+                // Initialize masks for this animation if not exists
+                if (!this.magicWandMasks[this.currentAnimation]) {
+                    this.magicWandMasks[this.currentAnimation] = {};
+                }
+
+                // Perform magic wand selection only on current frame
+                const frameImg = this.frameElements[this.currentAnimation]?.[this.currentFrame];
+                if (!frameImg || !frameImg.complete) return;
+
+                const mask = this.createMagicWandMask(frameImg, clickX, clickY, this.tolerance);
+                this.magicWandMasks[this.currentAnimation][this.currentFrame] = mask;
+
+                // Generate sprite only for current frame
+                this.generateSpriteForFrame(this.currentFrame);
+                this.updateFrame(); // Refresh display
+            }
+
+            reapplyCurrentFrame() {
+                // Reapply magic wand to current frame with current settings
+                if (this.frameSettings[this.currentAnimation] &&
+                    this.frameSettings[this.currentAnimation][this.currentFrame]) {
+                    const settings = this.frameSettings[this.currentAnimation][this.currentFrame];
+                    if (settings.clickX >= 0 && settings.clickY >= 0) {
+                        this.performMagicWandCurrentFrame(settings.clickX, settings.clickY);
                     }
+                }
+            }
 
-                    const processImage = () => {
-                        try {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
 
-                            canvas.className = 'sprite-canvas';
-                            canvas.width = frameImg.naturalWidth || frameImg.width;
-                            canvas.height = frameImg.naturalHeight || frameImg.height;
-                            canvas.style.display = 'none';
+            createMagicWandMask(frameImg, clickX, clickY, tolerance) {
+                // Create temporary canvas to read pixel data
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = frameImg.naturalWidth || frameImg.width;
+                tempCanvas.height = frameImg.naturalHeight || frameImg.height;
 
-                            canvas.style.imageRendering = 'pixelated';
-                            canvas.style.imageRendering = 'crisp-edges';
+                tempCtx.drawImage(frameImg, 0, 0);
+                const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
 
-                            const tempCanvas = document.createElement('canvas');
-                            const tempCtx = tempCanvas.getContext('2d');
-                            tempCanvas.width = canvas.width;
-                            tempCanvas.height = canvas.height;
+                // Get the color at the clicked position
+                const startIndex = (clickY * tempCanvas.width + clickX) * 4;
+                const startR = imageData.data[startIndex];
+                const startG = imageData.data[startIndex + 1];
+                const startB = imageData.data[startIndex + 2];
+                const startA = imageData.data[startIndex + 3];
 
-                            tempCtx.drawImage(frameImg, 0, 0);
+                // Create mask for selected pixels
+                const mask = new Uint8Array(tempCanvas.width * tempCanvas.height);
+                const visited = new Uint8Array(tempCanvas.width * tempCanvas.height);
 
-                            const imageData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
-                            const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
+                // Flood fill algorithm
+                const stack = [{x: clickX, y: clickY}];
 
-                            const colorMappings = this.colorMappings[this.currentAnimation] || {};
+                while (stack.length > 0) {
+                    const {x, y} = stack.pop();
 
-                            for (let i = 0; i < imageData.data.length; i += 4) {
-                                const alpha = imageData.data[i + 3];
-                                if (alpha > 0) {
-                                    const r = imageData.data[i];
-                                    const g = imageData.data[i + 1];
-                                    const b = imageData.data[i + 2];
+                    if (x < 0 || x >= tempCanvas.width || y < 0 || y >= tempCanvas.height) continue;
 
-                                    const sourceHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                    const index = y * tempCanvas.width + x;
+                    if (visited[index]) continue;
 
-                                    // Only show mapped colors, everything else is transparent
-                                    if (colorMappings[sourceHex]) {
-                                        const targetRgb = hexToRgb(colorMappings[sourceHex]);
-                                        spriteImageData.data[i] = targetRgb.r;
-                                        spriteImageData.data[i + 1] = targetRgb.g;
-                                        spriteImageData.data[i + 2] = targetRgb.b;
-                                        spriteImageData.data[i + 3] = 255;
-                                    } else {
-                                        // Unmapped colors are transparent
-                                        spriteImageData.data[i + 3] = 0;
-                                    }
-                                } else {
-                                    spriteImageData.data[i + 3] = 0;
-                                }
-                            }
+                    const pixelIndex = index * 4;
+                    const r = imageData.data[pixelIndex];
+                    const g = imageData.data[pixelIndex + 1];
+                    const b = imageData.data[pixelIndex + 2];
+                    const a = imageData.data[pixelIndex + 3];
 
-                            ctx.putImageData(spriteImageData, 0, 0);
+                    // Check if color is similar enough
+                    const colorDistance = Math.sqrt(
+                        Math.pow(r - startR, 2) +
+                        Math.pow(g - startG, 2) +
+                        Math.pow(b - startB, 2)
+                    );
 
-                            this.spriteCanvases[this.currentAnimation][frameIndex] = canvas;
-                            this.spriteData[this.currentAnimation][frameIndex] = spriteImageData;
+                    if (colorDistance <= tolerance && a > 0) {
+                        visited[index] = 1;
+                        mask[index] = 1;
 
-                            this.spriteCanvasContainer.appendChild(canvas);
-
-                            resolve();
-                        } catch (error) {
-                            reject(error);
-                        }
-                    };
-
-                    if (frameImg.complete && frameImg.naturalWidth > 0) {
-                        processImage();
+                        // Add neighboring pixels to stack
+                        stack.push({x: x + 1, y: y});
+                        stack.push({x: x - 1, y: y});
+                        stack.push({x: x, y: y + 1});
+                        stack.push({x: x, y: y - 1});
                     } else {
-                        frameImg.onload = processImage;
-                        frameImg.onerror = () => reject(new Error(`Failed to load frame ${frameIndex}`));
+                        visited[index] = 1;
                     }
-                });
+                }
+
+                return {
+                    mask: mask,
+                    width: tempCanvas.width,
+                    height: tempCanvas.height
+                };
+            }
+
+            updateClickIndicatorPosition(imageX, imageY) {
+                // Convert image coordinates back to screen coordinates and show indicator
+                if (this.currentFrameElement && this.frameWidth > 0 && this.frameHeight > 0) {
+                    const imgRect = this.currentFrameElement.getBoundingClientRect();
+                    const containerRect = this.framePreviewContainer.getBoundingClientRect();
+
+                    const scaleX = imgRect.width / this.frameWidth;
+                    const scaleY = imgRect.height / this.frameHeight;
+
+                    const screenX = imageX * scaleX + (imgRect.left - containerRect.left);
+                    const screenY = imageY * scaleY + (imgRect.top - containerRect.top);
+
+                    this.clickIndicator.style.left = screenX + 'px';
+                    this.clickIndicator.style.top = screenY + 'px';
+                    this.clickIndicator.style.display = 'block';
+                }
+            }
+
+
+            generateAllSprites() {
+                if (!this.spriteCanvases[this.currentAnimation]) {
+                    this.spriteCanvases[this.currentAnimation] = {};
+                }
+
+                this.spriteCanvasContainer.innerHTML = '';
+
+                for (let frameIndex = 0; frameIndex < this.totalFrames; frameIndex++) {
+                    this.generateSpriteForFrame(frameIndex);
+                }
+
+                this.updateFrame();
+            }
+
+            generateSpriteForFrame(frameIndex) {
+                const maskData = this.magicWandMasks[this.currentAnimation]?.[frameIndex];
+                if (!maskData) return;
+
+                // Ensure sprite canvases container exists
+                if (!this.spriteCanvases[this.currentAnimation]) {
+                    this.spriteCanvases[this.currentAnimation] = {};
+                }
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                canvas.className = 'sprite-canvas';
+                canvas.width = maskData.width;
+                canvas.height = maskData.height;
+                canvas.style.display = 'none';
+                canvas.style.imageRendering = 'pixelated';
+                canvas.style.imageRendering = 'crisp-edges';
+
+                // Create sprite image data
+                const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
+                const targetRgb = hexToRgb(this.paintColor);
+
+                // Apply mask to create sprite
+                for (let i = 0; i < maskData.mask.length; i++) {
+                    const pixelIndex = i * 4;
+
+                    if (maskData.mask[i] === 1) {
+                        // Selected pixel - paint with chosen color
+                        spriteImageData.data[pixelIndex] = targetRgb.r;
+                        spriteImageData.data[pixelIndex + 1] = targetRgb.g;
+                        spriteImageData.data[pixelIndex + 2] = targetRgb.b;
+                        spriteImageData.data[pixelIndex + 3] = 255;
+                    } else {
+                        // Unselected pixel - transparent
+                        spriteImageData.data[pixelIndex + 3] = 0;
+                    }
+                }
+
+                ctx.putImageData(spriteImageData, 0, 0);
+
+                this.spriteCanvases[this.currentAnimation][frameIndex] = canvas;
+                this.spriteCanvasContainer.appendChild(canvas);
             }
 
             updateVisibility() {
@@ -1170,70 +1156,15 @@
                 }
             }
 
-            async updateAllSprites() {
-                if (!this.spriteCanvases[this.currentAnimation] || !this.colorMappings[this.currentAnimation]) {
+            updateAllSprites() {
+                // Regenerate all sprites with current paint color
+                if (!this.magicWandMasks[this.currentAnimation]) {
                     return;
                 }
 
-                const colorMappings = this.colorMappings[this.currentAnimation];
-
-                for (let frameIndex = 0; frameIndex < this.totalFrames; frameIndex++) {
-                    const canvas = this.spriteCanvases[this.currentAnimation][frameIndex];
-                    if (!canvas) continue;
-
-                    const frameImg = this.frameElements[this.currentAnimation]?.[frameIndex];
-                    if (!frameImg || !frameImg.complete) continue;
-
-                    await this.updateSpriteForFrame(frameIndex, canvas, frameImg, colorMappings);
-                }
+                this.generateAllSprites();
             }
 
-            async updateSpriteForFrame(frameIndex, canvas, frameImg, colorMappings) {
-                return new Promise((resolve) => {
-                    try {
-                        const ctx = canvas.getContext('2d');
-
-                        const tempCanvas = document.createElement('canvas');
-                        const tempCtx = tempCanvas.getContext('2d');
-                        tempCanvas.width = frameImg.naturalWidth || frameImg.width;
-                        tempCanvas.height = frameImg.naturalHeight || frameImg.height;
-
-                        tempCtx.drawImage(frameImg, 0, 0);
-                        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-                        const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
-
-                        for (let i = 0; i < imageData.data.length; i += 4) {
-                            const alpha = imageData.data[i + 3];
-                            if (alpha > 0) {
-                                const r = imageData.data[i];
-                                const g = imageData.data[i + 1];
-                                const b = imageData.data[i + 2];
-
-                                const sourceHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-
-                                // Only show mapped colors, everything else is transparent
-                                if (colorMappings[sourceHex]) {
-                                    const targetRgb = hexToRgb(colorMappings[sourceHex]);
-                                    spriteImageData.data[i] = targetRgb.r;
-                                    spriteImageData.data[i + 1] = targetRgb.g;
-                                    spriteImageData.data[i + 2] = targetRgb.b;
-                                    spriteImageData.data[i + 3] = 255;
-                                } else {
-                                    // Unmapped colors are transparent
-                                    spriteImageData.data[i + 3] = 0;
-                                }
-                            } else {
-                                spriteImageData.data[i + 3] = 0;
-                            }
-                        }
-
-                        ctx.putImageData(spriteImageData, 0, 0);
-                        resolve();
-                    } catch (error) {
-                        resolve();
-                    }
-                });
-            }
 
             setContainerDimensions() {
                 if (this.frameWidth && this.frameHeight) {
@@ -1289,12 +1220,19 @@
 
                 this.spriteCanvasContainer.innerHTML = '';
 
-                // Initialize selected colors for new animation
-                if (!this.selectedColors[animationName]) {
-                    this.selectedColors[animationName] = new Set();
+                // Clear magic wand state when switching animations
+                this.clickIndicator.style.display = 'none';
+
+                // Initialize magic wand data for new animation
+                if (!this.magicWandMasks[animationName]) {
+                    this.magicWandMasks[animationName] = {};
+                }
+                if (!this.frameSettings[animationName]) {
+                    this.frameSettings[animationName] = {};
                 }
 
-                this.createColorMappingUI();
+                // Initialize tolerance settings for all frames in new animation
+                this.initializeFrameSettings();
 
                 this.frameWidth = 0;
                 this.frameHeight = 0;
