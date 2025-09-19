@@ -61,17 +61,15 @@
 
         #frame-container {
             position: relative;
-            display: inline-block;
-            min-width: 200px;
-            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: auto;
             height: auto;
         }
 
         .frame-image {
             display: none;
-            max-width: 100%;
-            height: auto;
             transition: transform 0.1s ease;
         }
 
@@ -824,32 +822,9 @@
 
             setContainerDimensions() {
                 if (this.frameWidth && this.frameHeight) {
-                    let displayedWidth, displayedHeight;
-
-                    if (this.currentFrameElement && this.currentFrameElement.clientWidth > 0) {
-                        displayedWidth = this.currentFrameElement.clientWidth;
-                        displayedHeight = this.currentFrameElement.clientHeight;
-                    } else {
-                        const maxWidth = 400;
-                        const maxHeight = 400;
-                        const aspectRatio = this.frameWidth / this.frameHeight;
-
-                        if (this.frameWidth > maxWidth || this.frameHeight > maxHeight) {
-                            if (aspectRatio > 1) {
-                                displayedWidth = maxWidth;
-                                displayedHeight = maxWidth / aspectRatio;
-                            } else {
-                                displayedHeight = maxHeight;
-                                displayedWidth = maxHeight * aspectRatio;
-                            }
-                        } else {
-                            displayedWidth = this.frameWidth;
-                            displayedHeight = this.frameHeight;
-                        }
-                    }
-
-                    this.frameContainer.style.width = displayedWidth + 'px';
-                    this.frameContainer.style.height = displayedHeight + 'px';
+                    // Always use the natural frame dimensions for the container
+                    this.frameContainer.style.width = this.frameWidth + 'px';
+                    this.frameContainer.style.height = this.frameHeight + 'px';
                 }
             }
 
