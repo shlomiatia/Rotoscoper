@@ -349,12 +349,23 @@
             margin-left: 5px;
         }
 
+        .hex-color-input {
+            width: 70px;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
         .wand-color-input {
-            width: 40px;
+            width: 30px;
             height: 28px;
             border: 1px solid #ddd;
             border-radius: 3px;
             cursor: pointer;
+            padding: 0;
         }
 
         .layer-container {
@@ -666,6 +677,9 @@
                                onchange="spriteTool.updateLayerTolerance(${layer.id}, this.value)"
                                onkeydown="spriteTool.handleToleranceKeyDown(event)">
                         <span class="tolerance-range max-tolerance-display">255</span>
+                        <input type="text" class="hex-color-input" value="${layer.color}" placeholder="#ff0000"
+                               onchange="spriteTool.updateLayerColorFromHex(${layer.id}, this.value)"
+                               onblur="spriteTool.updateLayerColorFromHex(${layer.id}, this.value)">
                         <input type="color" class="wand-color-input" value="${layer.color}"
                                onchange="spriteTool.updateLayerColor(${layer.id}, this.value)">
                         <button class="layer-delete-btn" onclick="spriteTool.deleteLayer(${layer.id})" ${this.layers.length === 1 ? 'disabled' : ''}>Delete</button>
@@ -677,6 +691,7 @@
                     if (!e.target.classList.contains('layer-delete-btn') &&
                         !e.target.classList.contains('tolerance-input') &&
                         !e.target.classList.contains('wand-color-input') &&
+                        !e.target.classList.contains('hex-color-input') &&
                         !e.target.classList.contains('layer-name-input')) {
                         this.setActiveLayer(layer.id);
                     }
@@ -766,6 +781,61 @@
                 if (layer) {
                     layer.color = color;
                     this.updateAllSprites();
+
+                    // Sync the hex input with the color picker
+                    const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                    const hexInput = toolbar?.querySelector('.hex-color-input');
+                    if (hexInput) {
+                        hexInput.value = color.toUpperCase();
+                    }
+                }
+            }
+
+            updateLayerColorFromHex(layerId, hexValue) {
+                // Validate and normalize hex color
+                let normalizedHex = hexValue.trim();
+
+                // Add # if missing
+                if (!normalizedHex.startsWith('#')) {
+                    normalizedHex = '#' + normalizedHex;
+                }
+
+                // Validate hex format
+                const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+                if (!hexRegex.test(normalizedHex)) {
+                    // Invalid hex, revert to current color
+                    const layer = this.layers.find(l => l.id === layerId);
+                    const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                    const hexInput = toolbar?.querySelector('.hex-color-input');
+                    if (layer && hexInput) {
+                        hexInput.value = layer.color.toUpperCase();
+                    }
+                    return;
+                }
+
+                // Convert 3-digit hex to 6-digit
+                if (normalizedHex.length === 4) {
+                    normalizedHex = '#' + normalizedHex[1] + normalizedHex[1] +
+                                   normalizedHex[2] + normalizedHex[2] +
+                                   normalizedHex[3] + normalizedHex[3];
+                }
+
+                const layer = this.layers.find(l => l.id === layerId);
+                if (layer) {
+                    layer.color = normalizedHex.toUpperCase();
+                    this.updateAllSprites();
+
+                    // Sync the color picker with the hex input
+                    const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                    const colorInput = toolbar?.querySelector('.wand-color-input');
+                    const hexInput = toolbar?.querySelector('.hex-color-input');
+
+                    if (colorInput) {
+                        colorInput.value = normalizedHex.toLowerCase(); // Color input expects lowercase
+                    }
+                    if (hexInput) {
+                        hexInput.value = normalizedHex.toUpperCase(); // Display uppercase
+                    }
                 }
             }
 
