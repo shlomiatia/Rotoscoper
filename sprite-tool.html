@@ -458,6 +458,17 @@
             <a href="index.html" class="back-btn">← Back to Tools</a>
         </div>
 
+        <div class="control-group">
+            <h3>Playback Controls</h3>
+            <button class="play-pause-btn" id="play-pause-btn">Play</button>
+
+            <div class="input-group">
+                <label>Frame:</label>
+                <input type="range" id="frame-slider" min="0" max="149" value="0">
+                <input type="number" id="frame-input" min="0" max="149" value="0">
+            </div>
+        </div>
+
         <div class="animation-container">
             <div class="frame-preview-container" id="frame-preview-container">
                 <div id="frame-container"></div>
@@ -473,21 +484,6 @@
             <button class="add-layer-btn" id="add-layer-btn">Add Layer</button>
         </div>
 
-        <div class="control-group">
-            <h3>Playback Controls</h3>
-            <button class="play-pause-btn" id="play-pause-btn">Play</button>
-
-            <div class="input-group">
-                <label>Frame:</label>
-                <input type="range" id="frame-slider" min="0" max="149" value="0">
-                <input type="number" id="frame-input" min="0" max="149" value="0">
-            </div>
-
-            <div class="input-group">
-                <label>Elapsed Time:</label>
-                <span id="elapsed-time-display">0.00s</span>
-            </div>
-        </div>
 
         <div class="control-group">
             <h3>Timing Settings</h3>
@@ -621,7 +617,6 @@
                 this.delaySlider = document.getElementById('delay-slider');
                 this.delayInput = document.getElementById('delay-input');
                 this.fpsDisplay = document.getElementById('fps-display');
-                this.elapsedTimeDisplay = document.getElementById('elapsed-time-display');
                 this.animationSelect = document.getElementById('animation-select');
                 this.spriteOpacityInput = document.getElementById('sprite-opacity-input');
                 this.showFramesCheckbox = document.getElementById('show-frames-checkbox');
@@ -981,8 +976,6 @@
                 this.fpsDisplay.textContent = fps;
 
 
-                const elapsedTime = (this.currentFrame * this.delay / 1000).toFixed(2);
-                this.elapsedTimeDisplay.textContent = elapsedTime + 's';
             }
 
             async loadAvailableAnimations() {
