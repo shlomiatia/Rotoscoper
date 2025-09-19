@@ -864,6 +864,9 @@
                         this.clickIndicator.style.display = 'block';
 
                         this.performMagicWandCurrentFrame(imageX, imageY);
+
+                        // Focus on the tolerance input after pixel selection
+                        this.toleranceInput.focus();
                     }
                 }
             }
@@ -967,12 +970,52 @@
                     return;
                 }
 
+                // Store the current pixel coordinates to select in the next frame
+                const currentClickX = settings.clickX;
+                const currentClickY = settings.clickY;
+
                 // Move to next frame
                 if (this.currentFrame < this.totalFrames - 1) {
                     this.setFrame(this.currentFrame + 1);
                 } else {
                     // At last frame, loop back to first
                     this.setFrame(0);
+                }
+
+                // After moving to the next frame, select the same pixel coordinates
+                this.selectPixelInCurrentFrame(currentClickX, currentClickY);
+
+                // Focus on the tolerance input
+                this.toleranceInput.focus();
+            }
+
+            selectPixelInCurrentFrame(imageX, imageY) {
+                // Programmatically select a pixel at the given coordinates
+                // Store settings for current frame
+                this.saveCurrentFrameSettings(imageX, imageY, this.tolerance);
+
+                // Calculate screen coordinates for click indicator
+                if (this.currentFrameElement) {
+                    const imgRect = this.currentFrameElement.getBoundingClientRect();
+                    const containerRect = this.framePreviewContainer.getBoundingClientRect();
+
+                    // Convert image coordinates to screen coordinates
+                    const scaleX = imgRect.width / this.frameWidth;
+                    const scaleY = imgRect.height / this.frameHeight;
+
+                    const screenX = imageX * scaleX;
+                    const screenY = imageY * scaleY;
+
+                    // Position relative to container
+                    const containerX = screenX + (imgRect.left - containerRect.left);
+                    const containerY = screenY + (imgRect.top - containerRect.top);
+
+                    // Show click indicator
+                    this.clickIndicator.style.left = containerX + 'px';
+                    this.clickIndicator.style.top = containerY + 'px';
+                    this.clickIndicator.style.display = 'block';
+
+                    this.performMagicWandCurrentFrame(imageX, imageY);
                 }
             }
 
