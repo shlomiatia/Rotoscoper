@@ -692,10 +692,18 @@
                     this.frameElements[this.currentAnimation] = {};
                 }
 
+                const frameFiles = this.animationData[this.currentAnimation]?.frames || [];
+
                 for (let frame = 0; frame < this.totalFrames; frame++) {
                     if (!this.frameElements[this.currentAnimation][frame]) {
-                        const frameNumber = String(frame).padStart(3, '0');
-                        const frameSrc = `Source/${this.currentAnimation}/frame_${frameNumber}_delay-0.03s.gif`;
+                        let frameSrc;
+                        if (frameFiles.length > frame) {
+                            frameSrc = `Source/${this.currentAnimation}/${frameFiles[frame]}`;
+                        } else {
+                            // Fallback to old pattern for backwards compatibility
+                            const frameNumber = String(frame).padStart(3, '0');
+                            frameSrc = `Source/${this.currentAnimation}/frame_${frameNumber}_delay-0.03s.gif`;
+                        }
 
                         const img = document.createElement('img');
                         img.className = 'frame-image';
@@ -789,7 +797,8 @@
 
                         data.animations.forEach(anim => {
                             this.animationData[anim.name] = {
-                                frameCount: anim.frameCount
+                                frameCount: anim.frameCount,
+                                frames: anim.frames || []
                             };
                         });
 
@@ -806,14 +815,14 @@
                         this.updateAnimationSelect();
                     } else {
                         this.animations = ['Walk'];
-                        this.animationData = { 'Walk': { frameCount: 150 } };
+                        this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
                         this.currentAnimation = 'Walk';
                         this.totalFrames = 150;
                         this.updateAnimationSelect();
                     }
                 } catch (error) {
                     this.animations = ['Walk'];
-                    this.animationData = { 'Walk': { frameCount: 150 } };
+                    this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
                     this.currentAnimation = 'Walk';
                     this.totalFrames = 150;
                     this.updateAnimationSelect();

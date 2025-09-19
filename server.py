@@ -18,7 +18,6 @@ CORS(app)  # Enable CORS for all routes
 
 # Configuration
 SOURCE_DIR = 'Source'
-FRAME_PATTERN = 'frame_{:03d}_delay-0.03s.gif'
 
 def ensure_source_directory():
     """Ensure the Source directory exists"""
@@ -35,16 +34,20 @@ def get_animation_folders():
             animations.append(item)
     return sorted(animations)
 
-def count_frames_in_animation(animation_name):
-    """Count the number of frames in an animation folder"""
+def get_frame_files(animation_name):
+    """Get the list of frame files in an animation folder"""
     animation_path = os.path.join(SOURCE_DIR, animation_name)
     if not os.path.exists(animation_path):
-        return 0
+        return []
 
-    # Count files matching the frame pattern
-    pattern = os.path.join(animation_path, 'frame_*_delay-*.gif')
-    frame_files = glob.glob(pattern)
-    return len(frame_files)
+    # Get all files in the directory
+    try:
+        all_files = os.listdir(animation_path)
+        # Filter to only include files (not subdirectories) and sort them
+        frame_files = [f for f in all_files if os.path.isfile(os.path.join(animation_path, f))]
+        return sorted(frame_files)
+    except OSError:
+        return []
 
 def calculate_padding_requirements(center_offsets):
     """Calculate padding requirements for frames based on center offsets
@@ -133,10 +136,11 @@ def list_animations():
         animation_data = []
 
         for animation in animations:
-            frame_count = count_frames_in_animation(animation)
+            frame_files = get_frame_files(animation)
             animation_data.append({
                 'name': animation,
-                'frameCount': frame_count
+                'frameCount': len(frame_files),
+                'frames': frame_files
             })
 
         return jsonify({
@@ -160,12 +164,13 @@ def get_animation_info(animation_name):
                 'error': f'Animation "{animation_name}" not found'
             }), 404
 
-        frame_count = count_frames_in_animation(animation_name)
+        frame_files = get_frame_files(animation_name)
 
         return jsonify({
             'success': True,
             'name': animation_name,
-            'frameCount': frame_count
+            'frameCount': len(frame_files),
+            'frames': frame_files
         })
     except Exception as e:
         return jsonify({
@@ -240,15 +245,26 @@ def create_animation():
         if center_offsets:
             total_width_increase, max_center_offset, frame_paddings = calculate_padding_requirements(center_offsets)
 
+        # Get source animation frame files
+        source_frame_files = get_frame_files(source_animation)
+        if not source_frame_files:
+            os.rmdir(new_path)
+            return jsonify({
+                'success': False,
+                'error': f'No frames found in source animation "{source_animation}"'
+            }), 400
+
         # Copy and optionally pad frames
         frames_copied = 0
-        for i, source_frame_num in enumerate(range(start_frame, end_frame + 1)):
-            source_filename = FRAME_PATTERN.format(source_frame_num)
+        for i, source_frame_idx in enumerate(range(start_frame, min(end_frame + 1, len(source_frame_files)))):
+            source_filename = source_frame_files[source_frame_idx]
             source_file_path = os.path.join(source_path, source_filename)
 
             if os.path.exists(source_file_path):
                 # Create new filename with sequential numbering starting from 0
-                new_filename = FRAME_PATTERN.format(i)
+                # Keep the same extension as the source file
+                file_ext = os.path.splitext(source_filename)[1]
+                new_filename = f'frame_{i:03d}_delay-0.03s{file_ext}'
                 new_file_path = os.path.join(new_path, new_filename)
 
                 # Apply padding if center offsets are provided
