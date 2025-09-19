@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,7 +18,7 @@
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .header {
@@ -61,17 +62,15 @@
 
         #frame-container {
             position: relative;
-            display: inline-block;
-            min-width: 200px;
-            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: auto;
             height: auto;
         }
 
         .frame-image {
             display: none;
-            max-width: 100%;
-            height: auto;
         }
 
         .frame-image.active {
@@ -89,7 +88,7 @@
 
         .sprite-canvas {
             position: absolute;
-            top: -3px;
+            top: 0px;
             left: 0;
             width: 100%;
             height: 100%;
@@ -379,6 +378,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -400,7 +400,8 @@
             <div class="magic-wand-controls">
                 <label>Tolerance:</label>
                 <span id="min-tolerance-display" class="tolerance-range">0</span>
-                <input type="number" id="tolerance-input" class="tolerance-input" value="128" min="0" max="255" step="1">
+                <input type="number" id="tolerance-input" class="tolerance-input" value="128" min="0" max="255"
+                    step="1">
                 <span id="max-tolerance-display" class="tolerance-range">255</span>
                 <button class="sprite-button tolerance-btn" id="less-btn">Less</button>
                 <button class="sprite-button tolerance-btn" id="more-btn">More</button>
@@ -453,7 +454,8 @@
 
             <div class="input-group">
                 <label>Sprite Opacity:</label>
-                <input type="number" id="sprite-opacity-input" class="opacity-input" value="70" min="0" max="100" step="1">
+                <input type="number" id="sprite-opacity-input" class="opacity-input" value="70" min="0" max="100"
+                    step="1">
                 <span>%</span>
             </div>
 
@@ -695,7 +697,9 @@
                 const frameFiles = this.animationData[this.currentAnimation]?.frames || [];
 
                 for (let frame = 0; frame < this.totalFrames; frame++) {
-                    if (!this.frameElements[this.currentAnimation][frame]) {
+                    let img = this.frameElements[this.currentAnimation][frame];
+
+                    if (!img) {
                         let frameSrc;
                         if (frameFiles.length > frame) {
                             frameSrc = `Source/${this.currentAnimation}/${frameFiles[frame]}`;
@@ -705,7 +709,7 @@
                             frameSrc = `Source/${this.currentAnimation}/frame_${frameNumber}_delay-0.03s.gif`;
                         }
 
-                        const img = document.createElement('img');
+                        img = document.createElement('img');
                         img.className = 'frame-image';
                         img.src = frameSrc;
                         img.alt = `Frame ${frame}`;
@@ -726,9 +730,11 @@
                             };
                         }
 
-                        this.frameContainer.appendChild(img);
                         this.frameElements[this.currentAnimation][frame] = img;
                     }
+
+                    // Always append the frame element to the container, whether it's new or existing
+                    this.frameContainer.appendChild(img);
                 }
 
                 this.updateFrame();
@@ -1106,10 +1112,10 @@
                 const visited = new Uint8Array(tempCanvas.width * tempCanvas.height);
 
                 // Flood fill algorithm
-                const stack = [{x: clickX, y: clickY}];
+                const stack = [{ x: clickX, y: clickY }];
 
                 while (stack.length > 0) {
-                    const {x, y} = stack.pop();
+                    const { x, y } = stack.pop();
 
                     if (x < 0 || x >= tempCanvas.width || y < 0 || y >= tempCanvas.height) continue;
 
@@ -1134,10 +1140,10 @@
                         mask[index] = 1;
 
                         // Add neighboring pixels to stack
-                        stack.push({x: x + 1, y: y});
-                        stack.push({x: x - 1, y: y});
-                        stack.push({x: x, y: y + 1});
-                        stack.push({x: x, y: y - 1});
+                        stack.push({ x: x + 1, y: y });
+                        stack.push({ x: x - 1, y: y });
+                        stack.push({ x: x, y: y + 1 });
+                        stack.push({ x: x, y: y - 1 });
                     } else {
                         visited[index] = 1;
                     }
@@ -1260,32 +1266,9 @@
 
             setContainerDimensions() {
                 if (this.frameWidth && this.frameHeight) {
-                    let displayedWidth, displayedHeight;
-
-                    if (this.currentFrameElement && this.currentFrameElement.clientWidth > 0) {
-                        displayedWidth = this.currentFrameElement.clientWidth;
-                        displayedHeight = this.currentFrameElement.clientHeight;
-                    } else {
-                        const maxWidth = 400;
-                        const maxHeight = 400;
-                        const aspectRatio = this.frameWidth / this.frameHeight;
-
-                        if (this.frameWidth > maxWidth || this.frameHeight > maxHeight) {
-                            if (aspectRatio > 1) {
-                                displayedWidth = maxWidth;
-                                displayedHeight = maxWidth / aspectRatio;
-                            } else {
-                                displayedHeight = maxHeight;
-                                displayedWidth = maxHeight * aspectRatio;
-                            }
-                        } else {
-                            displayedWidth = this.frameWidth;
-                            displayedHeight = this.frameHeight;
-                        }
-                    }
-
-                    this.frameContainer.style.width = displayedWidth + 'px';
-                    this.frameContainer.style.height = displayedHeight + 'px';
+                    // Always use the natural frame dimensions for the container
+                    this.frameContainer.style.width = this.frameWidth + 'px';
+                    this.frameContainer.style.height = this.frameHeight + 'px';
                 }
             }
 
@@ -1339,4 +1322,5 @@
         });
     </script>
 </body>
+
 </html>
