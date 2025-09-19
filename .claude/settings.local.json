@@ -5,7 +5,9 @@
       "Bash(start animation-player.html)",
       "Bash(start http://localhost:5000)",
       "Bash(curl:*)",
-      "Bash(del animation-player.html)"
+      "Bash(del animation-player.html)",
+      "Bash(start http://localhost:5000/new-animation-tool.html)",
+      "Bash(start http://localhost:5000/sprite-tool.html)"
     ],
     "deny": [],
     "ask": []
