@@ -333,6 +333,15 @@
             border-radius: 3px;
         }
 
+        .tolerance-range {
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+            display: inline-block;
+        }
+
         .tolerance-btn {
             font-size: 12px;
             padding: 6px 10px;
@@ -390,7 +399,9 @@
 
             <div class="magic-wand-controls">
                 <label>Tolerance:</label>
+                <span id="min-tolerance-display" class="tolerance-range">0</span>
                 <input type="number" id="tolerance-input" class="tolerance-input" value="128" min="0" max="255" step="1">
+                <span id="max-tolerance-display" class="tolerance-range">255</span>
                 <button class="sprite-button tolerance-btn" id="less-btn">Less</button>
                 <button class="sprite-button tolerance-btn" id="more-btn">More</button>
                 <button class="sprite-button tolerance-btn" id="perfect-btn">Perfect</button>
@@ -558,6 +569,8 @@
                 this.lessBtn = document.getElementById('less-btn');
                 this.moreBtn = document.getElementById('more-btn');
                 this.perfectBtn = document.getElementById('perfect-btn');
+                this.minToleranceDisplay = document.getElementById('min-tolerance-display');
+                this.maxToleranceDisplay = document.getElementById('max-tolerance-display');
             }
 
             bindEvents() {
@@ -619,6 +632,11 @@
 
                 this.perfectBtn.addEventListener('click', () => {
                     this.markPerfectAndNextFrame();
+                });
+
+                // Keyboard support for tolerance input
+                this.toleranceInput.addEventListener('keydown', (e) => {
+                    this.handleToleranceKeyDown(e);
                 });
             }
 
@@ -860,6 +878,7 @@
                 if (frameSettings) {
                     this.tolerance = frameSettings.tolerance;
                     this.toleranceInput.value = this.tolerance;
+                    this.updateToleranceRangeDisplay(frameSettings.minTolerance, frameSettings.maxTolerance);
 
                     // Update click indicator position if there's a saved click
                     if (frameSettings.clickX >= 0 && frameSettings.clickY >= 0) {
@@ -870,6 +889,7 @@
                 } else {
                     // Reset to defaults if no settings for this frame
                     this.clickIndicator.style.display = 'none';
+                    this.updateToleranceRangeDisplay(0, 255);
                 }
             }
 
@@ -919,6 +939,7 @@
 
                 this.tolerance = settings.tolerance;
                 this.toleranceInput.value = this.tolerance;
+                this.updateToleranceRangeDisplay(settings.minTolerance, settings.maxTolerance);
                 this.reapplyCurrentFrame();
             }
 
@@ -935,6 +956,7 @@
 
                 this.tolerance = settings.tolerance;
                 this.toleranceInput.value = this.tolerance;
+                this.updateToleranceRangeDisplay(settings.minTolerance, settings.maxTolerance);
                 this.reapplyCurrentFrame();
             }
 
@@ -959,6 +981,24 @@
                 if (this.frameSettings[this.currentAnimation] &&
                     this.frameSettings[this.currentAnimation][this.currentFrame]) {
                     this.frameSettings[this.currentAnimation][this.currentFrame].tolerance = this.tolerance;
+                }
+            }
+
+            updateToleranceRangeDisplay(minTolerance, maxTolerance) {
+                this.minToleranceDisplay.textContent = minTolerance;
+                this.maxToleranceDisplay.textContent = maxTolerance;
+            }
+
+            handleToleranceKeyDown(e) {
+                if (e.key === 'PageUp') {
+                    e.preventDefault();
+                    this.adjustToleranceMore();
+                } else if (e.key === 'PageDown') {
+                    e.preventDefault();
+                    this.adjustToleranceLess();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.markPerfectAndNextFrame();
                 }
             }
 
