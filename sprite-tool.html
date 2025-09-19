@@ -326,10 +326,12 @@
         }
 
         .tolerance-input {
-            width: 80px;
-            padding: 5px;
+            width: 60px;
+            padding: 4px 6px;
             border: 1px solid #ddd;
             border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
         }
 
         .tolerance-range {
@@ -348,9 +350,9 @@
         }
 
         .wand-color-input {
-            width: 50px;
-            height: 30px;
-            border: none;
+            width: 40px;
+            height: 28px;
+            border: 1px solid #ddd;
             border-radius: 3px;
             cursor: pointer;
         }
@@ -381,14 +383,18 @@
 
         .layer-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            gap: 10px;
         }
 
-        .layer-title {
+        .layer-name-input {
+            flex: 1;
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
             font-weight: bold;
-            color: #333;
+            font-size: 14px;
+            min-width: 100px;
         }
 
         .layer-delete-btn {
@@ -657,23 +663,17 @@
 
                 toolbar.innerHTML = `
                     <div class="layer-header">
-                        <div class="layer-title">${layer.name}</div>
-                        <button class="layer-delete-btn" onclick="spriteTool.deleteLayer(${layer.id})" ${this.layers.length === 1 ? 'disabled' : ''}>Delete</button>
-                    </div>
-                    <div class="magic-wand-controls">
-                        <label>Tolerance:</label>
+                        <input type="text" class="layer-name-input" value="${layer.name}"
+                               onchange="spriteTool.updateLayerName(${layer.id}, this.value)"
+                               onblur="spriteTool.updateLayerName(${layer.id}, this.value)">
                         <span class="tolerance-range min-tolerance-display">0</span>
                         <input type="number" class="tolerance-input" value="${layer.tolerance}" min="0" max="255" step="1"
                                onchange="spriteTool.updateLayerTolerance(${layer.id}, this.value)"
                                onkeydown="spriteTool.handleToleranceKeyDown(event)">
                         <span class="tolerance-range max-tolerance-display">255</span>
-                        <button class="sprite-button tolerance-btn" onclick="spriteTool.adjustToleranceLess(${layer.id})">Less</button>
-                        <button class="sprite-button tolerance-btn" onclick="spriteTool.adjustToleranceMore(${layer.id})">More</button>
-                        <button class="sprite-button tolerance-btn" onclick="spriteTool.markPerfectAndNextFrame(${layer.id})">Perfect</button>
-
-                        <label>Paint Color:</label>
                         <input type="color" class="wand-color-input" value="${layer.color}"
                                onchange="spriteTool.updateLayerColor(${layer.id}, this.value)">
+                        <button class="layer-delete-btn" onclick="spriteTool.deleteLayer(${layer.id})" ${this.layers.length === 1 ? 'disabled' : ''}>Delete</button>
                     </div>
                 `;
 
@@ -682,7 +682,7 @@
                     if (!e.target.classList.contains('layer-delete-btn') &&
                         !e.target.classList.contains('tolerance-input') &&
                         !e.target.classList.contains('wand-color-input') &&
-                        !e.target.classList.contains('sprite-button')) {
+                        !e.target.classList.contains('layer-name-input')) {
                         this.setActiveLayer(layer.id);
                     }
                 });
@@ -771,6 +771,19 @@
                 if (layer) {
                     layer.color = color;
                     this.updateAllSprites();
+                }
+            }
+
+            updateLayerName(layerId, name) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (layer) {
+                    layer.name = name.trim() || `Layer ${layerId}`;
+                    // Update the input value in case we had to fallback to default name
+                    const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                    const nameInput = toolbar?.querySelector('.layer-name-input');
+                    if (nameInput) {
+                        nameInput.value = layer.name;
+                    }
                 }
             }
 
