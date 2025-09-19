@@ -7,7 +7,11 @@
       "Bash(curl:*)",
       "Bash(del animation-player.html)",
       "Bash(start http://localhost:5000/new-animation-tool.html)",
-      "Bash(start http://localhost:5000/sprite-tool.html)"
+      "Bash(start http://localhost:5000/sprite-tool.html)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_wait_for"
     ],
     "deny": [],
     "ask": []

@@ -535,7 +535,9 @@
                 const frameFiles = this.animationData[this.currentAnimation]?.frames || [];
 
                 for (let frame = 0; frame < this.totalFrames; frame++) {
-                    if (!this.frameElements[this.currentAnimation][frame]) {
+                    let img = this.frameElements[this.currentAnimation][frame];
+
+                    if (!img) {
                         let frameSrc;
                         if (frameFiles.length > frame) {
                             frameSrc = `Source/${this.currentAnimation}/${frameFiles[frame]}`;
@@ -545,7 +547,7 @@
                             frameSrc = `Source/${this.currentAnimation}/frame_${frameNumber}_delay-0.03s.gif`;
                         }
 
-                        const img = document.createElement('img');
+                        img = document.createElement('img');
                         img.className = 'frame-image';
                         img.src = frameSrc;
                         img.alt = `Frame ${frame}`;
@@ -568,9 +570,11 @@
                             };
                         }
 
-                        this.frameContainer.appendChild(img);
                         this.frameElements[this.currentAnimation][frame] = img;
                     }
+
+                    // Always append the frame element to the container, whether it's new or existing
+                    this.frameContainer.appendChild(img);
                 }
 
                 this.updateFrame();
