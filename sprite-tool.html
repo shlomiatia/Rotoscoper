@@ -1054,8 +1054,23 @@
 
                         const activeLayer = this.getActiveLayer();
                         if (activeLayer) {
-                            // Store settings for current frame and layer
-                            this.saveCurrentFrameSettings(imageX, imageY, activeLayer.tolerance);
+                            // Reset tolerance to default values when clicking on frame
+                            activeLayer.tolerance = 128;
+
+                            // Store settings for current frame and layer with reset tolerance
+                            this.saveCurrentFrameSettings(imageX, imageY, 128, 0, 255);
+
+                            // Update UI to show reset tolerance values
+                            const activeToolbar = this.layersContainer.querySelector(`[data-layer-id="${this.activeLayerId}"]`);
+                            if (activeToolbar) {
+                                const toleranceInput = activeToolbar.querySelector('.tolerance-input');
+                                const minDisplay = activeToolbar.querySelector('.min-tolerance-display');
+                                const maxDisplay = activeToolbar.querySelector('.max-tolerance-display');
+
+                                if (toleranceInput) toleranceInput.value = 128;
+                                if (minDisplay) minDisplay.textContent = '0';
+                                if (maxDisplay) maxDisplay.textContent = '255';
+                            }
 
                             // Show click indicator
                             this.clickIndicator.style.left = x + 'px';
@@ -1065,7 +1080,6 @@
                             this.performMagicWandCurrentFrame(imageX, imageY);
 
                             // Focus on the tolerance input for active layer
-                            const activeToolbar = this.layersContainer.querySelector(`[data-layer-id="${this.activeLayerId}"]`);
                             const toleranceInput = activeToolbar?.querySelector('.tolerance-input');
                             if (toleranceInput) {
                                 toleranceInput.focus();
@@ -1114,7 +1128,7 @@
                 }
             }
 
-            saveCurrentFrameSettings(clickX, clickY, tolerance) {
+            saveCurrentFrameSettings(clickX, clickY, tolerance, minTolerance = 0, maxTolerance = 255) {
                 const activeLayer = this.getActiveLayer();
                 if (!activeLayer) return;
 
@@ -1126,8 +1140,8 @@
                     clickX: clickX,
                     clickY: clickY,
                     tolerance: tolerance,
-                    minTolerance: 0,
-                    maxTolerance: 255
+                    minTolerance: minTolerance,
+                    maxTolerance: maxTolerance
                 };
             }
 
@@ -1265,21 +1279,40 @@
                 // Set this layer as active
                 this.setActiveLayer(layerId);
 
-                // After moving to the next frame, select the same pixel coordinates
-                this.selectPixelInCurrentFrame(currentClickX, currentClickY);
+                // Reset tolerance to 128 for the next frame
+                layer.tolerance = 128;
 
-                // Focus on the tolerance input for this layer
+                // After moving to the next frame, select the same pixel coordinates with reset tolerance
+                this.selectPixelInCurrentFrame(currentClickX, currentClickY, 128);
+
+                // Update UI to show reset tolerance values
                 const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
-                const toleranceInput = toolbar?.querySelector('.tolerance-input');
-                if (toleranceInput) {
-                    toleranceInput.focus();
+                if (toolbar) {
+                    const toleranceInput = toolbar.querySelector('.tolerance-input');
+                    const minDisplay = toolbar.querySelector('.min-tolerance-display');
+                    const maxDisplay = toolbar.querySelector('.max-tolerance-display');
+
+                    if (toleranceInput) toleranceInput.value = 128;
+                    if (minDisplay) minDisplay.textContent = '0';
+                    if (maxDisplay) maxDisplay.textContent = '255';
+
+                    // Focus on the tolerance input
+                    if (toleranceInput) {
+                        toleranceInput.focus();
+                    }
                 }
             }
 
-            selectPixelInCurrentFrame(imageX, imageY) {
+            selectPixelInCurrentFrame(imageX, imageY, tolerance = null) {
                 // Programmatically select a pixel at the given coordinates
-                // Store settings for current frame
-                this.saveCurrentFrameSettings(imageX, imageY, this.tolerance);
+                const activeLayer = this.getActiveLayer();
+                if (!activeLayer) return;
+
+                // Use provided tolerance or current layer tolerance
+                const useToleranceProgrammatic = tolerance !== null ? tolerance : activeLayer.tolerance;
+
+                // Store settings for current frame with reset tolerance values
+                this.saveCurrentFrameSettings(imageX, imageY, useToleranceProgrammatic, 0, 255);
 
                 // Calculate screen coordinates for click indicator
                 if (this.currentFrameElement) {
