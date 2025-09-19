@@ -355,6 +355,72 @@
             cursor: pointer;
         }
 
+        .layer-container {
+            margin-bottom: 15px;
+        }
+
+        .layer-toolbar {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .layer-toolbar.active {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+        }
+
+        .layer-toolbar:hover {
+            border-color: #aaa;
+        }
+
+        .layer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .layer-title {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .layer-delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .layer-delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .add-layer-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .add-layer-btn:hover {
+            background-color: #218838;
+        }
+
         .frame-preview-container {
             position: relative;
             display: inline-block;
@@ -395,21 +461,10 @@
         </div>
 
         <div class="sprite-controls">
-            <h3>Magic Wand Tool</h3>
-
-            <div class="magic-wand-controls">
-                <label>Tolerance:</label>
-                <span id="min-tolerance-display" class="tolerance-range">0</span>
-                <input type="number" id="tolerance-input" class="tolerance-input" value="128" min="0" max="255"
-                    step="1">
-                <span id="max-tolerance-display" class="tolerance-range">255</span>
-                <button class="sprite-button tolerance-btn" id="less-btn">Less</button>
-                <button class="sprite-button tolerance-btn" id="more-btn">More</button>
-                <button class="sprite-button tolerance-btn" id="perfect-btn">Perfect</button>
-
-                <label>Paint Color:</label>
-                <input type="color" id="wand-color-input" class="wand-color-input" value="#ff0000">
+            <div id="layers-container" class="layer-container">
+                <!-- Layers will be dynamically created here -->
             </div>
+            <button class="add-layer-btn" id="add-layer-btn">Add Layer</button>
         </div>
 
         <div class="control-group">
@@ -534,11 +589,12 @@
                 this.showFrames = true;
                 this.spriteOpacity = 70;
 
-                // Magic wand tool properties
-                this.tolerance = 128;
-                this.paintColor = '#ff0000';
-                this.frameSettings = {}; // Store per-frame settings: {animationName: {frameIndex: {clickX, clickY, tolerance, minTolerance, maxTolerance}}}
-                this.magicWandMasks = {}; // Store selection masks per animation per frame
+                // Layer system properties
+                this.layers = []; // Array of layer objects
+                this.activeLayerId = null;
+                this.nextLayerId = 1;
+                this.layerMasks = {}; // Store masks per animation per frame per layer: {animationName: {frameIndex: {layerId: mask}}}
+                this.layerCanvases = {}; // Store canvases per animation per frame per layer
 
                 this.initializeElements();
                 this.bindEvents();
@@ -547,7 +603,7 @@
 
                 setTimeout(() => {
                     this.createFrameElements();
-                    this.initializeFrameSettings();
+                    this.initializeLayerSystem();
                 }, 100);
             }
 
@@ -566,13 +622,160 @@
                 this.spriteCanvasContainer = document.getElementById('sprite-canvas-container');
                 this.framePreviewContainer = document.getElementById('frame-preview-container');
                 this.clickIndicator = document.getElementById('click-indicator');
-                this.toleranceInput = document.getElementById('tolerance-input');
-                this.wandColorInput = document.getElementById('wand-color-input');
-                this.lessBtn = document.getElementById('less-btn');
-                this.moreBtn = document.getElementById('more-btn');
-                this.perfectBtn = document.getElementById('perfect-btn');
-                this.minToleranceDisplay = document.getElementById('min-tolerance-display');
-                this.maxToleranceDisplay = document.getElementById('max-tolerance-display');
+                this.layersContainer = document.getElementById('layers-container');
+                this.addLayerBtn = document.getElementById('add-layer-btn');
+            }
+
+            initializeLayerSystem() {
+                // Create the first default layer
+                this.addLayer('#ff0000', 'Layer 1');
+            }
+
+            addLayer(color = '#ff0000', name = null) {
+                const layerId = this.nextLayerId++;
+                const layerName = name || `Layer ${layerId}`;
+
+                const layer = {
+                    id: layerId,
+                    name: layerName,
+                    color: color,
+                    tolerance: 128,
+                    frameSettings: {} // Store per-frame settings for this layer
+                };
+
+                this.layers.push(layer);
+                this.createLayerToolbar(layer);
+                this.setActiveLayer(layerId);
+
+                return layer;
+            }
+
+            createLayerToolbar(layer) {
+                const toolbar = document.createElement('div');
+                toolbar.className = 'layer-toolbar';
+                toolbar.dataset.layerId = layer.id;
+
+                toolbar.innerHTML = `
+                    <div class="layer-header">
+                        <div class="layer-title">${layer.name}</div>
+                        <button class="layer-delete-btn" onclick="spriteTool.deleteLayer(${layer.id})" ${this.layers.length === 1 ? 'disabled' : ''}>Delete</button>
+                    </div>
+                    <div class="magic-wand-controls">
+                        <label>Tolerance:</label>
+                        <span class="tolerance-range min-tolerance-display">0</span>
+                        <input type="number" class="tolerance-input" value="${layer.tolerance}" min="0" max="255" step="1"
+                               onchange="spriteTool.updateLayerTolerance(${layer.id}, this.value)"
+                               onkeydown="spriteTool.handleToleranceKeyDown(event)">
+                        <span class="tolerance-range max-tolerance-display">255</span>
+                        <button class="sprite-button tolerance-btn" onclick="spriteTool.adjustToleranceLess(${layer.id})">Less</button>
+                        <button class="sprite-button tolerance-btn" onclick="spriteTool.adjustToleranceMore(${layer.id})">More</button>
+                        <button class="sprite-button tolerance-btn" onclick="spriteTool.markPerfectAndNextFrame(${layer.id})">Perfect</button>
+
+                        <label>Paint Color:</label>
+                        <input type="color" class="wand-color-input" value="${layer.color}"
+                               onchange="spriteTool.updateLayerColor(${layer.id}, this.value)">
+                    </div>
+                `;
+
+                // Add click event for layer selection
+                toolbar.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('layer-delete-btn') &&
+                        !e.target.classList.contains('tolerance-input') &&
+                        !e.target.classList.contains('wand-color-input') &&
+                        !e.target.classList.contains('sprite-button')) {
+                        this.setActiveLayer(layer.id);
+                    }
+                });
+
+                // Insert at the beginning to stack layers
+                this.layersContainer.insertBefore(toolbar, this.layersContainer.firstChild);
+            }
+
+            setActiveLayer(layerId) {
+                this.activeLayerId = layerId;
+
+                // Update visual state
+                const toolbars = this.layersContainer.querySelectorAll('.layer-toolbar');
+                toolbars.forEach(toolbar => {
+                    if (parseInt(toolbar.dataset.layerId) === layerId) {
+                        toolbar.classList.add('active');
+                    } else {
+                        toolbar.classList.remove('active');
+                    }
+                });
+
+                // Load settings for current frame and layer
+                this.loadCurrentFrameSettings();
+            }
+
+            deleteLayer(layerId) {
+                if (this.layers.length <= 1) return; // Don't delete the last layer
+
+                this.layers = this.layers.filter(layer => layer.id !== layerId);
+
+                // Remove toolbar
+                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                if (toolbar) {
+                    toolbar.remove();
+                }
+
+                // Clear layer data
+                this.clearLayerData(layerId);
+
+                // Set new active layer if current was deleted
+                if (this.activeLayerId === layerId) {
+                    this.setActiveLayer(this.layers[0].id);
+                }
+
+                // Update delete button states
+                this.updateDeleteButtonStates();
+
+                // Regenerate sprites
+                this.generateAllSprites();
+            }
+
+            clearLayerData(layerId) {
+                // Clear masks and canvases for this layer
+                Object.keys(this.layerMasks).forEach(animationName => {
+                    Object.keys(this.layerMasks[animationName]).forEach(frameIndex => {
+                        delete this.layerMasks[animationName][frameIndex][layerId];
+                    });
+                });
+
+                Object.keys(this.layerCanvases).forEach(animationName => {
+                    Object.keys(this.layerCanvases[animationName]).forEach(frameIndex => {
+                        delete this.layerCanvases[animationName][frameIndex][layerId];
+                    });
+                });
+            }
+
+            updateDeleteButtonStates() {
+                const deleteButtons = this.layersContainer.querySelectorAll('.layer-delete-btn');
+                deleteButtons.forEach(btn => {
+                    btn.disabled = this.layers.length <= 1;
+                });
+            }
+
+            updateLayerTolerance(layerId, tolerance) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (layer) {
+                    layer.tolerance = parseInt(tolerance);
+                    if (layerId === this.activeLayerId) {
+                        this.reapplyCurrentFrame();
+                    }
+                }
+            }
+
+            updateLayerColor(layerId, color) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (layer) {
+                    layer.color = color;
+                    this.updateAllSprites();
+                }
+            }
+
+            getActiveLayer() {
+                return this.layers.find(layer => layer.id === this.activeLayerId);
             }
 
             bindEvents() {
@@ -598,6 +801,11 @@
                     this.switchAnimation(e.target.value);
                 });
 
+                // Add layer button event
+                this.addLayerBtn.addEventListener('click', () => {
+                    this.addLayer();
+                });
+
                 this.showFramesCheckbox.addEventListener('change', (e) => {
                     this.showFrames = e.target.checked;
                     this.updateVisibility();
@@ -608,37 +816,9 @@
                     this.updateSpriteOpacity();
                 });
 
-                // Magic wand tool events
+                // Frame click event for magic wand tool
                 this.framePreviewContainer.addEventListener('click', (e) => {
                     this.handleFrameClick(e);
-                });
-
-                this.toleranceInput.addEventListener('change', (e) => {
-                    this.tolerance = parseInt(e.target.value) || 0;
-                    this.updateCurrentFrameSetting();
-                    this.reapplyCurrentFrame();
-                });
-
-                this.wandColorInput.addEventListener('change', (e) => {
-                    this.paintColor = e.target.value;
-                    this.updateAllSprites();
-                });
-
-                this.lessBtn.addEventListener('click', () => {
-                    this.adjustToleranceLess();
-                });
-
-                this.moreBtn.addEventListener('click', () => {
-                    this.adjustToleranceMore();
-                });
-
-                this.perfectBtn.addEventListener('click', () => {
-                    this.markPerfectAndNextFrame();
-                });
-
-                // Keyboard support for tolerance input
-                this.toleranceInput.addEventListener('keydown', (e) => {
-                    this.handleToleranceKeyDown(e);
                 });
             }
 
@@ -849,6 +1029,8 @@
             }
 
             handleFrameClick(e) {
+                if (!this.activeLayerId) return;
+
                 const rect = this.framePreviewContainer.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
@@ -870,33 +1052,49 @@
                         const imageX = Math.floor(imgX * scaleX);
                         const imageY = Math.floor(imgY * scaleY);
 
-                        // Store settings for current frame
-                        this.saveCurrentFrameSettings(imageX, imageY, this.tolerance);
+                        const activeLayer = this.getActiveLayer();
+                        if (activeLayer) {
+                            // Store settings for current frame and layer
+                            this.saveCurrentFrameSettings(imageX, imageY, activeLayer.tolerance);
 
-                        // Show click indicator
-                        this.clickIndicator.style.left = x + 'px';
-                        this.clickIndicator.style.top = y + 'px';
-                        this.clickIndicator.style.display = 'block';
+                            // Show click indicator
+                            this.clickIndicator.style.left = x + 'px';
+                            this.clickIndicator.style.top = y + 'px';
+                            this.clickIndicator.style.display = 'block';
 
-                        this.performMagicWandCurrentFrame(imageX, imageY);
+                            this.performMagicWandCurrentFrame(imageX, imageY);
 
-                        // Focus on the tolerance input after pixel selection
-                        this.toleranceInput.focus();
+                            // Focus on the tolerance input for active layer
+                            const activeToolbar = this.layersContainer.querySelector(`[data-layer-id="${this.activeLayerId}"]`);
+                            const toleranceInput = activeToolbar?.querySelector('.tolerance-input');
+                            if (toleranceInput) {
+                                toleranceInput.focus();
+                            }
+                        }
                     }
                 }
             }
 
             loadCurrentFrameSettings() {
-                // Load settings for current frame and update UI
-                if (!this.frameSettings[this.currentAnimation]) {
-                    this.frameSettings[this.currentAnimation] = {};
+                const activeLayer = this.getActiveLayer();
+                if (!activeLayer) return;
+
+                // Initialize layer frame settings if needed
+                if (!activeLayer.frameSettings[this.currentAnimation]) {
+                    activeLayer.frameSettings[this.currentAnimation] = {};
                 }
 
-                const frameSettings = this.frameSettings[this.currentAnimation][this.currentFrame];
-                if (frameSettings) {
-                    this.tolerance = frameSettings.tolerance;
-                    this.toleranceInput.value = this.tolerance;
-                    this.updateToleranceRangeDisplay(frameSettings.minTolerance, frameSettings.maxTolerance);
+                const frameSettings = activeLayer.frameSettings[this.currentAnimation][this.currentFrame];
+                const activeToolbar = this.layersContainer.querySelector(`[data-layer-id="${this.activeLayerId}"]`);
+
+                if (frameSettings && activeToolbar) {
+                    const toleranceInput = activeToolbar.querySelector('.tolerance-input');
+                    const minToleranceDisplay = activeToolbar.querySelector('.min-tolerance-display');
+                    const maxToleranceDisplay = activeToolbar.querySelector('.max-tolerance-display');
+
+                    if (toleranceInput) toleranceInput.value = frameSettings.tolerance;
+                    if (minToleranceDisplay) minToleranceDisplay.textContent = frameSettings.minTolerance || 0;
+                    if (maxToleranceDisplay) maxToleranceDisplay.textContent = frameSettings.maxTolerance || 255;
 
                     // Update click indicator position if there's a saved click
                     if (frameSettings.clickX >= 0 && frameSettings.clickY >= 0) {
@@ -907,16 +1105,24 @@
                 } else {
                     // Reset to defaults if no settings for this frame
                     this.clickIndicator.style.display = 'none';
-                    this.updateToleranceRangeDisplay(0, 255);
+                    if (activeToolbar) {
+                        const minToleranceDisplay = activeToolbar.querySelector('.min-tolerance-display');
+                        const maxToleranceDisplay = activeToolbar.querySelector('.max-tolerance-display');
+                        if (minToleranceDisplay) minToleranceDisplay.textContent = '0';
+                        if (maxToleranceDisplay) maxToleranceDisplay.textContent = '255';
+                    }
                 }
             }
 
             saveCurrentFrameSettings(clickX, clickY, tolerance) {
-                if (!this.frameSettings[this.currentAnimation]) {
-                    this.frameSettings[this.currentAnimation] = {};
+                const activeLayer = this.getActiveLayer();
+                if (!activeLayer) return;
+
+                if (!activeLayer.frameSettings[this.currentAnimation]) {
+                    activeLayer.frameSettings[this.currentAnimation] = {};
                 }
 
-                this.frameSettings[this.currentAnimation][this.currentFrame] = {
+                activeLayer.frameSettings[this.currentAnimation][this.currentFrame] = {
                     clickX: clickX,
                     clickY: clickY,
                     tolerance: tolerance,
@@ -944,42 +1150,101 @@
                 }
             }
 
-            adjustToleranceLess() {
-                const settings = this.frameSettings[this.currentAnimation]?.[this.currentFrame];
+            adjustToleranceLess(layerId) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (!layer) return;
+
+                // Initialize layer frame settings if needed
+                if (!layer.frameSettings) {
+                    layer.frameSettings = {};
+                }
+                if (!layer.frameSettings[this.currentAnimation]) {
+                    layer.frameSettings[this.currentAnimation] = {};
+                }
+
+                const settings = layer.frameSettings[this.currentAnimation][this.currentFrame];
                 if (!settings || settings.clickX < 0) {
                     alert('Please click on the frame first to set a starting point');
                     return;
                 }
 
                 // Binary search: current tolerance becomes max, new tolerance is midpoint
-                settings.maxTolerance = settings.tolerance;
-                settings.tolerance = Math.floor((settings.minTolerance + settings.maxTolerance) / 2);
+                settings.maxTolerance = layer.tolerance;
+                layer.tolerance = Math.floor((settings.minTolerance + settings.maxTolerance) / 2);
+                settings.tolerance = layer.tolerance;
 
-                this.tolerance = settings.tolerance;
-                this.toleranceInput.value = this.tolerance;
-                this.updateToleranceRangeDisplay(settings.minTolerance, settings.maxTolerance);
-                this.reapplyCurrentFrame();
+                // Update UI for this layer
+                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                if (toolbar) {
+                    const toleranceInput = toolbar.querySelector('.tolerance-input');
+                    const minDisplay = toolbar.querySelector('.min-tolerance-display');
+                    const maxDisplay = toolbar.querySelector('.max-tolerance-display');
+
+                    if (toleranceInput) toleranceInput.value = layer.tolerance;
+                    if (minDisplay) minDisplay.textContent = settings.minTolerance;
+                    if (maxDisplay) maxDisplay.textContent = settings.maxTolerance;
+                }
+
+                // Reapply magic wand with new tolerance for current frame
+                if (layerId === this.activeLayerId) {
+                    this.performMagicWandCurrentFrame(settings.clickX, settings.clickY);
+                }
             }
 
-            adjustToleranceMore() {
-                const settings = this.frameSettings[this.currentAnimation]?.[this.currentFrame];
+            adjustToleranceMore(layerId) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (!layer) return;
+
+                // Initialize layer frame settings if needed
+                if (!layer.frameSettings) {
+                    layer.frameSettings = {};
+                }
+                if (!layer.frameSettings[this.currentAnimation]) {
+                    layer.frameSettings[this.currentAnimation] = {};
+                }
+
+                const settings = layer.frameSettings[this.currentAnimation][this.currentFrame];
                 if (!settings || settings.clickX < 0) {
                     alert('Please click on the frame first to set a starting point');
                     return;
                 }
 
                 // Binary search: current tolerance becomes min, new tolerance is midpoint
-                settings.minTolerance = settings.tolerance;
-                settings.tolerance = Math.ceil((settings.minTolerance + settings.maxTolerance) / 2);
+                settings.minTolerance = layer.tolerance;
+                layer.tolerance = Math.ceil((settings.minTolerance + settings.maxTolerance) / 2);
+                settings.tolerance = layer.tolerance;
 
-                this.tolerance = settings.tolerance;
-                this.toleranceInput.value = this.tolerance;
-                this.updateToleranceRangeDisplay(settings.minTolerance, settings.maxTolerance);
-                this.reapplyCurrentFrame();
+                // Update UI for this layer
+                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                if (toolbar) {
+                    const toleranceInput = toolbar.querySelector('.tolerance-input');
+                    const minDisplay = toolbar.querySelector('.min-tolerance-display');
+                    const maxDisplay = toolbar.querySelector('.max-tolerance-display');
+
+                    if (toleranceInput) toleranceInput.value = layer.tolerance;
+                    if (minDisplay) minDisplay.textContent = settings.minTolerance;
+                    if (maxDisplay) maxDisplay.textContent = settings.maxTolerance;
+                }
+
+                // Reapply magic wand with new tolerance for current frame
+                if (layerId === this.activeLayerId) {
+                    this.performMagicWandCurrentFrame(settings.clickX, settings.clickY);
+                }
             }
 
-            markPerfectAndNextFrame() {
-                const settings = this.frameSettings[this.currentAnimation]?.[this.currentFrame];
+            markPerfectAndNextFrame(layerId) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (!layer) return;
+
+                // Initialize layer frame settings if needed
+                if (!layer.frameSettings) {
+                    layer.frameSettings = {};
+                }
+                if (!layer.frameSettings[this.currentAnimation]) {
+                    layer.frameSettings[this.currentAnimation] = {};
+                }
+
+                const settings = layer.frameSettings[this.currentAnimation][this.currentFrame];
                 if (!settings || settings.clickX < 0) {
                     alert('Please click on the frame first to set a starting point');
                     return;
@@ -997,11 +1262,18 @@
                     this.setFrame(0);
                 }
 
+                // Set this layer as active
+                this.setActiveLayer(layerId);
+
                 // After moving to the next frame, select the same pixel coordinates
                 this.selectPixelInCurrentFrame(currentClickX, currentClickY);
 
-                // Focus on the tolerance input
-                this.toleranceInput.focus();
+                // Focus on the tolerance input for this layer
+                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                const toleranceInput = toolbar?.querySelector('.tolerance-input');
+                if (toleranceInput) {
+                    toleranceInput.focus();
+                }
             }
 
             selectPixelInCurrentFrame(imageX, imageY) {
@@ -1050,32 +1322,68 @@
             handleToleranceKeyDown(e) {
                 if (e.key === 'PageUp') {
                     e.preventDefault();
-                    this.adjustToleranceMore();
+                    const activeLayer = this.getActiveLayer();
+                    if (activeLayer) {
+                        this.adjustToleranceMore(activeLayer.id);
+                    }
                 } else if (e.key === 'PageDown') {
                     e.preventDefault();
-                    this.adjustToleranceLess();
+                    const activeLayer = this.getActiveLayer();
+                    if (activeLayer) {
+                        this.adjustToleranceLess(activeLayer.id);
+                    }
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
-                    this.markPerfectAndNextFrame();
+                    const activeLayer = this.getActiveLayer();
+                    if (activeLayer) {
+                        this.markPerfectAndNextFrame(activeLayer.id);
+                    }
                 }
             }
 
             performMagicWandCurrentFrame(clickX, clickY) {
-                // Initialize masks for this animation if not exists
-                if (!this.magicWandMasks[this.currentAnimation]) {
-                    this.magicWandMasks[this.currentAnimation] = {};
+                const activeLayer = this.getActiveLayer();
+                if (!activeLayer) return;
+
+                // Initialize layer masks for this animation if not exists
+                if (!this.layerMasks[this.currentAnimation]) {
+                    this.layerMasks[this.currentAnimation] = {};
+                }
+                if (!this.layerMasks[this.currentAnimation][this.currentFrame]) {
+                    this.layerMasks[this.currentAnimation][this.currentFrame] = {};
                 }
 
-                // Perform magic wand selection only on current frame
+                // Perform magic wand selection only on current frame for active layer
                 const frameImg = this.frameElements[this.currentAnimation]?.[this.currentFrame];
                 if (!frameImg || !frameImg.complete) return;
 
-                const mask = this.createMagicWandMask(frameImg, clickX, clickY, this.tolerance);
-                this.magicWandMasks[this.currentAnimation][this.currentFrame] = mask;
+                // Get existing masks from other layers for overlap prevention
+                const otherLayerMasks = this.getOtherLayerMasks(activeLayer.id);
+
+                const mask = this.createMagicWandMask(frameImg, clickX, clickY, activeLayer.tolerance, otherLayerMasks);
+                this.layerMasks[this.currentAnimation][this.currentFrame][activeLayer.id] = mask;
 
                 // Generate sprite only for current frame
                 this.generateSpriteForFrame(this.currentFrame);
                 this.updateFrame(); // Refresh display
+            }
+
+            getOtherLayerMasks(excludeLayerId) {
+                const otherMasks = [];
+
+                if (!this.layerMasks[this.currentAnimation] ||
+                    !this.layerMasks[this.currentAnimation][this.currentFrame]) {
+                    return otherMasks;
+                }
+
+                const frameMasks = this.layerMasks[this.currentAnimation][this.currentFrame];
+                for (const layerId in frameMasks) {
+                    if (parseInt(layerId) !== excludeLayerId) {
+                        otherMasks.push(frameMasks[layerId]);
+                    }
+                }
+
+                return otherMasks;
             }
 
             reapplyCurrentFrame() {
@@ -1090,7 +1398,7 @@
             }
 
 
-            createMagicWandMask(frameImg, clickX, clickY, tolerance) {
+            createMagicWandMask(frameImg, clickX, clickY, tolerance, otherLayerMasks = []) {
                 // Create temporary canvas to read pixel data
                 const tempCanvas = document.createElement('canvas');
                 const tempCtx = tempCanvas.getContext('2d');
@@ -1107,6 +1415,20 @@
                 const startB = imageData.data[startIndex + 2];
                 const startA = imageData.data[startIndex + 3];
 
+                // Create combined mask from other layers for overlap prevention
+                const occupiedPixels = new Uint8Array(tempCanvas.width * tempCanvas.height);
+                for (const otherMask of otherLayerMasks) {
+                    if (otherMask && otherMask.mask &&
+                        otherMask.width === tempCanvas.width &&
+                        otherMask.height === tempCanvas.height) {
+                        for (let i = 0; i < occupiedPixels.length; i++) {
+                            if (otherMask.mask[i]) {
+                                occupiedPixels[i] = 1;
+                            }
+                        }
+                    }
+                }
+
                 // Create mask for selected pixels
                 const mask = new Uint8Array(tempCanvas.width * tempCanvas.height);
                 const visited = new Uint8Array(tempCanvas.width * tempCanvas.height);
@@ -1121,6 +1443,12 @@
 
                     const index = y * tempCanvas.width + x;
                     if (visited[index]) continue;
+
+                    // Skip pixels that are already occupied by other layers
+                    if (occupiedPixels[index]) {
+                        visited[index] = 1;
+                        continue;
+                    }
 
                     const pixelIndex = index * 4;
                     const r = imageData.data[pixelIndex];
@@ -1190,41 +1518,48 @@
             }
 
             generateSpriteForFrame(frameIndex) {
-                const maskData = this.magicWandMasks[this.currentAnimation]?.[frameIndex];
-                if (!maskData) return;
+                const layerMasks = this.layerMasks[this.currentAnimation]?.[frameIndex];
+                if (!layerMasks || Object.keys(layerMasks).length === 0) return;
 
                 // Ensure sprite canvases container exists
                 if (!this.spriteCanvases[this.currentAnimation]) {
                     this.spriteCanvases[this.currentAnimation] = {};
                 }
 
+                // Get frame dimensions from first available mask
+                const firstMask = Object.values(layerMasks)[0];
+                if (!firstMask) return;
+
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
 
                 canvas.className = 'sprite-canvas';
-                canvas.width = maskData.width;
-                canvas.height = maskData.height;
+                canvas.width = firstMask.width;
+                canvas.height = firstMask.height;
                 canvas.style.display = 'none';
                 canvas.style.imageRendering = 'pixelated';
                 canvas.style.imageRendering = 'crisp-edges';
 
                 // Create sprite image data
                 const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
-                const targetRgb = hexToRgb(this.paintColor);
 
-                // Apply mask to create sprite
-                for (let i = 0; i < maskData.mask.length; i++) {
-                    const pixelIndex = i * 4;
+                // Apply all layer masks in order (bottom layer first)
+                for (const layer of this.layers) {
+                    const layerMask = layerMasks[layer.id];
+                    if (!layerMask) continue;
 
-                    if (maskData.mask[i] === 1) {
-                        // Selected pixel - paint with chosen color
-                        spriteImageData.data[pixelIndex] = targetRgb.r;
-                        spriteImageData.data[pixelIndex + 1] = targetRgb.g;
-                        spriteImageData.data[pixelIndex + 2] = targetRgb.b;
-                        spriteImageData.data[pixelIndex + 3] = 255;
-                    } else {
-                        // Unselected pixel - transparent
-                        spriteImageData.data[pixelIndex + 3] = 0;
+                    const targetRgb = hexToRgb(layer.color);
+
+                    for (let i = 0; i < layerMask.mask.length; i++) {
+                        const pixelIndex = i * 4;
+
+                        if (layerMask.mask[i] === 1) {
+                            // Selected pixel - paint with layer color
+                            spriteImageData.data[pixelIndex] = targetRgb.r;
+                            spriteImageData.data[pixelIndex + 1] = targetRgb.g;
+                            spriteImageData.data[pixelIndex + 2] = targetRgb.b;
+                            spriteImageData.data[pixelIndex + 3] = 255;
+                        }
                     }
                 }
 
@@ -1255,8 +1590,8 @@
             }
 
             updateAllSprites() {
-                // Regenerate all sprites with current paint color
-                if (!this.magicWandMasks[this.currentAnimation]) {
+                // Regenerate all sprites with current layer masks
+                if (!this.layerMasks[this.currentAnimation]) {
                     return;
                 }
 
@@ -1282,9 +1617,19 @@
 
                 this.currentAnimation = animationName;
 
+                // Ensure animationData exists and has the animation
+                if (!this.animationData) {
+                    this.animationData = {};
+                }
+
                 if (this.animationData[animationName]) {
                     this.totalFrames = this.animationData[animationName].frameCount;
                 } else {
+                    // Create default animation data if it doesn't exist
+                    this.animationData[animationName] = {
+                        frameCount: 150,
+                        frames: []
+                    };
                     this.totalFrames = 150;
                 }
 
@@ -1299,8 +1644,15 @@
                 this.clickIndicator.style.display = 'none';
 
                 // Initialize magic wand data for new animation
-                if (!this.magicWandMasks[animationName]) {
-                    this.magicWandMasks[animationName] = {};
+                if (!this.layerMasks) {
+                    this.layerMasks = {};
+                }
+                if (!this.layerMasks[animationName]) {
+                    this.layerMasks[animationName] = {};
+                }
+
+                if (!this.frameSettings) {
+                    this.frameSettings = {};
                 }
                 if (!this.frameSettings[animationName]) {
                     this.frameSettings[animationName] = {};
@@ -1317,8 +1669,9 @@
             }
         }
 
+        let spriteTool;
         document.addEventListener('DOMContentLoaded', () => {
-            new SpriteTool();
+            spriteTool = new SpriteTool();
         });
     </script>
 </body>
