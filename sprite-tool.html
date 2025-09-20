@@ -1340,6 +1340,9 @@
                     return;
                 }
 
+                // Save the current sprite before moving to next frame
+                this.saveCurrentSprite();
+
                 // Store the current pixel coordinates to select in the next frame
                 const currentClickX = settings.clickX;
                 const currentClickY = settings.clickY;
@@ -1714,6 +1717,48 @@
                     // Always use the natural frame dimensions for the container
                     this.frameContainer.style.width = this.frameWidth + 'px';
                     this.frameContainer.style.height = this.frameHeight + 'px';
+                }
+            }
+
+            async saveCurrentSprite() {
+                // Get the current sprite canvas
+                const spriteCanvas = this.spriteCanvases[this.currentAnimation]?.[this.currentFrame];
+                if (!spriteCanvas) {
+                    console.log('No sprite to save for current frame');
+                    return;
+                }
+
+                try {
+                    // Convert canvas to base64 data URL
+                    const imageDataUrl = spriteCanvas.toDataURL('image/png');
+
+                    // Get the frame filename (we'll use the same naming pattern as frames)
+                    const frameNumber = String(this.currentFrame).padStart(3, '0');
+                    const frameName = `frame_${frameNumber}_delay-0.03s`;
+
+                    // Send to server
+                    const response = await fetch(`/api/animations/${this.currentAnimation}/sprites/save`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            imageData: imageDataUrl,
+                            frameName: frameName
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log(`Sprite saved: ${result.message}`);
+                    } else {
+                        console.error('Failed to save sprite:', result.error);
+                        alert(`Failed to save sprite: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error saving sprite:', error);
+                    alert(`Error saving sprite: ${error.message}`);
                 }
             }
 
