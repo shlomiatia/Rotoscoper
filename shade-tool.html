@@ -567,7 +567,7 @@
                     const data = await response.json();
 
                     if (data.success && data.sprites.length > 0) {
-                        this.createSpriteElements(data.sprites);
+                        await this.createSpriteElements(data.sprites);
                         this.colorStatus.textContent = `Loaded ${data.sprites.length} sprites`;
                         // Auto-extract colors after loading sprites
                         this.extractColorsFromSprites();
@@ -593,6 +593,8 @@
                     this.originalSprites[this.currentAnimation] = {};
                 }
 
+                const loadPromises = [];
+
                 sprites.forEach(spriteInfo => {
                     const frameIndex = spriteInfo.frameIndex;
                     if (frameIndex >= 0 && frameIndex < this.totalFrames) {
@@ -604,17 +606,28 @@
                         img.style.imageRendering = 'pixelated';
                         img.style.imageRendering = 'crisp-edges';
 
-                        // Store original sprite data
-                        img.onload = () => {
-                            this.storeOriginalSprite(frameIndex, img);
-                        };
+                        // Create a promise that resolves when the image loads
+                        const loadPromise = new Promise((resolve, reject) => {
+                            img.onload = () => {
+                                this.storeOriginalSprite(frameIndex, img);
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                console.warn(`Failed to load sprite: ${spriteInfo.filename}`);
+                                resolve(); // Resolve anyway to not block other sprites
+                            };
+                        });
 
+                        loadPromises.push(loadPromise);
                         this.spriteElements[this.currentAnimation][frameIndex] = img;
                         this.spriteCanvasContainer.appendChild(img);
                     }
                 });
 
                 this.updateFrame();
+
+                // Return a promise that resolves when all sprites are loaded
+                return Promise.all(loadPromises);
             }
 
             storeOriginalSprite(frameIndex, img) {
