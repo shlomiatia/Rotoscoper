@@ -280,7 +280,7 @@
         </div>
 
         <div class="sprite-controls">
-            <h3>Colors</h3>
+            <h3>Outline Colors</h3>
             <div id="color-status" style="margin-bottom: 15px; font-size: 14px; color: #666;"></div>
 
             <div class="color-list" id="color-list">
@@ -435,10 +435,9 @@
                 this.spriteOpacity = 70;
 
                 this.originalColors = {};
-                this.targetColors = {};
+                this.targetColors = {}; // Maps sprite colors to outline colors
                 this.originalSprites = {};
                 this.spriteColorFrameMapping = {}; // Maps sprite colors to frame colors at matching positions
-                this.spriteColorTargets = {}; // Maps sprite colors to {dark, light, split} settings
 
                 // Performance optimization caches
                 this.luminanceCache = new Map();
@@ -917,17 +916,11 @@
                     this.targetColors = {};
                     this.spriteColorTargets = {};
 
-                    // Initialize sprite color targets with default values
+                    // Initialize target colors with default outline color (black)
                     for (const hex in colorCounts) {
-                        this.spriteColorTargets[hex] = {
-                            dark: hex,
-                            light: hex,
-                            split: 50
-                        };
+                        this.targetColors[hex] = '#000000';
                     }
 
-                    // Update all color mappings
-                    this.updateAllColorMappings();
                     this.renderNewColorList();
                     this.colorStatus.textContent = `Found ${Object.keys(colorCounts).length} unique sprite colors`;
 
@@ -1043,43 +1036,23 @@
                     item.style.gap = '15px';
                     item.style.padding = '15px';
 
-                    const targets = this.spriteColorTargets[spriteHex];
-                    if (!targets) return;
+                    const outlineColor = this.targetColors[spriteHex] || '#000000';
 
                     item.innerHTML = `
                         <div style="background-color: ${spriteHex}; width: 40px; height: 40px; border: 2px solid #ccc; border-radius: 5px; flex-shrink: 0;"></div>
 
                         <div style="flex-grow: 1;">
                             <div style="font-family: monospace; font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px;">${spriteHex.toUpperCase()}</div>
+                            <div style="font-size: 12px; color: #666;">${count} pixels</div>
                         </div>
 
                         <div style="display: flex; align-items: center; gap: 15px;">
+                            <span style="font-size: 20px; color: #666;">→</span>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 12px; font-weight: bold; min-width: 35px;">Dark:</span>
-                                <input type="color" value="${targets.dark}"
-                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'dark', this.value)"
-                                       style="width: 35px; height: 30px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
-                                <input type="text" value="${targets.dark}"
-                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'dark', this.value)"
-                                       style="width: 70px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-family: monospace; font-size: 11px;">
-                            </div>
-
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 12px; font-weight: bold; min-width: 35px;">Light:</span>
-                                <input type="color" value="${targets.light}"
-                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'light', this.value)"
-                                       style="width: 35px; height: 30px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
-                                <input type="text" value="${targets.light}"
-                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'light', this.value)"
-                                       style="width: 70px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-family: monospace; font-size: 11px;">
-                            </div>
-
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 12px; font-weight: bold;">Split:</span>
-                                <input type="number" value="${targets.split}" min="0" max="100"
-                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'split', this.value)"
-                                       style="width: 50px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;">
-                                <span style="font-size: 12px;">%</span>
+                                <span style="font-size: 12px; font-weight: bold; min-width: 50px;">Outline:</span>
+                                <input type="color" value="${outlineColor}"
+                                       onchange="shadeTool.updateTargetColor('${spriteHex}', this.value)"
+                                       style="width: 50px; height: 40px; border: 2px solid #ccc; border-radius: 5px; cursor: pointer;">
                             </div>
                         </div>
                     `;
@@ -1118,75 +1091,19 @@
                 });
             }
 
-            updateSpriteTarget(spriteHex, property, value) {
-                if (!this.spriteColorTargets[spriteHex]) return;
 
-                if (property === 'split') {
-                    this.spriteColorTargets[spriteHex][property] = Math.max(0, Math.min(100, parseInt(value) || 50));
-                } else {
-                    // Validate hex color format
-                    if (value && !value.startsWith('#')) {
-                        value = '#' + value;
-                    }
 
-                    // Basic hex validation
-                    const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-                    if (!hexPattern.test(value)) {
-                        return; // Invalid hex color
-                    }
 
-                    this.spriteColorTargets[spriteHex][property] = value;
-
-                    // Sync the corresponding color picker and text input
-                    this.syncColorInputs(spriteHex, property, value);
-                }
-
-                this.updateColorMappingForSprite(spriteHex);
-
-                // Debounce the expensive applyColorMapping operation
-                clearTimeout(this.debounceTimeout);
-                this.colorStatus.textContent = 'Processing color changes...';
-                this.debounceTimeout = setTimeout(() => {
-                    this.applyColorMapping();
-                }, 250);
-            }
-
-            syncColorInputs(spriteHex, property, value) {
-                // Find all color inputs for this sprite color and property
-                const colorItems = this.colorList.querySelectorAll('.color-item');
-                colorItems.forEach(item => {
-                    const colorDiv = item.querySelector('div[style*="background-color: ' + spriteHex + '"]');
-                    if (colorDiv) {
-                        const colorInput = item.querySelector(`input[type="color"][onchange*="${property}"]`);
-                        const textInput = item.querySelector(`input[type="text"][onchange*="${property}"]`);
-
-                        if (colorInput) colorInput.value = value;
-                        if (textInput) textInput.value = value;
-                    }
-                });
-            }
-
-            updateColorMappingForSprite(spriteHex) {
-                // Clear cached mapping for this sprite color when updated
-                this.colorMappingCache.delete(spriteHex);
-
-                const targets = this.spriteColorTargets[spriteHex];
-                if (!targets) return;
-
-                // The targetColors mapping is no longer used for the simplified approach,
-                // but we'll keep it for compatibility with existing code
-                this.targetColors[spriteHex] = targets.dark; // Default for display purposes
-            }
-
-            updateAllColorMappings() {
-                for (const spriteHex in this.spriteColorTargets) {
-                    this.updateColorMappingForSprite(spriteHex);
-                }
-            }
 
             updateTargetColor(sourceHex, targetHex) {
                 this.targetColors[sourceHex] = targetHex;
-                this.applyColorMapping();
+
+                // Debounce the expensive applyColorMapping operation
+                clearTimeout(this.debounceTimeout);
+                this.colorStatus.textContent = 'Processing outline changes...';
+                this.debounceTimeout = setTimeout(() => {
+                    this.applyColorMapping();
+                }, 250);
             }
 
             applyColorMapping() {
@@ -1215,25 +1132,13 @@
                 } else {
                     // Processing complete, update current frame if needed
                     this.updateFrame();
-                    this.colorStatus.textContent = `Applied color mapping to ${frameIndices.length} sprites`;
+                    this.colorStatus.textContent = `Applied outlines to ${frameIndices.length} sprites`;
                 }
             }
 
             applyColorMappingToSprite(frameIndex) {
                 const originalImageData = this.originalSprites[this.currentAnimation][frameIndex];
                 if (!originalImageData) return;
-
-                // Get the corresponding frame image data for luminance analysis
-                const frameImg = this.frameElements[this.currentAnimation][frameIndex];
-                if (!frameImg || !frameImg.complete) return;
-
-                // Extract frame image data
-                const frameCanvas = document.createElement('canvas');
-                const frameCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
-                frameCanvas.width = frameImg.naturalWidth || frameImg.width;
-                frameCanvas.height = frameImg.naturalHeight || frameImg.height;
-                frameCtx.drawImage(frameImg, 0, 0);
-                const frameImageData = frameCtx.getImageData(0, 0, frameCanvas.width, frameCanvas.height);
 
                 // Create a new canvas for the modified sprite
                 const canvas = document.createElement('canvas');
@@ -1248,99 +1153,98 @@
                 // Create new image data based on original
                 const newImageData = ctx.createImageData(originalImageData.width, originalImageData.height);
                 const originalData = originalImageData.data;
-                const frameData = frameImageData.data;
                 const newData = newImageData.data;
+                const width = originalImageData.width;
+                const height = originalImageData.height;
 
-                // Pre-calculate sprite color mapping for efficiency using cache
-                const colorMap = new Map();
-                for (const spriteHex in this.spriteColorTargets) {
-                    // Check if we have a cached mapping
-                    if (this.colorMappingCache.has(spriteHex)) {
-                        colorMap.set(spriteHex, this.colorMappingCache.get(spriteHex));
-                        continue;
-                    }
+                // First pass: copy original image and identify outline pixels
+                const outlinePixels = new Set();
 
-                    const targets = this.spriteColorTargets[spriteHex];
-                    const frameColors = this.spriteColorFrameMapping[spriteHex] || {};
-                    const sortedFrameColors = Object.keys(frameColors).sort((a, b) => {
-                        return hexToLuminance(a, this.luminanceCache) - hexToLuminance(b, this.luminanceCache);
-                    });
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const pixelIndex = (y * width + x) * 4;
+                        const r = originalData[pixelIndex];
+                        const g = originalData[pixelIndex + 1];
+                        const b = originalData[pixelIndex + 2];
+                        const a = originalData[pixelIndex + 3];
 
-                    let thresholdLuminance = 0.5; // Default threshold
-                    if (sortedFrameColors.length > 0) {
-                        const splitIndex = Math.ceil(sortedFrameColors.length * targets.split / 100);
-                        if (splitIndex < sortedFrameColors.length) {
-                            const thresholdColor = sortedFrameColors[splitIndex - 1];
-                            thresholdLuminance = hexToLuminance(thresholdColor, this.luminanceCache);
-                        }
-                    }
+                        // Copy original pixel
+                        newData[pixelIndex] = r;
+                        newData[pixelIndex + 1] = g;
+                        newData[pixelIndex + 2] = b;
+                        newData[pixelIndex + 3] = a;
 
-                    const mapping = {
-                        darkRgb: hexToRgb(targets.dark),
-                        lightRgb: hexToRgb(targets.light),
-                        threshold: thresholdLuminance
-                    };
+                        // Skip transparent pixels
+                        if (a === 0) continue;
 
-                    // Cache the mapping
-                    this.colorMappingCache.set(spriteHex, mapping);
-                    colorMap.set(spriteHex, mapping);
-                }
+                        const currentColorHex = rgbToHex(r, g, b);
 
-                // Apply color mapping with optimized pixel processing
-                for (let i = 0; i < originalData.length; i += 4) {
-                    const spriteR = originalData[i];
-                    const spriteG = originalData[i + 1];
-                    const spriteB = originalData[i + 2];
-                    const spriteA = originalData[i + 3];
+                        // Check if this color should have an outline
+                        if (!this.targetColors[currentColorHex]) continue;
 
-                    if (spriteA > 0) { // Only process non-transparent sprite pixels
-                        const spriteHex = rgbToHex(spriteR, spriteG, spriteB);
-                        const mapping = colorMap.get(spriteHex);
+                        // Check if this pixel is on the edge of this color
+                        let isEdge = false;
 
-                        if (mapping) {
-                            // Get the corresponding frame pixel at the same position
-                            const frameR = frameData[i];
-                            const frameG = frameData[i + 1];
-                            const frameB = frameData[i + 2];
-                            const frameA = frameData[i + 3];
+                        // Check all 8 neighboring pixels
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
 
-                            let targetRgb = mapping.darkRgb; // Default to dark
+                                const neighborX = x + dx;
+                                const neighborY = y + dy;
 
-                            if (frameA > 0) { // Only analyze non-transparent frame pixels
-                                const frameLuminance = getCachedLuminance(frameR, frameG, frameB, this.luminanceCache);
+                                // Check bounds
+                                if (neighborX < 0 || neighborX >= width || neighborY < 0 || neighborY >= height) {
+                                    isEdge = true;
+                                    break;
+                                }
 
-                                // Simple threshold comparison
-                                if (frameLuminance > mapping.threshold) {
-                                    targetRgb = mapping.lightRgb;
+                                const neighborIndex = (neighborY * width + neighborX) * 4;
+                                const neighborA = originalData[neighborIndex + 3];
+
+                                // If neighbor is transparent or different color, this is an edge
+                                if (neighborA === 0) {
+                                    isEdge = true;
+                                    break;
+                                }
+
+                                const neighborR = originalData[neighborIndex];
+                                const neighborG = originalData[neighborIndex + 1];
+                                const neighborB = originalData[neighborIndex + 2];
+                                const neighborColorHex = rgbToHex(neighborR, neighborG, neighborB);
+
+                                if (neighborColorHex !== currentColorHex) {
+                                    isEdge = true;
+                                    break;
                                 }
                             }
-
-                            // Apply the selected target color
-                            if (targetRgb) {
-                                newData[i] = targetRgb.r;
-                                newData[i + 1] = targetRgb.g;
-                                newData[i + 2] = targetRgb.b;
-                                newData[i + 3] = spriteA;
-                            } else {
-                                // Fallback to original color
-                                newData[i] = spriteR;
-                                newData[i + 1] = spriteG;
-                                newData[i + 2] = spriteB;
-                                newData[i + 3] = spriteA;
-                            }
-                        } else {
-                            // Keep original color if no mapping defined
-                            newData[i] = spriteR;
-                            newData[i + 1] = spriteG;
-                            newData[i + 2] = spriteB;
-                            newData[i + 3] = spriteA;
+                            if (isEdge) break;
                         }
-                    } else {
-                        // Keep transparent pixels
-                        newData[i] = spriteR;
-                        newData[i + 1] = spriteG;
-                        newData[i + 2] = spriteB;
-                        newData[i + 3] = spriteA;
+
+                        if (isEdge) {
+                            outlinePixels.add(pixelIndex);
+                        }
+                    }
+                }
+
+                // Second pass: apply outline colors to edge pixels
+                for (const pixelIndex of outlinePixels) {
+                    const r = originalData[pixelIndex];
+                    const g = originalData[pixelIndex + 1];
+                    const b = originalData[pixelIndex + 2];
+                    const a = originalData[pixelIndex + 3];
+
+                    const colorHex = rgbToHex(r, g, b);
+                    const outlineColor = this.targetColors[colorHex];
+
+                    if (outlineColor) {
+                        const outlineRgb = hexToRgb(outlineColor);
+                        if (outlineRgb) {
+                            newData[pixelIndex] = outlineRgb.r;
+                            newData[pixelIndex + 1] = outlineRgb.g;
+                            newData[pixelIndex + 2] = outlineRgb.b;
+                            newData[pixelIndex + 3] = a; // Preserve alpha
+                        }
                     }
                 }
 
