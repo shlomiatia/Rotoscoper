@@ -1348,8 +1348,9 @@
                 if (this.currentFrame < this.totalFrames - 1) {
                     this.setFrame(this.currentFrame + 1);
                 } else {
-                    // At last frame, loop back to first
-                    this.setFrame(0);
+                    // At last frame, show finished message
+                    alert('Finished! You have completed all frames.');
+                    return;
                 }
 
                 // Set this layer as active
