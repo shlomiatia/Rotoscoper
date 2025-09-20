@@ -182,7 +182,7 @@
             align-items: center;
             gap: 15px;
             margin-bottom: 8px;
-            padding: 10px;
+            padding: 15px;
             border: 1px solid #eee;
             border-radius: 5px;
             background-color: #f9f9f9;
@@ -1038,55 +1038,48 @@
                 sortedEntries.forEach(([spriteHex, count]) => {
                     const item = document.createElement('div');
                     item.className = 'color-item';
-                    item.style.flexDirection = 'column';
-                    item.style.alignItems = 'stretch';
+                    item.style.display = 'flex';
+                    item.style.alignItems = 'center';
+                    item.style.gap = '15px';
                     item.style.padding = '15px';
 
                     const targets = this.spriteColorTargets[spriteHex];
                     if (!targets) return;
 
-                    // Get sorted frame colors for this sprite color
-                    const frameColors = this.spriteColorFrameMapping[spriteHex] || {};
-                    const sortedFrameColors = Object.keys(frameColors).sort((a, b) => {
-                        return hexToLuminance(a, this.luminanceCache) - hexToLuminance(b, this.luminanceCache);
-                    });
-
-                    const frameColorPreview = sortedFrameColors.slice(0, 5).map(frameHex => {
-                        const luminance = hexToLuminance(frameHex, this.luminanceCache);
-                        return `<div style="display: inline-block; background-color: ${frameHex}; width: 20px; height: 20px; border: 1px solid #ccc; margin-right: 2px; title: '${frameHex} (L: ${luminance.toFixed(3)})'"></div>`;
-                    }).join('');
-
                     item.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-                            <div style="background-color: ${spriteHex}; width: 40px; height: 40px; border: 2px solid #ccc; border-radius: 5px; flex-shrink: 0;"></div>
-                            <div style="flex-grow: 1;">
-                                <div style="font-family: monospace; font-size: 14px; font-weight: bold; color: #333;">${spriteHex.toUpperCase()}</div>
-                                <div style="font-size: 12px; color: #666;">${count} pixels</div>
-                                <div style="font-size: 11px; color: #666; margin-top: 3px;">Frame colors: ${frameColorPreview}</div>
-                            </div>
+                        <div style="background-color: ${spriteHex}; width: 40px; height: 40px; border: 2px solid #ccc; border-radius: 5px; flex-shrink: 0;"></div>
+
+                        <div style="flex-grow: 1;">
+                            <div style="font-family: monospace; font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px;">${spriteHex.toUpperCase()}</div>
                         </div>
 
-                        <div style="display: flex; align-items: center; gap: 15px; background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 12px; font-weight: bold;">Dark:</span>
+                                <span style="font-size: 12px; font-weight: bold; min-width: 35px;">Dark:</span>
                                 <input type="color" value="${targets.dark}"
                                        onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'dark', this.value)"
-                                       style="width: 30px; height: 25px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
+                                       style="width: 35px; height: 30px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
+                                <input type="text" value="${targets.dark}"
+                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'dark', this.value)"
+                                       style="width: 70px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-family: monospace; font-size: 11px;">
                             </div>
 
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 12px; font-weight: bold;">Light:</span>
+                                <span style="font-size: 12px; font-weight: bold; min-width: 35px;">Light:</span>
                                 <input type="color" value="${targets.light}"
                                        onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'light', this.value)"
-                                       style="width: 30px; height: 25px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
+                                       style="width: 35px; height: 30px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
+                                <input type="text" value="${targets.light}"
+                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'light', this.value)"
+                                       style="width: 70px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-family: monospace; font-size: 11px;">
                             </div>
 
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 12px; font-weight: bold;">Split:</span>
                                 <input type="number" value="${targets.split}" min="0" max="100"
                                        onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'split', this.value)"
-                                       style="width: 50px; padding: 2px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;">
-                                <span style="font-size: 12px;">% dark</span>
+                                       style="width: 50px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;">
+                                <span style="font-size: 12px;">%</span>
                             </div>
                         </div>
                     `;
@@ -1131,7 +1124,21 @@
                 if (property === 'split') {
                     this.spriteColorTargets[spriteHex][property] = Math.max(0, Math.min(100, parseInt(value) || 50));
                 } else {
+                    // Validate hex color format
+                    if (value && !value.startsWith('#')) {
+                        value = '#' + value;
+                    }
+
+                    // Basic hex validation
+                    const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+                    if (!hexPattern.test(value)) {
+                        return; // Invalid hex color
+                    }
+
                     this.spriteColorTargets[spriteHex][property] = value;
+
+                    // Sync the corresponding color picker and text input
+                    this.syncColorInputs(spriteHex, property, value);
                 }
 
                 this.updateColorMappingForSprite(spriteHex);
@@ -1142,6 +1149,21 @@
                 this.debounceTimeout = setTimeout(() => {
                     this.applyColorMapping();
                 }, 250);
+            }
+
+            syncColorInputs(spriteHex, property, value) {
+                // Find all color inputs for this sprite color and property
+                const colorItems = this.colorList.querySelectorAll('.color-item');
+                colorItems.forEach(item => {
+                    const colorDiv = item.querySelector('div[style*="background-color: ' + spriteHex + '"]');
+                    if (colorDiv) {
+                        const colorInput = item.querySelector(`input[type="color"][onchange*="${property}"]`);
+                        const textInput = item.querySelector(`input[type="text"][onchange*="${property}"]`);
+
+                        if (colorInput) colorInput.value = value;
+                        if (textInput) textInput.value = value;
+                    }
+                });
             }
 
             updateColorMappingForSprite(spriteHex) {
