@@ -788,6 +788,9 @@
                     if (hexInput) {
                         hexInput.value = color.toUpperCase();
                     }
+
+                    // Save all sprites after color change
+                    this.saveAllSprites();
                 }
             }
 
@@ -836,6 +839,9 @@
                     if (hexInput) {
                         hexInput.value = normalizedHex.toUpperCase(); // Display uppercase
                     }
+
+                    // Save all sprites after color change
+                    this.saveAllSprites();
                 }
             }
 
@@ -1759,6 +1765,77 @@
                 } catch (error) {
                     console.error('Error saving sprite:', error);
                     alert(`Error saving sprite: ${error.message}`);
+                }
+            }
+
+            async saveAllSprites() {
+                // Save all sprites that have been created
+                const spritesToSave = [];
+                const spriteCanvases = this.spriteCanvases[this.currentAnimation];
+
+                if (!spriteCanvases) {
+                    console.log('No sprites to save for current animation');
+                    return;
+                }
+
+                // Collect all sprite canvases that exist
+                for (let frameIndex = 0; frameIndex < this.totalFrames; frameIndex++) {
+                    const spriteCanvas = spriteCanvases[frameIndex];
+                    if (spriteCanvas) {
+                        const frameNumber = String(frameIndex).padStart(3, '0');
+                        const frameName = `frame_${frameNumber}_delay-0.03s`;
+                        const imageDataUrl = spriteCanvas.toDataURL('image/png');
+
+                        spritesToSave.push({
+                            frameIndex: frameIndex,
+                            frameName: frameName,
+                            imageData: imageDataUrl
+                        });
+                    }
+                }
+
+                console.log(`Saving ${spritesToSave.length} sprites...`);
+
+                // Save all sprites
+                const savePromises = spritesToSave.map(async (sprite) => {
+                    try {
+                        const response = await fetch(`/api/animations/${this.currentAnimation}/sprites/save`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                imageData: sprite.imageData,
+                                frameName: sprite.frameName
+                            })
+                        });
+
+                        const result = await response.json();
+                        if (result.success) {
+                            console.log(`Saved sprite for frame ${sprite.frameIndex}: ${result.message}`);
+                        } else {
+                            console.error(`Failed to save sprite for frame ${sprite.frameIndex}:`, result.error);
+                        }
+                        return result;
+                    } catch (error) {
+                        console.error(`Error saving sprite for frame ${sprite.frameIndex}:`, error);
+                        return { success: false, error: error.message };
+                    }
+                });
+
+                try {
+                    const results = await Promise.all(savePromises);
+                    const successCount = results.filter(r => r.success).length;
+                    const failCount = results.length - successCount;
+
+                    if (failCount > 0) {
+                        alert(`Saved ${successCount} sprites, ${failCount} failed. Check console for details.`);
+                    } else {
+                        console.log(`All ${successCount} sprites saved successfully!`);
+                    }
+                } catch (error) {
+                    console.error('Error in batch sprite saving:', error);
+                    alert(`Error saving sprites: ${error.message}`);
                 }
             }
 
