@@ -29,7 +29,7 @@
 
         .tools-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 30px;
             margin-top: 40px;
         }
@@ -92,6 +92,18 @@
         .sprite-tool .tool-icon {
             color: #6f42c1;
         }
+
+        .shade-tool {
+            border-color: #fd7e14;
+        }
+
+        .shade-tool:hover {
+            border-color: #fd7e14;
+        }
+
+        .shade-tool .tool-icon {
+            color: #fd7e14;
+        }
     </style>
 </head>
 <body>
@@ -115,6 +127,15 @@
                 <div class="tool-description">
                     Generate and customize sprites from animations with color mapping.
                     Extract colors, apply color changes, and preview results in real-time.
+                </div>
+            </a>
+
+            <a href="shade-tool.html" class="tool-card shade-tool">
+                <span class="tool-icon">🌈</span>
+                <div class="tool-title">Shade Tool</div>
+                <div class="tool-description">
+                    Load existing sprites and apply color transformations.
+                    Extract colors from sprites and create new color variations.
                 </div>
             </a>
         </div>

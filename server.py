@@ -344,6 +344,58 @@ def delete_animation(animation_name):
             'error': str(e)
         }), 500
 
+@app.route('/api/animations/<animation_name>/sprites', methods=['GET'])
+def get_animation_sprites(animation_name):
+    """Get list of sprite files for an animation"""
+    try:
+        animation_path = os.path.join(SOURCE_DIR, animation_name)
+        if not os.path.exists(animation_path):
+            return jsonify({
+                'success': False,
+                'error': f'Animation "{animation_name}" not found'
+            }), 404
+
+        sprites_path = os.path.join(animation_path, 'sprites')
+        if not os.path.exists(sprites_path):
+            return jsonify({
+                'success': True,
+                'sprites': []
+            })
+
+        # Get all sprite files
+        sprite_files = []
+        try:
+            all_files = os.listdir(sprites_path)
+            for filename in all_files:
+                file_path = os.path.join(sprites_path, filename)
+                if os.path.isfile(file_path) and filename.lower().endswith(('.png', '.gif', '.jpg', '.jpeg')):
+                    # Extract frame index from filename if it follows the pattern
+                    frame_index = -1
+                    if filename.startswith('frame_') and '_delay-' in filename:
+                        try:
+                            frame_part = filename.split('_')[1]
+                            frame_index = int(frame_part)
+                        except (IndexError, ValueError):
+                            pass
+
+                    sprite_files.append({
+                        'filename': filename,
+                        'frameIndex': frame_index
+                    })
+        except OSError:
+            sprite_files = []
+
+        return jsonify({
+            'success': True,
+            'sprites': sprite_files
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/animations/<animation_name>/sprites/save', methods=['POST'])
 def save_sprite(animation_name):
     """Save a sprite image to the sprites folder"""
