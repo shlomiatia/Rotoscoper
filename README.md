@@ -1,6 +1,6 @@
-# Rotoscoper Tools
+# Rotoscoper
 
-A collection of web-based animation tools for creating custom animations and generating sprites with color mapping capabilities.
+A web-based animation toolkit for creating custom frame-based animations and generating sprites with advanced color mapping capabilities. Built with Flask backend and vanilla JavaScript frontend.
 
 ## Tools
 
@@ -32,15 +32,21 @@ A collection of web-based animation tools for creating custom animations and gen
 
 ### 1. Install Dependencies
 
+**Automated Setup:**
 ```bash
-# Install Python dependencies
 python setup.py
 ```
 
-Or manually:
+**Manual Installation:**
 ```bash
-pip install Flask==2.3.3 Flask-CORS==4.0.0
+pip install -r requirements.txt
 ```
+
+**Dependencies:**
+- Python 3.6+
+- Flask 2.3.3
+- Flask-CORS 4.0.0
+- Pillow 10.0.0+
 
 ### 2. Prepare Animation Frames
 
@@ -103,12 +109,13 @@ You'll see the main tools page with links to both tools.
 
 ## API Endpoints
 
-The Flask server provides these endpoints:
+The Flask server provides these REST endpoints:
 
-- `GET /api/animations` - List all animations
-- `POST /api/animations` - Create new animation from frame range
-- `GET /api/animations/{name}/frames` - Get animation info
-- `DELETE /api/animations/{name}` - Delete animation (except original)
+- `GET /api/animations` - List all animations with frame counts
+- `POST /api/animations` - Create new animation from frame range with optional center point adjustments
+- `GET /api/animations/{name}/frames` - Get specific animation info and frame list
+- `DELETE /api/animations/{name}` - Delete animation (protects original Walk animation)
+- `POST /api/animations/{name}/sprites/save` - Save generated sprite images to animation folder
 
 ## File Structure
 
@@ -132,44 +139,71 @@ Rotoscoper/
 ## Technical Details
 
 ### Server-Side Features
-- **Frame copying**: Copies selected frame ranges to new folders
-- **Center point padding**: Applies frame alignment adjustments during creation
-- **Automatic renaming**: Renumbers frames sequentially (0, 1, 2, ...)
-- **Validation**: Checks for duplicate names, invalid ranges
-- **CORS support**: Enables cross-origin requests
+- **Frame copying**: Copies selected frame ranges to new animation folders
+- **Advanced padding**: Applies precise center point adjustments with transparent padding using PIL
+- **Sequential renaming**: Renumbers copied frames starting from 0 for consistency
+- **Input validation**: Validates frame ranges, animation names, and prevents overwrites
+- **CORS support**: Enables cross-origin requests for local development
+- **Sprite storage**: Saves generated sprites to dedicated folders within animations
+- **Error handling**: Comprehensive error responses with cleanup on failure
 
 ### Client-Side Features
-- **Isolated tools**: Each tool runs independently with its own functionality
-- **Dynamic loading**: Fetches available animations from server
-- **Real-time updates**: Updates UI based on server responses
-- **Color processing**: Client-side color extraction and sprite generation
-- **Error handling**: Graceful fallbacks for network issues
+- **Modular architecture**: Each tool operates independently with isolated functionality
+- **Dynamic content**: Real-time loading of animations and frame data from server
+- **Live preview**: Instant visual feedback for animations and color changes
+- **Color analysis**: Client-side pixel-level color extraction and histogram generation
+- **Interactive controls**: Responsive sliders, dropdowns, and color pickers
+- **State management**: Persistent settings per animation across tool switches
 
 ## Troubleshooting
 
 ### Server won't start
-- Check that Python 3.6+ is installed
+- Verify Python 3.6+ is installed: `python --version`
 - Install dependencies: `pip install -r requirements.txt`
-- Check that port 5000 is available
+- Check port 5000 availability (stop other Flask apps)
+- Run setup script: `python setup.py`
 
 ### No animations visible
-- Ensure `Source/Walk/` directory exists
-- Check that frame files follow naming pattern: `frame_XXX_delay-0.03s.gif`
-- Check browser console for errors
+- Ensure `Source/Walk/` directory exists with frame files
+- Verify frame naming pattern: `frame_XXX_delay-0.03s.gif`
+- Check browser console (F12) for JavaScript errors
+- Confirm server is running at http://localhost:5000
 
 ### Animation creation fails
-- Verify frame range is valid (start < end)
-- Check that source animation exists
-- Ensure animation name doesn't already exist
+- Verify frame range is valid (start < end, within bounds)
+- Check source animation exists and has frames
+- Ensure new animation name is unique
+- Verify sufficient disk space for frame copying
+
+### Color mapping not working
+- Check that frames are loaded properly
+- Ensure browser supports HTML5 Canvas
+- Verify image files are valid GIF/PNG formats
+- Check for JavaScript errors in browser console
 
 ## Development
 
-To modify the tools:
+### Architecture
+- **Frontend**: Vanilla JavaScript with HTML5 Canvas for image processing
+- **Backend**: Flask with PIL for image manipulation and file operations
+- **Communication**: RESTful API with JSON responses
+- **Storage**: File-based with organized directory structure
 
-1. **Main Page**: Edit `index.html`
-2. **New Animation Tool**: Edit `new-animation-tool.html`
-3. **Sprite Tool**: Edit `sprite-tool.html`
-4. **Backend**: Edit `server.py`
-5. **Restart server** to see changes (for HTML files)
+### Making Changes
+1. **Main Page**: Edit `index.html` for landing page and navigation
+2. **Animation Tool**: Edit `new-animation-tool.html` for frame creation features
+3. **Sprite Tool**: Edit `sprite-tool.html` for color mapping and sprite generation
+4. **Backend Logic**: Edit `server.py` for API endpoints and image processing
+5. **Dependencies**: Update `requirements.txt` for new Python packages
 
-The server runs in debug mode by default, so Python changes are auto-reloaded. Each tool is completely isolated, so changes to one won't affect the other.
+### Development Server
+The Flask server runs in debug mode with auto-reload enabled:
+- Python changes reload automatically
+- HTML/JS changes require browser refresh
+- Each tool is modular and independently testable
+
+### Adding Features
+- New API endpoints: Add routes to `server.py`
+- UI components: Modify respective HTML files
+- Image processing: Extend PIL functions in `server.py`
+- Client-side logic: Add JavaScript to tool files

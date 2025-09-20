@@ -19,7 +19,8 @@
       "mcp__playwright__browser_console_messages",
       "mcp__playwright__browser_press_key",
       "Bash(compgen:*)",
-      "Bash(claude mcp add:*)"
+      "Bash(claude mcp add:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
