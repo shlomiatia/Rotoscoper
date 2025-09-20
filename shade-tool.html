@@ -376,6 +376,25 @@
             return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
         }
 
+        function getRelativeLuminance(r, g, b) {
+            // Convert RGB to linear RGB values
+            const rsRGB = r / 255;
+            const gsRGB = g / 255;
+            const bsRGB = b / 255;
+
+            const rLinear = rsRGB <= 0.03928 ? rsRGB / 12.92 : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
+            const gLinear = gsRGB <= 0.03928 ? gsRGB / 12.92 : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
+            const bLinear = bsRGB <= 0.03928 ? bsRGB / 12.92 : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
+
+            // Calculate relative luminance using the WCAG formula
+            return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
+        }
+
+        function hexToLuminance(hex) {
+            const rgb = hexToRgb(hex);
+            return rgb ? getRelativeLuminance(rgb.r, rgb.g, rgb.b) : 0;
+        }
+
         class ShadeTool {
             constructor() {
                 this.currentFrame = 0;
@@ -401,6 +420,8 @@
                 this.originalColors = {};
                 this.targetColors = {};
                 this.originalSprites = {};
+                this.spriteColorFrameMapping = {}; // Maps sprite colors to frame colors at matching positions
+                this.spriteColorTargets = {}; // Maps sprite colors to {dark, light, split} settings
 
                 this.initializeElements();
                 this.bindEvents();
@@ -569,7 +590,7 @@
                     if (data.success && data.sprites.length > 0) {
                         await this.createSpriteElements(data.sprites);
                         this.colorStatus.textContent = `Loaded ${data.sprites.length} sprites`;
-                        // Auto-extract colors after loading sprites
+                        // Auto-extract colors from sprites
                         this.extractColorsFromSprites();
                     } else {
                         this.colorStatus.textContent = 'No sprites found for this animation';
@@ -753,24 +774,24 @@
                 });
             }
 
-            async extractColorsFromSprites() {
-                this.colorStatus.textContent = 'Extracting colors from sprites...';
+            async extractColorsFromFrames() {
+                this.colorStatus.textContent = 'Extracting colors from animation frames...';
 
                 try {
-                    const sprites = this.spriteElements[this.currentAnimation];
-                    if (!sprites || Object.keys(sprites).length === 0) {
-                        this.colorStatus.textContent = 'No sprites loaded to extract colors from';
+                    const frames = this.frameElements[this.currentAnimation];
+                    if (!frames || Object.keys(frames).length === 0) {
+                        this.colorStatus.textContent = 'No frames loaded to extract colors from';
                         this.renderColorList([]);
                         return;
                     }
 
                     const colorCounts = {};
 
-                    for (const frameIndex in sprites) {
-                        const spriteImg = sprites[frameIndex];
-                        if (!spriteImg.complete) continue;
+                    for (const frameIndex in frames) {
+                        const frameImg = frames[frameIndex];
+                        if (!frameImg.complete) continue;
 
-                        const colors = this.extractColorsFromImage(spriteImg);
+                        const colors = this.extractColorsFromImage(frameImg);
 
                         for (const hex in colors) {
                             if (colorCounts[hex]) {
@@ -781,23 +802,170 @@
                         }
                     }
 
+                    // Store original frame colors
+                    this.originalFrameColors = colorCounts;
+
+                    // Sort colors by luminance (dark to light)
+                    this.sortedColorsByLuminance = Object.keys(colorCounts).sort((a, b) => {
+                        return hexToLuminance(a) - hexToLuminance(b);
+                    });
+
+                    // Set initial target colors to first and last colors in luminance range
+                    if (this.sortedColorsByLuminance.length > 0) {
+                        this.darkTargetColor = this.sortedColorsByLuminance[0];
+                        this.lightTargetColor = this.sortedColorsByLuminance[this.sortedColorsByLuminance.length - 1];
+                    }
+
+                    this.updateColorMappingFromFrames();
+                    this.renderNewColorList();
+                    this.colorStatus.textContent = `Found ${Object.keys(colorCounts).length} unique colors from frames`;
+
+                } catch (error) {
+                    console.error('Error extracting colors:', error);
+                    this.colorStatus.textContent = 'Error extracting colors from frames';
+                    this.renderColorList([]);
+                }
+            }
+
+            async extractColorsFromSprites() {
+                this.colorStatus.textContent = 'Extracting colors from sprites and analyzing frame correspondence...';
+
+                try {
+                    const sprites = this.spriteElements[this.currentAnimation];
+                    const frames = this.frameElements[this.currentAnimation];
+
+                    if (!sprites || Object.keys(sprites).length === 0) {
+                        this.colorStatus.textContent = 'No sprites loaded to extract colors from';
+                        this.renderNewColorList();
+                        return;
+                    }
+
+                    if (!frames || Object.keys(frames).length === 0) {
+                        this.colorStatus.textContent = 'No frames loaded for correspondence analysis';
+                        this.renderNewColorList();
+                        return;
+                    }
+
+                    const colorCounts = {};
+                    this.spriteColorFrameMapping = {};
+
+                    for (const frameIndex in sprites) {
+                        const spriteImg = sprites[frameIndex];
+                        const frameImg = frames[frameIndex];
+
+                        if (!spriteImg.complete || !frameImg.complete) continue;
+
+                        // Extract sprite colors and their corresponding frame colors
+                        const correspondence = this.extractSpriteFrameCorrespondence(spriteImg, frameImg);
+
+                        // Accumulate sprite color counts
+                        for (const hex in correspondence.spriteColors) {
+                            if (colorCounts[hex]) {
+                                colorCounts[hex] += correspondence.spriteColors[hex];
+                            } else {
+                                colorCounts[hex] = correspondence.spriteColors[hex];
+                            }
+                        }
+
+                        // Store frame color correspondence for each sprite color
+                        for (const spriteColor in correspondence.frameCorrespondence) {
+                            if (!this.spriteColorFrameMapping[spriteColor]) {
+                                this.spriteColorFrameMapping[spriteColor] = {};
+                            }
+
+                            const frameColors = correspondence.frameCorrespondence[spriteColor];
+                            for (const frameColor in frameColors) {
+                                if (this.spriteColorFrameMapping[spriteColor][frameColor]) {
+                                    this.spriteColorFrameMapping[spriteColor][frameColor] += frameColors[frameColor];
+                                } else {
+                                    this.spriteColorFrameMapping[spriteColor][frameColor] = frameColors[frameColor];
+                                }
+                            }
+                        }
+                    }
+
                     // Reset color mappings
                     this.originalColors = colorCounts;
                     this.targetColors = {};
+                    this.spriteColorTargets = {};
 
-                    // Initialize target colors to be the same as original colors
+                    // Initialize sprite color targets with default values
                     for (const hex in colorCounts) {
-                        this.targetColors[hex] = hex;
+                        this.spriteColorTargets[hex] = {
+                            dark: hex,
+                            light: hex,
+                            split: 50
+                        };
                     }
 
-                    this.renderColorList(Object.entries(colorCounts));
-                    this.colorStatus.textContent = `Found ${Object.keys(colorCounts).length} unique colors`;
+                    // Update all color mappings
+                    this.updateAllColorMappings();
+                    this.renderNewColorList();
+                    this.colorStatus.textContent = `Found ${Object.keys(colorCounts).length} unique sprite colors`;
 
                 } catch (error) {
                     console.error('Error extracting colors:', error);
                     this.colorStatus.textContent = 'Error extracting colors from sprites';
-                    this.renderColorList([]);
+                    this.renderNewColorList();
                 }
+            }
+
+            extractSpriteFrameCorrespondence(spriteImg, frameImg) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                const width = spriteImg.naturalWidth || spriteImg.width;
+                const height = spriteImg.naturalHeight || spriteImg.height;
+
+                canvas.width = width;
+                canvas.height = height;
+
+                // Draw sprite and get its pixel data
+                ctx.drawImage(spriteImg, 0, 0);
+                const spriteData = ctx.getImageData(0, 0, width, height);
+
+                // Draw frame and get its pixel data
+                ctx.clearRect(0, 0, width, height);
+                ctx.drawImage(frameImg, 0, 0);
+                const frameData = ctx.getImageData(0, 0, width, height);
+
+                const spriteColors = {};
+                const frameCorrespondence = {};
+
+                for (let i = 0; i < spriteData.data.length; i += 4) {
+                    const spriteR = spriteData.data[i];
+                    const spriteG = spriteData.data[i + 1];
+                    const spriteB = spriteData.data[i + 2];
+                    const spriteA = spriteData.data[i + 3];
+
+                    if (spriteA > 0) { // Only process non-transparent sprite pixels
+                        const spriteHex = rgbToHex(spriteR, spriteG, spriteB);
+
+                        // Count sprite color
+                        spriteColors[spriteHex] = (spriteColors[spriteHex] || 0) + 1;
+
+                        // Get corresponding frame color at the same position
+                        const frameR = frameData.data[i];
+                        const frameG = frameData.data[i + 1];
+                        const frameB = frameData.data[i + 2];
+                        const frameA = frameData.data[i + 3];
+
+                        if (frameA > 0) { // Only count non-transparent frame pixels
+                            const frameHex = rgbToHex(frameR, frameG, frameB);
+
+                            if (!frameCorrespondence[spriteHex]) {
+                                frameCorrespondence[spriteHex] = {};
+                            }
+
+                            frameCorrespondence[spriteHex][frameHex] = (frameCorrespondence[spriteHex][frameHex] || 0) + 1;
+                        }
+                    }
+                }
+
+                return {
+                    spriteColors: spriteColors,
+                    frameCorrespondence: frameCorrespondence
+                };
             }
 
             extractColorsFromImage(img) {
@@ -826,6 +994,77 @@
                 }
 
                 return colorCounts;
+            }
+
+            renderNewColorList() {
+                this.colorList.innerHTML = '';
+
+                if (!this.originalColors || Object.keys(this.originalColors).length === 0) {
+                    this.colorList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No colors found. Load sprites to see available colors.</div>';
+                    return;
+                }
+
+                // Sort sprite colors by pixel count (descending)
+                const sortedEntries = Object.entries(this.originalColors).sort((a, b) => b[1] - a[1]);
+
+                sortedEntries.forEach(([spriteHex, count]) => {
+                    const item = document.createElement('div');
+                    item.className = 'color-item';
+                    item.style.flexDirection = 'column';
+                    item.style.alignItems = 'stretch';
+                    item.style.padding = '15px';
+
+                    const targets = this.spriteColorTargets[spriteHex];
+                    if (!targets) return;
+
+                    // Get sorted frame colors for this sprite color
+                    const frameColors = this.spriteColorFrameMapping[spriteHex] || {};
+                    const sortedFrameColors = Object.keys(frameColors).sort((a, b) => {
+                        return hexToLuminance(a) - hexToLuminance(b);
+                    });
+
+                    const frameColorPreview = sortedFrameColors.slice(0, 5).map(frameHex => {
+                        const luminance = hexToLuminance(frameHex);
+                        return `<div style="display: inline-block; background-color: ${frameHex}; width: 20px; height: 20px; border: 1px solid #ccc; margin-right: 2px; title: '${frameHex} (L: ${luminance.toFixed(3)})'"></div>`;
+                    }).join('');
+
+                    item.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                            <div style="background-color: ${spriteHex}; width: 40px; height: 40px; border: 2px solid #ccc; border-radius: 5px; flex-shrink: 0;"></div>
+                            <div style="flex-grow: 1;">
+                                <div style="font-family: monospace; font-size: 14px; font-weight: bold; color: #333;">${spriteHex.toUpperCase()}</div>
+                                <div style="font-size: 12px; color: #666;">${count} pixels</div>
+                                <div style="font-size: 11px; color: #666; margin-top: 3px;">Frame colors: ${frameColorPreview}</div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 15px; background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12px; font-weight: bold;">Dark:</span>
+                                <input type="color" value="${targets.dark}"
+                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'dark', this.value)"
+                                       style="width: 30px; height: 25px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12px; font-weight: bold;">Light:</span>
+                                <input type="color" value="${targets.light}"
+                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'light', this.value)"
+                                       style="width: 30px; height: 25px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12px; font-weight: bold;">Split:</span>
+                                <input type="number" value="${targets.split}" min="0" max="100"
+                                       onchange="shadeTool.updateSpriteTarget('${spriteHex}', 'split', this.value)"
+                                       style="width: 50px; padding: 2px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;">
+                                <span style="font-size: 12px;">% dark</span>
+                            </div>
+                        </div>
+                    `;
+
+                    this.colorList.appendChild(item);
+                });
             }
 
             renderColorList(colorEntries) {
@@ -858,6 +1097,36 @@
                 });
             }
 
+            updateSpriteTarget(spriteHex, property, value) {
+                if (!this.spriteColorTargets[spriteHex]) return;
+
+                if (property === 'split') {
+                    this.spriteColorTargets[spriteHex][property] = Math.max(0, Math.min(100, parseInt(value) || 50));
+                } else {
+                    this.spriteColorTargets[spriteHex][property] = value;
+                }
+
+                this.updateColorMappingForSprite(spriteHex);
+                this.applyColorMapping();
+            }
+
+            updateColorMappingForSprite(spriteHex) {
+                // This method is now simplified since actual mapping is done pixel-by-pixel
+                // We just need to ensure the sprite color targets are properly stored
+                const targets = this.spriteColorTargets[spriteHex];
+                if (!targets) return;
+
+                // The targetColors mapping is no longer used for the simplified approach,
+                // but we'll keep it for compatibility with existing code
+                this.targetColors[spriteHex] = targets.dark; // Default for display purposes
+            }
+
+            updateAllColorMappings() {
+                for (const spriteHex in this.spriteColorTargets) {
+                    this.updateColorMappingForSprite(spriteHex);
+                }
+            }
+
             updateTargetColor(sourceHex, targetHex) {
                 this.targetColors[sourceHex] = targetHex;
                 this.applyColorMapping();
@@ -877,6 +1146,18 @@
                 const originalImageData = this.originalSprites[this.currentAnimation][frameIndex];
                 if (!originalImageData) return;
 
+                // Get the corresponding frame image data for luminance analysis
+                const frameImg = this.frameElements[this.currentAnimation][frameIndex];
+                if (!frameImg || !frameImg.complete) return;
+
+                // Extract frame image data
+                const frameCanvas = document.createElement('canvas');
+                const frameCtx = frameCanvas.getContext('2d');
+                frameCanvas.width = frameImg.naturalWidth || frameImg.width;
+                frameCanvas.height = frameImg.naturalHeight || frameImg.height;
+                frameCtx.drawImage(frameImg, 0, 0);
+                const frameImageData = frameCtx.getImageData(0, 0, frameCanvas.width, frameCanvas.height);
+
                 // Create a new canvas for the modified sprite
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
@@ -890,46 +1171,81 @@
                 // Create new image data based on original
                 const newImageData = ctx.createImageData(originalImageData.width, originalImageData.height);
                 const originalData = originalImageData.data;
+                const frameData = frameImageData.data;
                 const newData = newImageData.data;
 
-                // Apply color mapping
+                // Apply color mapping with luminance-based selection
                 for (let i = 0; i < originalData.length; i += 4) {
-                    const r = originalData[i];
-                    const g = originalData[i + 1];
-                    const b = originalData[i + 2];
-                    const a = originalData[i + 3];
+                    const spriteR = originalData[i];
+                    const spriteG = originalData[i + 1];
+                    const spriteB = originalData[i + 2];
+                    const spriteA = originalData[i + 3];
 
-                    if (a > 0) { // Only process non-transparent pixels
-                        const sourceHex = rgbToHex(r, g, b);
-                        const targetHex = this.targetColors[sourceHex];
+                    if (spriteA > 0) { // Only process non-transparent sprite pixels
+                        const spriteHex = rgbToHex(spriteR, spriteG, spriteB);
+                        const targets = this.spriteColorTargets[spriteHex];
 
-                        if (targetHex && targetHex !== sourceHex) {
+                        if (targets) {
+                            // Get the corresponding frame pixel at the same position
+                            const frameR = frameData[i];
+                            const frameG = frameData[i + 1];
+                            const frameB = frameData[i + 2];
+                            const frameA = frameData[i + 3];
+
+                            let targetHex = targets.dark; // Default to dark
+
+                            if (frameA > 0) { // Only analyze non-transparent frame pixels
+                                const frameLuminance = getRelativeLuminance(frameR, frameG, frameB);
+
+                                // Get sorted frame colors for this sprite color to determine threshold
+                                const frameColors = this.spriteColorFrameMapping[spriteHex] || {};
+                                const sortedFrameColors = Object.keys(frameColors).sort((a, b) => {
+                                    return hexToLuminance(a) - hexToLuminance(b);
+                                });
+
+                                if (sortedFrameColors.length > 0) {
+                                    // Calculate the luminance threshold based on split percentage
+                                    const splitIndex = Math.ceil(sortedFrameColors.length * targets.split / 100);
+
+                                    if (splitIndex < sortedFrameColors.length) {
+                                        const thresholdColor = sortedFrameColors[splitIndex - 1];
+                                        const thresholdLuminance = hexToLuminance(thresholdColor);
+
+                                        // If frame luminance is above threshold, use light color
+                                        if (frameLuminance > thresholdLuminance) {
+                                            targetHex = targets.light;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Apply the selected target color
                             const targetRgb = hexToRgb(targetHex);
                             if (targetRgb) {
                                 newData[i] = targetRgb.r;
                                 newData[i + 1] = targetRgb.g;
                                 newData[i + 2] = targetRgb.b;
-                                newData[i + 3] = a;
+                                newData[i + 3] = spriteA;
                             } else {
                                 // Fallback to original color
-                                newData[i] = r;
-                                newData[i + 1] = g;
-                                newData[i + 2] = b;
-                                newData[i + 3] = a;
+                                newData[i] = spriteR;
+                                newData[i + 1] = spriteG;
+                                newData[i + 2] = spriteB;
+                                newData[i + 3] = spriteA;
                             }
                         } else {
-                            // Keep original color
-                            newData[i] = r;
-                            newData[i + 1] = g;
-                            newData[i + 2] = b;
-                            newData[i + 3] = a;
+                            // Keep original color if no targets defined
+                            newData[i] = spriteR;
+                            newData[i + 1] = spriteG;
+                            newData[i + 2] = spriteB;
+                            newData[i + 3] = spriteA;
                         }
                     } else {
                         // Keep transparent pixels
-                        newData[i] = r;
-                        newData[i + 1] = g;
-                        newData[i + 2] = b;
-                        newData[i + 3] = a;
+                        newData[i] = spriteR;
+                        newData[i + 1] = spriteG;
+                        newData[i + 2] = spriteB;
+                        newData[i + 3] = spriteA;
                     }
                 }
 
@@ -1008,8 +1324,10 @@
                 this.originalColors = {};
                 this.targetColors = {};
                 this.originalSprites[animationName] = {};
+                this.spriteColorFrameMapping = {};
+                this.spriteColorTargets = {};
                 this.colorStatus.textContent = '';
-                this.renderColorList([]);
+                this.renderNewColorList();
 
                 this.frameWidth = 0;
                 this.frameHeight = 0;

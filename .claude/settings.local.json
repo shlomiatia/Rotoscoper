@@ -20,7 +20,8 @@
       "mcp__playwright__browser_press_key",
       "Bash(compgen:*)",
       "Bash(claude mcp add:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "mcp__playwright__browser_snapshot"
     ],
     "deny": [],
     "ask": []
