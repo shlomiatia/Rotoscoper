@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shade Tool</title>
+    <title>Outline Tool</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -257,7 +257,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Shade Tool</h1>
+            <h1>Outline Tool</h1>
             <a href="index.html" class="back-btn">← Back to Tools</a>
         </div>
 
@@ -338,39 +338,7 @@
             } : null;
         }
 
-        function rgbToHsl(r, g, b) {
-            r /= 255;
-            g /= 255;
-            b /= 255;
 
-            const max = Math.max(r, g, b);
-            const min = Math.min(r, g, b);
-            let h, s, l = (max + min) / 2;
-
-            if (max === min) {
-                h = s = 0; // achromatic
-            } else {
-                const d = max - min;
-                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-                switch (max) {
-                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                    case g: h = (b - r) / d + 2; break;
-                    case b: h = (r - g) / d + 4; break;
-                }
-                h /= 6;
-            }
-
-            return {
-                h: Math.round(h * 360),
-                s: Math.round(s * 100),
-                l: Math.round(l * 100)
-            };
-        }
-
-        function hexToHsl(hex) {
-            const rgb = hexToRgb(hex);
-            return rgb ? rgbToHsl(rgb.r, rgb.g, rgb.b) : null;
-        }
 
         function rgbToHex(r, g, b) {
             return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
@@ -390,15 +358,6 @@
             return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
         }
 
-        function getCachedLuminance(r, g, b, cache) {
-            const key = `${r},${g},${b}`;
-            if (cache.has(key)) {
-                return cache.get(key);
-            }
-            const luminance = getRelativeLuminance(r, g, b);
-            cache.set(key, luminance);
-            return luminance;
-        }
 
         function hexToLuminance(hex, cache) {
             if (cache && cache.has(hex)) {
@@ -412,7 +371,7 @@
             return luminance;
         }
 
-        class ShadeTool {
+        class OutlineTool {
             constructor() {
                 this.currentFrame = 0;
                 this.totalFrames = 150;
@@ -801,58 +760,6 @@
                 });
             }
 
-            async extractColorsFromFrames() {
-                this.colorStatus.textContent = 'Extracting colors from animation frames...';
-
-                try {
-                    const frames = this.frameElements[this.currentAnimation];
-                    if (!frames || Object.keys(frames).length === 0) {
-                        this.colorStatus.textContent = 'No frames loaded to extract colors from';
-                        this.renderColorList([]);
-                        return;
-                    }
-
-                    const colorCounts = {};
-
-                    for (const frameIndex in frames) {
-                        const frameImg = frames[frameIndex];
-                        if (!frameImg.complete) continue;
-
-                        const colors = this.extractColorsFromImage(frameImg);
-
-                        for (const hex in colors) {
-                            if (colorCounts[hex]) {
-                                colorCounts[hex] += colors[hex];
-                            } else {
-                                colorCounts[hex] = colors[hex];
-                            }
-                        }
-                    }
-
-                    // Store original frame colors
-                    this.originalFrameColors = colorCounts;
-
-                    // Sort colors by luminance (dark to light)
-                    this.sortedColorsByLuminance = Object.keys(colorCounts).sort((a, b) => {
-                        return hexToLuminance(a, this.luminanceCache) - hexToLuminance(b, this.luminanceCache);
-                    });
-
-                    // Set initial target colors to first and last colors in luminance range
-                    if (this.sortedColorsByLuminance.length > 0) {
-                        this.darkTargetColor = this.sortedColorsByLuminance[0];
-                        this.lightTargetColor = this.sortedColorsByLuminance[this.sortedColorsByLuminance.length - 1];
-                    }
-
-                    this.updateColorMappingFromFrames();
-                    this.renderNewColorList();
-                    this.colorStatus.textContent = `Found ${Object.keys(colorCounts).length} unique colors from frames`;
-
-                } catch (error) {
-                    console.error('Error extracting colors:', error);
-                    this.colorStatus.textContent = 'Error extracting colors from frames';
-                    this.renderColorList([]);
-                }
-            }
 
             async extractColorsFromSprites() {
                 this.colorStatus.textContent = 'Extracting colors from sprites and analyzing frame correspondence...';
@@ -1051,7 +958,7 @@
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 12px; font-weight: bold; min-width: 50px;">Outline:</span>
                                 <input type="color" value="${outlineColor}"
-                                       onchange="shadeTool.updateTargetColor('${spriteHex}', this.value)"
+                                       onchange="outlineTool.updateTargetColor('${spriteHex}', this.value)"
                                        style="width: 50px; height: 40px; border: 2px solid #ccc; border-radius: 5px; cursor: pointer;">
                             </div>
                         </div>
@@ -1061,35 +968,6 @@
                 });
             }
 
-            renderColorList(colorEntries) {
-                this.colorList.innerHTML = '';
-
-                if (colorEntries.length === 0) {
-                    this.colorList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No colors found. Load sprites to see available colors.</div>';
-                    return;
-                }
-
-                // Sort by pixel count (descending)
-                const sortedEntries = colorEntries.sort((a, b) => b[1] - a[1]);
-
-                sortedEntries.forEach(([hex, count]) => {
-                    const item = document.createElement('div');
-                    item.className = 'color-item';
-
-                    item.innerHTML = `
-                        <div class="color-preview" style="background-color: ${hex}"></div>
-                        <div class="color-info">
-                            <div class="color-hex">${hex.toUpperCase()}</div>
-                            <div class="color-count">${count} pixels</div>
-                        </div>
-                        <div class="arrow">→</div>
-                        <input type="color" class="target-color-picker" value="${this.targetColors[hex]}"
-                               onchange="shadeTool.updateTargetColor('${hex}', this.value)">
-                    `;
-
-                    this.colorList.appendChild(item);
-                });
-            }
 
 
 
@@ -1344,9 +1222,9 @@
             }
         }
 
-        let shadeTool;
+        let outlineTool;
         document.addEventListener('DOMContentLoaded', () => {
-            shadeTool = new ShadeTool();
+outlineTool = new OutlineTool();
         });
     </script>
 </body>
