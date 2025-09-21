@@ -21,7 +21,9 @@
       "Bash(compgen:*)",
       "Bash(claude mcp add:*)",
       "Bash(dir:*)",
-      "mcp__playwright__browser_snapshot"
+      "mcp__playwright__browser_snapshot",
+      "Bash(del \"outline-tool.html\")",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
