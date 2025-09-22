@@ -88,10 +88,9 @@
 
         .sprite-canvas {
             position: absolute;
-            top: 0px;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
         }
@@ -291,6 +290,29 @@
             font-weight: bold;
         }
 
+        .zoom-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        .zoom-btn:hover {
+            background-color: #5a6268;
+        }
+
+        #zoom-display {
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
         .sort-controls {
             display: flex;
             gap: 10px;
@@ -478,6 +500,13 @@
                 <input type="range" id="frame-slider" min="0" max="149" value="0">
                 <input type="number" id="frame-input" min="0" max="149" value="0">
             </div>
+
+            <div class="input-group">
+                <label>Zoom:</label>
+                <button id="zoom-out-btn" class="zoom-btn">-</button>
+                <span id="zoom-display">100%</span>
+                <button id="zoom-in-btn" class="zoom-btn">+</button>
+            </div>
         </div>
 
         <div class="animation-container">
@@ -595,6 +624,9 @@
                 this.frameHeight = 0;
                 this.frameElements = {};
                 this.currentFrameElement = null;
+                this.zoomLevel = 1.0;
+                this.zoomLevels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
+                this.currentZoomIndex = 3;
 
                 this.spriteCanvases = {};
                 this.spriteData = {};
@@ -613,6 +645,7 @@
                 this.bindEvents();
                 this.loadAvailableAnimations();
                 this.updateDisplays();
+                this.updateZoomDisplay();
 
                 setTimeout(() => {
                     this.createFrameElements();
@@ -636,6 +669,9 @@
                 this.clickIndicator = document.getElementById('click-indicator');
                 this.layersContainer = document.getElementById('layers-container');
                 this.addLayerBtn = document.getElementById('add-layer-btn');
+                this.zoomInBtn = document.getElementById('zoom-in-btn');
+                this.zoomOutBtn = document.getElementById('zoom-out-btn');
+                this.zoomDisplay = document.getElementById('zoom-display');
             }
 
             initializeLayerSystem() {
@@ -904,6 +940,14 @@
                 this.framePreviewContainer.addEventListener('click', (e) => {
                     this.handleFrameClick(e);
                 });
+
+                this.zoomInBtn.addEventListener('click', () => {
+                    this.zoomIn();
+                });
+
+                this.zoomOutBtn.addEventListener('click', () => {
+                    this.zoomOut();
+                });
             }
 
             setFrame(frame) {
@@ -983,6 +1027,7 @@
                                 this.frameWidth = img.naturalWidth;
                                 this.frameHeight = img.naturalHeight;
                                 this.setContainerDimensions();
+                                this.updateZoomForAllElements();
                             };
                         } else {
                             img.onload = () => {
@@ -990,6 +1035,7 @@
                                     this.frameWidth = img.naturalWidth;
                                     this.frameHeight = img.naturalHeight;
                                     this.setContainerDimensions();
+                                    this.updateZoomForAllElements();
                                 }
                             };
                         }
@@ -1658,6 +1704,7 @@
                 canvas.style.display = 'none';
                 canvas.style.imageRendering = 'pixelated';
                 canvas.style.imageRendering = 'crisp-edges';
+                canvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
 
                 // Create sprite image data
                 const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
@@ -1720,9 +1767,57 @@
 
             setContainerDimensions() {
                 if (this.frameWidth && this.frameHeight) {
-                    // Always use the natural frame dimensions for the container
-                    this.frameContainer.style.width = this.frameWidth + 'px';
-                    this.frameContainer.style.height = this.frameHeight + 'px';
+                    // Scale container dimensions by zoom level
+                    const scaledWidth = this.frameWidth * this.zoomLevel;
+                    const scaledHeight = this.frameHeight * this.zoomLevel;
+                    this.frameContainer.style.width = scaledWidth + 'px';
+                    this.frameContainer.style.height = scaledHeight + 'px';
+                }
+            }
+
+            zoomIn() {
+                if (this.currentZoomIndex < this.zoomLevels.length - 1) {
+                    this.currentZoomIndex++;
+                    this.setZoom(this.zoomLevels[this.currentZoomIndex]);
+                }
+            }
+
+            zoomOut() {
+                if (this.currentZoomIndex > 0) {
+                    this.currentZoomIndex--;
+                    this.setZoom(this.zoomLevels[this.currentZoomIndex]);
+                }
+            }
+
+            setZoom(zoomLevel) {
+                this.zoomLevel = zoomLevel;
+                this.updateZoomDisplay();
+                this.setContainerDimensions();
+                this.updateZoomForAllElements();
+            }
+
+            updateZoomDisplay() {
+                const percentage = Math.round(this.zoomLevel * 100);
+                this.zoomDisplay.textContent = percentage + '%';
+            }
+
+            updateZoomForAllElements() {
+                // Apply zoom to all frame images for the current animation
+                if (this.frameElements[this.currentAnimation]) {
+                    Object.values(this.frameElements[this.currentAnimation]).forEach(frameElement => {
+                        if (frameElement) {
+                            frameElement.style.transform = `scale(${this.zoomLevel})`;
+                        }
+                    });
+                }
+
+                // Apply zoom to all sprite canvases for the current animation
+                if (this.spriteCanvases[this.currentAnimation]) {
+                    Object.values(this.spriteCanvases[this.currentAnimation]).forEach(spriteCanvas => {
+                        if (spriteCanvas) {
+                            spriteCanvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
+                        }
+                    });
                 }
             }
 
@@ -1898,6 +1993,7 @@
 
                 this.createFrameElements();
                 this.updateDisplays();
+                this.updateZoomDisplay();
             }
         }
 

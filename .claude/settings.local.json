@@ -23,7 +23,10 @@
       "Bash(dir:*)",
       "mcp__playwright__browser_snapshot",
       "Bash(del \"outline-tool.html\")",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "mcp__playwright__browser_close",
+      "Bash(taskkill:*)",
+      "mcp__playwright__browser_tabs"
     ],
     "deny": [],
     "ask": []
