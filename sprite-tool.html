@@ -471,11 +471,9 @@
 
         .click-indicator {
             position: absolute;
-            width: 3px;
-            height: 3px;
+            width: 1px;
+            height: 1px;
             background-color: #ff0000;
-            border: 1px solid #fff;
-            border-radius: 50%;
             pointer-events: none;
             z-index: 20;
             transform: translate(-50%, -50%);
@@ -1818,6 +1816,21 @@
                             spriteCanvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
                         }
                     });
+                }
+
+                // Update click indicator position for new zoom level
+                this.updateClickIndicatorForZoom();
+            }
+
+            updateClickIndicatorForZoom() {
+                const activeLayer = this.getActiveLayer();
+                if (!activeLayer || !activeLayer.frameSettings || !activeLayer.frameSettings[this.currentAnimation]) {
+                    return;
+                }
+
+                const frameSettings = activeLayer.frameSettings[this.currentAnimation][this.currentFrame];
+                if (frameSettings && frameSettings.clickX >= 0 && frameSettings.clickY >= 0) {
+                    this.updateClickIndicatorPosition(frameSettings.clickX, frameSettings.clickY);
                 }
             }
 
