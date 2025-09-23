@@ -876,6 +876,12 @@
                     this.currentFrameElement.classList.remove('active');
                 }
 
+                // Clear current sprite display first
+                if (this.currentSpriteCanvas) {
+                    this.currentSpriteCanvas.style.display = 'none';
+                    this.currentSpriteCanvas = null;
+                }
+
                 if (this.frameElements[this.currentAnimation] &&
                     this.frameElements[this.currentAnimation][this.currentFrame]) {
                     this.currentFrameElement = this.frameElements[this.currentAnimation][this.currentFrame];
@@ -889,8 +895,46 @@
                     }
                 }
 
-                // Show all sprite canvases for current frame (multiple polygons)
-                this.generateAllSpritesForFrame(this.currentFrame);
+                // Show sprite canvas for current frame (if it exists)
+                this.displayCurrentFrameSprite();
+            }
+
+            displayCurrentFrameSprite() {
+                // Clear all sprite displays first
+                const allSprites = this.spriteCanvasContainer.querySelectorAll('.sprite-canvas');
+                allSprites.forEach(sprite => sprite.style.display = 'none');
+
+                // Show sprite for current frame if it exists
+                if (this.spriteCanvases[this.currentAnimation] &&
+                    this.spriteCanvases[this.currentAnimation][this.currentFrame]) {
+
+                    const spriteCanvas = this.spriteCanvases[this.currentAnimation][this.currentFrame];
+
+                    // Position and show the sprite
+                    const containerRect = this.framePreviewContainer.getBoundingClientRect();
+                    const frameRect = this.currentFrameElement ? this.currentFrameElement.getBoundingClientRect() : null;
+
+                    if (frameRect) {
+                        const relativeX = frameRect.left - containerRect.left;
+                        const relativeY = frameRect.top - containerRect.top;
+
+                        spriteCanvas.style.position = 'absolute';
+                        spriteCanvas.style.left = relativeX + 'px';
+                        spriteCanvas.style.top = relativeY + 'px';
+                        spriteCanvas.style.transform = `scale(${frameRect.width / this.frameWidth}, ${frameRect.height / this.frameHeight})`;
+                        spriteCanvas.style.opacity = this.spriteOpacity / 100;
+                        spriteCanvas.style.pointerEvents = 'none';
+                        spriteCanvas.style.zIndex = '10';
+                        spriteCanvas.style.display = 'block';
+
+                        // Ensure it's in the container
+                        if (!spriteCanvas.parentElement) {
+                            this.spriteCanvasContainer.appendChild(spriteCanvas);
+                        }
+
+                        this.currentSpriteCanvas = spriteCanvas;
+                    }
+                }
             }
 
             createFrameElements() {
@@ -1169,8 +1213,15 @@
 
                     this.currentPolygon[this.dragVertexIndex] = { x: newX, y: newY };
 
-                    // Update display
-                    this.displayPolygon();
+                    // Clear all polygon displays and redraw everything to avoid duplicates
+                    this.clearPolygonDisplay();
+                    this.displayAllPolygons();
+
+                    // Clear and regenerate sprite for current frame if polygon is closed
+                    if (this.isPolygonClosed) {
+                        this.clearSpriteForFrame(this.currentFrame);
+                        this.generateAllSpritesForFrame(this.currentFrame);
+                    }
 
                     // Update drag start position for next move
                     this.dragStartX = e.clientX;
@@ -1192,8 +1243,7 @@
 
                     // Regenerate sprite if polygon is closed
                     if (this.isPolygonClosed) {
-                        this.generateSpriteForFrame(this.currentFrame);
-                        this.updateFrame();
+                        this.generateAllSpritesForFrame(this.currentFrame);
                     }
                 }
             }
@@ -1278,7 +1328,8 @@
                 }
 
                 if (framePolygon) {
-                    this.currentPolygon = [...framePolygon.vertices];
+                    // Deep copy vertices to avoid sharing references between frames
+                    this.currentPolygon = framePolygon.vertices.map(v => ({ x: v.x, y: v.y }));
                     this.isPolygonClosed = framePolygon.closed;
                 } else if (this.currentFrame === 0) {
                     // Only initialize empty polygon on first frame
@@ -1294,7 +1345,8 @@
                     }
 
                     if (frame0Polygon) {
-                        this.currentPolygon = [...frame0Polygon.vertices];
+                        // Deep copy vertices to avoid sharing references between frames
+                        this.currentPolygon = frame0Polygon.vertices.map(v => ({ x: v.x, y: v.y }));
                         this.isPolygonClosed = frame0Polygon.closed;
                     } else {
                         this.currentPolygon = [];
@@ -1364,9 +1416,11 @@
                 this.displayPolygon();
                 this.updatePolygonUI();
 
-                // Generate sprite
-                this.generateSpriteForFrame(this.currentFrame);
-                this.updateFrame();
+                // Save the polygon to ensure it's in the data structure
+                this.saveCurrentPolygon();
+
+                // Generate sprite for all polygons in this frame
+                this.generateAllSpritesForFrame(this.currentFrame);
             }
 
             saveCurrentPolygon() {
@@ -1485,7 +1539,7 @@
             }
 
             clearPolygonDisplay() {
-                // Remove all polygon elements
+                // Remove all polygon elements (including static ones)
                 const vertices = this.framePreviewContainer.querySelectorAll('.polygon-vertex');
                 const lines = this.framePreviewContainer.querySelectorAll('.polygon-line');
 
@@ -1666,7 +1720,17 @@
                 if (this.spriteCanvases[this.currentAnimation] &&
                     this.spriteCanvases[this.currentAnimation][frameIndex]) {
                     const canvas = this.spriteCanvases[this.currentAnimation][frameIndex];
-                    canvas.remove();
+
+                    // Remove from DOM if it exists
+                    if (canvas.parentElement) {
+                        canvas.remove();
+                    }
+
+                    // Clear reference if this was the current sprite canvas
+                    if (this.currentSpriteCanvas === canvas) {
+                        this.currentSpriteCanvas = null;
+                    }
+
                     delete this.spriteCanvases[this.currentAnimation][frameIndex];
                 }
             }
@@ -2245,10 +2309,14 @@
             }
 
             generateAllSpritesForFrame(frameIndex) {
-                // Clear existing sprite for this frame
+                // Clear existing sprite for this frame first
                 this.clearSpriteForFrame(frameIndex);
 
                 if (!this.polygons[this.currentAnimation] || !this.polygons[this.currentAnimation][frameIndex]) {
+                    // Also clear currentSpriteCanvas if we're viewing this frame
+                    if (frameIndex === this.currentFrame) {
+                        this.currentSpriteCanvas = null;
+                    }
                     return;
                 }
 
@@ -2256,6 +2324,10 @@
                 const closedPolygons = framePolygons.filter(p => p.closed);
 
                 if (closedPolygons.length === 0) {
+                    // Also clear currentSpriteCanvas if we're viewing this frame
+                    if (frameIndex === this.currentFrame) {
+                        this.currentSpriteCanvas = null;
+                    }
                     return;
                 }
 
@@ -2299,22 +2371,27 @@
                 }
                 this.spriteCanvases[this.currentAnimation][frameIndex] = spriteCanvas;
 
-                // Position and add to container
-                const containerRect = this.framePreviewContainer.getBoundingClientRect();
-                const frameRect = this.currentFrameElement ? this.currentFrameElement.getBoundingClientRect() : null;
+                // Position and add to container only if this is the current frame
+                if (frameIndex === this.currentFrame) {
+                    const containerRect = this.framePreviewContainer.getBoundingClientRect();
+                    const frameRect = this.currentFrameElement ? this.currentFrameElement.getBoundingClientRect() : null;
 
-                if (frameRect) {
-                    const relativeX = frameRect.left - containerRect.left;
-                    const relativeY = frameRect.top - containerRect.top;
+                    if (frameRect) {
+                        const relativeX = frameRect.left - containerRect.left;
+                        const relativeY = frameRect.top - containerRect.top;
 
-                    spriteCanvas.style.left = relativeX + 'px';
-                    spriteCanvas.style.top = relativeY + 'px';
-                    spriteCanvas.style.transform = `scale(${frameRect.width / this.frameWidth}, ${frameRect.height / this.frameHeight})`;
-                    spriteCanvas.style.opacity = this.spriteOpacity / 100;
+                        spriteCanvas.style.position = 'absolute';
+                        spriteCanvas.style.left = relativeX + 'px';
+                        spriteCanvas.style.top = relativeY + 'px';
+                        spriteCanvas.style.transform = `scale(${frameRect.width / this.frameWidth}, ${frameRect.height / this.frameHeight})`;
+                        spriteCanvas.style.opacity = this.spriteOpacity / 100;
+                        spriteCanvas.style.pointerEvents = 'none';
+                        spriteCanvas.style.zIndex = '10';
+                    }
+
+                    this.spriteCanvasContainer.appendChild(spriteCanvas);
+                    this.currentSpriteCanvas = spriteCanvas;
                 }
-
-                this.spriteCanvasContainer.appendChild(spriteCanvas);
-                this.currentSpriteCanvas = spriteCanvas;
             }
         }
 
