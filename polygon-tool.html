@@ -453,6 +453,85 @@
             background-color: #6c757d;
             cursor: not-allowed;
         }
+
+        .polygon-list-container {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .create-polygon-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .create-polygon-btn:hover {
+            background-color: #218838;
+        }
+
+        .polygon-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 3px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .polygon-row:hover {
+            border-color: #007bff;
+        }
+
+        .polygon-row.active {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+
+        .polygon-row-name {
+            flex: 1;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .polygon-row-info {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .delete-polygon-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .delete-polygon-btn:hover {
+            background-color: #c82333;
+        }
+
+        .polygon-color-input {
+            width: 30px;
+            height: 24px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0;
+        }
+
     </style>
 </head>
 
@@ -490,9 +569,16 @@
 
         <div class="sprite-controls">
             <h3>Polygon Controls</h3>
-            <div class="polygon-info">
-                Click on the frame to create polygon vertices. Click on polygon lines to insert vertices. Click on the first vertex (green) to close the polygon.
+
+            <div class="polygon-list-container">
+                <div class="polygon-list-header">
+                    <button class="create-polygon-btn" id="create-polygon-btn">Create Polygon</button>
+                </div>
+                <div class="polygon-list" id="polygon-list">
+                    <!-- Polygon rows will be added dynamically -->
+                </div>
             </div>
+
             <div class="polygon-controls">
                 <label>Color:</label>
                 <input type="text" class="hex-color-input" id="hex-color-input" value="#FF0000" placeholder="#ff0000">
@@ -615,9 +701,12 @@
 
                 // Polygon tool properties
                 this.color = '#FF0000';
-                this.polygons = {}; // Store polygons per animation per frame: {animationName: {frameIndex: {vertices: [{x, y}], closed: boolean}}}
+                this.polygons = {}; // Store polygons per animation per frame per polygon: {animationName: {frameIndex: [{id, vertices: [{x, y}], closed: boolean}]}}
                 this.currentPolygon = []; // Current polygon being created
                 this.isPolygonClosed = false;
+                this.polygonList = []; // List of polygon objects {id, name, color}
+                this.activePolygonId = null; // Currently selected polygon ID
+                this.nextPolygonId = 1;
                 this.spriteCanvases = {}; // Store canvases per animation per frame
 
                 // Vertex dragging properties
@@ -631,6 +720,10 @@
                 this.loadAvailableAnimations();
                 this.updateDisplays();
                 this.updateZoomDisplay();
+
+                // Create default polygon
+                this.createDefaultPolygon();
+                this.updatePolygonListUI();
 
                 setTimeout(() => {
                     this.createFrameElements();
@@ -657,6 +750,8 @@
                 this.colorInput = document.getElementById('color-input');
                 this.clearPolygonBtn = document.getElementById('clear-polygon-btn');
                 this.closePolygonBtn = document.getElementById('close-polygon-btn');
+                this.createPolygonBtn = document.getElementById('create-polygon-btn');
+                this.polygonListElement = document.getElementById('polygon-list');
             }
 
             bindEvents() {
@@ -747,6 +842,10 @@
                     if (this.currentFrame === 0) {
                         this.closeCurrentPolygon();
                     }
+                });
+
+                this.createPolygonBtn.addEventListener('click', () => {
+                    this.createNewPolygon();
                 });
             }
 
@@ -968,6 +1067,11 @@
                     return;
                 }
 
+                // Don't allow any polygon modification without an active polygon
+                if (!this.activePolygonId) {
+                    return;
+                }
+
                 // Check if we clicked on an existing vertex first
                 const vertexInfo = this.getVertexAtPosition(e.clientX, e.clientY);
                 if (vertexInfo) {
@@ -1117,7 +1221,10 @@
                         Math.pow(clientY - vertexCenterY, 2)
                     );
 
-                    if (distance <= 12) { // 12px tolerance for clicking on vertex
+                    // Use actual vertex radius: regular vertices = 6px radius, first vertex = 7px radius
+                    const vertexRadius = vertex.classList.contains('first') ? 7 : 6;
+
+                    if (distance <= vertexRadius) {
                         return {
                             index: i,
                             isFirst: vertex.classList.contains('first'),
@@ -1162,14 +1269,25 @@
                 // Clear current polygon display
                 this.clearPolygonDisplay();
 
+                // If no active polygon, do nothing
+                if (!this.activePolygonId) {
+                    this.currentPolygon = [];
+                    this.isPolygonClosed = false;
+                    this.updatePolygonUI();
+                    return;
+                }
+
                 // Load polygon for current frame if it exists
+                let framePolygon = null;
                 if (this.polygons[this.currentAnimation] &&
                     this.polygons[this.currentAnimation][this.currentFrame]) {
-                    const framePolygon = this.polygons[this.currentAnimation][this.currentFrame];
+                    const framePolygons = this.polygons[this.currentAnimation][this.currentFrame];
+                    framePolygon = framePolygons.find(p => p.id === this.activePolygonId);
+                }
+
+                if (framePolygon) {
                     this.currentPolygon = [...framePolygon.vertices];
                     this.isPolygonClosed = framePolygon.closed;
-
-                    // Display polygon, but retry if frame dimensions aren't ready
                     this.displayPolygonWhenReady();
                 } else if (this.currentFrame === 0) {
                     // Only initialize empty polygon on first frame
@@ -1177,9 +1295,14 @@
                     this.isPolygonClosed = false;
                 } else {
                     // For other frames, copy from frame 0 if it exists, otherwise empty
+                    let frame0Polygon = null;
                     if (this.polygons[this.currentAnimation] &&
                         this.polygons[this.currentAnimation][0]) {
-                        const frame0Polygon = this.polygons[this.currentAnimation][0];
+                        const frame0Polygons = this.polygons[this.currentAnimation][0];
+                        frame0Polygon = frame0Polygons.find(p => p.id === this.activePolygonId);
+                    }
+
+                    if (frame0Polygon) {
                         this.currentPolygon = [...frame0Polygon.vertices];
                         this.isPolygonClosed = frame0Polygon.closed;
                         this.displayPolygonWhenReady();
@@ -1191,10 +1314,11 @@
 
                 this.updatePolygonUI();
 
-                // Generate sprite if polygon is closed
-                if (this.isPolygonClosed) {
-                    this.generateSpriteForFrame(this.currentFrame);
-                }
+                // Display all polygons layered, with active one showing controls
+                this.displayAllPolygons();
+
+                // Generate sprites for all closed polygons in this frame
+                this.generateAllSpritesForFrame(this.currentFrame);
             }
 
             displayPolygonWhenReady() {
@@ -1256,7 +1380,7 @@
             }
 
             saveCurrentPolygon() {
-                if (this.currentPolygon.length === 0) {
+                if (!this.activePolygonId || this.currentPolygon.length === 0) {
                     return;
                 }
 
@@ -1264,10 +1388,26 @@
                     this.polygons[this.currentAnimation] = {};
                 }
 
-                this.polygons[this.currentAnimation][this.currentFrame] = {
+                if (!this.polygons[this.currentAnimation][this.currentFrame]) {
+                    this.polygons[this.currentAnimation][this.currentFrame] = [];
+                }
+
+                // Find existing polygon or create new one
+                const framePolygons = this.polygons[this.currentAnimation][this.currentFrame];
+                let existingPolygonIndex = framePolygons.findIndex(p => p.id === this.activePolygonId);
+
+                const polygonData = {
+                    id: this.activePolygonId,
                     vertices: [...this.currentPolygon],
-                    closed: this.isPolygonClosed
+                    closed: this.isPolygonClosed,
+                    color: this.polygonList.find(p => p.id === this.activePolygonId)?.color || this.color
                 };
+
+                if (existingPolygonIndex >= 0) {
+                    framePolygons[existingPolygonIndex] = polygonData;
+                } else {
+                    framePolygons.push(polygonData);
+                }
             }
 
             updatePolygonUI() {
@@ -1372,6 +1512,14 @@
                 vertex.style.left = x + 'px';
                 vertex.style.top = y + 'px';
 
+                // Set color from active polygon
+                if (this.activePolygonId && !isFirst) {
+                    const polygon = this.polygonList.find(p => p.id === this.activePolygonId);
+                    if (polygon) {
+                        vertex.style.backgroundColor = polygon.color;
+                    }
+                }
+
                 // Add title for user guidance
                 vertex.title = isFirst ? 'First vertex (click to close polygon)' : 'Right-click to remove, drag to move';
 
@@ -1391,6 +1539,14 @@
                 line.style.width = length + 'px';
                 line.style.transform = `rotate(${angle}deg)`;
                 line.title = 'Click to insert vertex here';
+
+                // Set color from active polygon
+                if (this.activePolygonId) {
+                    const polygon = this.polygonList.find(p => p.id === this.activePolygonId);
+                    if (polygon) {
+                        line.style.backgroundColor = polygon.color;
+                    }
+                }
 
                 this.framePreviewContainer.appendChild(line);
             }
@@ -1858,6 +2014,304 @@
                     this.generateSpriteForFrame(this.currentFrame);
                     this.updateFrame();
                 }
+            }
+
+            // Polygon Management Methods
+            createDefaultPolygon() {
+                const polygonId = this.nextPolygonId++;
+                const polygonName = `Polygon ${polygonId}`;
+
+                // Create polygon object with default red color
+                const polygon = {
+                    id: polygonId,
+                    name: polygonName,
+                    color: '#FF0000'
+                };
+
+                this.polygonList.push(polygon);
+                this.activePolygonId = polygonId;
+
+                // Initialize empty polygon for editing
+                this.currentPolygon = [];
+                this.isPolygonClosed = false;
+            }
+
+            createNewPolygon() {
+                const polygonId = this.nextPolygonId++;
+                const polygonName = `Polygon ${polygonId}`;
+
+                // Generate different color for new polygon
+                const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080'];
+                const newColor = colors[(polygonId - 1) % colors.length];
+
+                // Create polygon object
+                const polygon = {
+                    id: polygonId,
+                    name: polygonName,
+                    color: newColor
+                };
+
+                this.polygonList.push(polygon);
+                this.activePolygonId = polygonId;
+
+                // Clear current polygon for new one
+                this.currentPolygon = [];
+                this.isPolygonClosed = false;
+                this.clearPolygonDisplay();
+
+                // Update UI
+                this.updatePolygonListUI();
+                this.updatePolygonUI();
+            }
+
+            selectPolygon(polygonId) {
+                // Save current polygon before switching
+                this.saveCurrentPolygon();
+
+                this.activePolygonId = polygonId;
+
+                // Load the selected polygon for current frame
+                this.loadCurrentFramePolygon();
+
+                // Update UI
+                this.updatePolygonListUI();
+                this.updatePolygonUI();
+            }
+
+            deletePolygon(polygonId) {
+                // Remove from polygon list
+                this.polygonList = this.polygonList.filter(p => p.id !== polygonId);
+
+                // Remove from all frames of current animation
+                if (this.polygons[this.currentAnimation]) {
+                    for (let frameIndex in this.polygons[this.currentAnimation]) {
+                        this.polygons[this.currentAnimation][frameIndex] =
+                            this.polygons[this.currentAnimation][frameIndex].filter(p => p.id !== polygonId);
+                    }
+                }
+
+                // If we deleted the active polygon, select first available or none
+                if (this.activePolygonId === polygonId) {
+                    this.activePolygonId = this.polygonList.length > 0 ? this.polygonList[0].id : null;
+                    this.currentPolygon = [];
+                    this.isPolygonClosed = false;
+                    this.clearPolygonDisplay();
+                }
+
+                // Update UI and reload current polygon
+                this.updatePolygonListUI();
+                this.loadCurrentFramePolygon();
+                this.updateFrame(); // Regenerate sprites
+            }
+
+            updatePolygonListUI() {
+                this.polygonListElement.innerHTML = '';
+
+                this.polygonList.forEach(polygon => {
+                    const row = document.createElement('div');
+                    row.className = `polygon-row ${this.activePolygonId === polygon.id ? 'active' : ''}`;
+                    row.innerHTML = `
+                        <div class="polygon-row-name">${polygon.name}</div>
+                        <div class="polygon-row-info">${this.getPolygonInfo(polygon.id)}</div>
+                        <input type="color" class="polygon-color-input" value="${polygon.color}" onchange="polygonTool.updatePolygonColor(${polygon.id}, this.value)">
+                        <button class="delete-polygon-btn" onclick="polygonTool.deletePolygon(${polygon.id})">Delete</button>
+                    `;
+
+                    // Add click handler for selection (but not on delete button or color input)
+                    row.addEventListener('click', (e) => {
+                        if (!e.target.classList.contains('delete-polygon-btn') &&
+                            !e.target.classList.contains('polygon-color-input')) {
+                            this.selectPolygon(polygon.id);
+                        }
+                    });
+
+                    this.polygonListElement.appendChild(row);
+                });
+            }
+
+            getPolygonInfo(polygonId) {
+                let totalVertices = 0;
+                let closedFrames = 0;
+                let totalFrames = 0;
+
+                if (this.polygons[this.currentAnimation]) {
+                    for (let frameIndex in this.polygons[this.currentAnimation]) {
+                        const framePolygons = this.polygons[this.currentAnimation][frameIndex];
+                        const polygon = framePolygons.find(p => p.id === polygonId);
+                        if (polygon) {
+                            totalFrames++;
+                            totalVertices = Math.max(totalVertices, polygon.vertices.length);
+                            if (polygon.closed) closedFrames++;
+                        }
+                    }
+                }
+
+                if (totalFrames === 0) {
+                    return 'Empty';
+                }
+
+                return `${totalVertices}v, ${closedFrames}/${totalFrames}f`;
+            }
+
+            updatePolygonColor(polygonId, newColor) {
+                // Update color in polygon list
+                const polygon = this.polygonList.find(p => p.id === polygonId);
+                if (polygon) {
+                    polygon.color = newColor;
+                }
+
+                // Update color in all frames for this polygon
+                if (this.polygons[this.currentAnimation]) {
+                    for (let frameIndex in this.polygons[this.currentAnimation]) {
+                        const framePolygons = this.polygons[this.currentAnimation][frameIndex];
+                        const framePolygon = framePolygons.find(p => p.id === polygonId);
+                        if (framePolygon) {
+                            framePolygon.color = newColor;
+                        }
+                    }
+                }
+
+                // Refresh display and regenerate sprites
+                this.loadCurrentFramePolygon();
+                this.updateFrame();
+            }
+
+            displayAllPolygons() {
+                // First display all inactive polygons (without controls)
+                if (this.polygons[this.currentAnimation] && this.polygons[this.currentAnimation][this.currentFrame]) {
+                    const framePolygons = this.polygons[this.currentAnimation][this.currentFrame];
+
+                    // Sort polygons by ID to ensure consistent layering (first created = bottom layer)
+                    const sortedPolygons = [...framePolygons].sort((a, b) => a.id - b.id);
+
+                    sortedPolygons.forEach(polygon => {
+                        if (polygon.id !== this.activePolygonId) {
+                            this.displayPolygonStatic(polygon.vertices, polygon.closed, polygon.color || this.color);
+                        }
+                    });
+                }
+
+                // Then display the active polygon with controls on top
+                if (this.currentPolygon.length > 0) {
+                    this.displayPolygon();
+                }
+            }
+
+            displayPolygonStatic(vertices, closed, color) {
+                if (vertices.length === 0) return;
+
+                // Draw polygon lines
+                for (let i = 0; i < vertices.length; i++) {
+                    const current = vertices[i];
+                    const next = vertices[(i + 1) % vertices.length];
+
+                    // Don't draw the closing line if polygon is not closed
+                    if (i === vertices.length - 1 && !closed) {
+                        break;
+                    }
+
+                    const currentScreen = this.imageToScreenCoords(current.x, current.y);
+                    const nextScreen = this.imageToScreenCoords(next.x, next.y);
+
+                    if (currentScreen && nextScreen) {
+                        this.createStaticLineElement(currentScreen.x, currentScreen.y, nextScreen.x, nextScreen.y, color);
+                    }
+                }
+            }
+
+            createStaticLineElement(x1, y1, x2, y2, color) {
+                const line = document.createElement('div');
+                line.className = 'polygon-line static';
+
+                const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+                line.style.position = 'absolute';
+                line.style.left = x1 + 'px';
+                line.style.top = (y1 - 1) + 'px';
+                line.style.width = length + 'px';
+                line.style.height = '2px';
+                line.style.backgroundColor = color;
+                line.style.transform = `rotate(${angle}deg)`;
+                line.style.transformOrigin = '0 50%';
+                line.style.zIndex = '20';
+                line.style.opacity = '0.7';
+                line.style.pointerEvents = 'none';
+
+                this.framePreviewContainer.appendChild(line);
+            }
+
+            generateAllSpritesForFrame(frameIndex) {
+                // Clear existing sprite for this frame
+                this.clearSpriteForFrame(frameIndex);
+
+                if (!this.polygons[this.currentAnimation] || !this.polygons[this.currentAnimation][frameIndex]) {
+                    return;
+                }
+
+                const framePolygons = this.polygons[this.currentAnimation][frameIndex];
+                const closedPolygons = framePolygons.filter(p => p.closed);
+
+                if (closedPolygons.length === 0) {
+                    return;
+                }
+
+                // Create combined mask for all closed polygons
+                const canvas = document.createElement('canvas');
+                canvas.width = this.frameWidth;
+                canvas.height = this.frameHeight;
+                const ctx = canvas.getContext('2d');
+
+                // Sort by ID to ensure consistent layering
+                const sortedPolygons = [...closedPolygons].sort((a, b) => a.id - b.id);
+
+                sortedPolygons.forEach(polygon => {
+                    ctx.fillStyle = polygon.color || this.color;
+                    ctx.beginPath();
+
+                    polygon.vertices.forEach((vertex, index) => {
+                        if (index === 0) {
+                            ctx.moveTo(vertex.x, vertex.y);
+                        } else {
+                            ctx.lineTo(vertex.x, vertex.y);
+                        }
+                    });
+
+                    ctx.closePath();
+                    ctx.fill();
+                });
+
+                // Create sprite canvas
+                const spriteCanvas = document.createElement('canvas');
+                spriteCanvas.className = 'sprite-canvas';
+                spriteCanvas.width = this.frameWidth;
+                spriteCanvas.height = this.frameHeight;
+
+                const spriteCtx = spriteCanvas.getContext('2d');
+                spriteCtx.drawImage(canvas, 0, 0);
+
+                // Store the canvas
+                if (!this.spriteCanvases[this.currentAnimation]) {
+                    this.spriteCanvases[this.currentAnimation] = {};
+                }
+                this.spriteCanvases[this.currentAnimation][frameIndex] = spriteCanvas;
+
+                // Position and add to container
+                const containerRect = this.framePreviewContainer.getBoundingClientRect();
+                const frameRect = this.currentFrameElement ? this.currentFrameElement.getBoundingClientRect() : null;
+
+                if (frameRect) {
+                    const relativeX = frameRect.left - containerRect.left;
+                    const relativeY = frameRect.top - containerRect.top;
+
+                    spriteCanvas.style.left = relativeX + 'px';
+                    spriteCanvas.style.top = relativeY + 'px';
+                    spriteCanvas.style.transform = `scale(${frameRect.width / this.frameWidth}, ${frameRect.height / this.frameHeight})`;
+                    spriteCanvas.style.opacity = this.spriteOpacity / 100;
+                }
+
+                this.spriteCanvasContainer.appendChild(spriteCanvas);
+                this.currentSpriteCanvas = spriteCanvas;
             }
         }
 
