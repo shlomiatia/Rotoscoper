@@ -876,10 +876,6 @@
                     this.currentFrameElement.classList.remove('active');
                 }
 
-                if (this.currentSpriteCanvas) {
-                    this.currentSpriteCanvas.style.display = 'none';
-                }
-
                 if (this.frameElements[this.currentAnimation] &&
                     this.frameElements[this.currentAnimation][this.currentFrame]) {
                     this.currentFrameElement = this.frameElements[this.currentAnimation][this.currentFrame];
@@ -893,12 +889,8 @@
                     }
                 }
 
-                if (this.spriteCanvases[this.currentAnimation] &&
-                    this.spriteCanvases[this.currentAnimation][this.currentFrame]) {
-                    this.currentSpriteCanvas = this.spriteCanvases[this.currentAnimation][this.currentFrame];
-                    this.currentSpriteCanvas.style.display = 'block';
-                    this.currentSpriteCanvas.style.opacity = this.spriteOpacity / 100;
-                }
+                // Show all sprite canvases for current frame (multiple polygons)
+                this.generateAllSpritesForFrame(this.currentFrame);
             }
 
             createFrameElements() {
@@ -1266,7 +1258,7 @@
             }
 
             loadCurrentFramePolygon() {
-                // Clear current polygon display
+                // Clear current polygon display and prepare to show all polygons
                 this.clearPolygonDisplay();
 
                 // If no active polygon, do nothing
@@ -1288,7 +1280,6 @@
                 if (framePolygon) {
                     this.currentPolygon = [...framePolygon.vertices];
                     this.isPolygonClosed = framePolygon.closed;
-                    this.displayPolygonWhenReady();
                 } else if (this.currentFrame === 0) {
                     // Only initialize empty polygon on first frame
                     this.currentPolygon = [];
@@ -1305,7 +1296,6 @@
                     if (frame0Polygon) {
                         this.currentPolygon = [...frame0Polygon.vertices];
                         this.isPolygonClosed = frame0Polygon.closed;
-                        this.displayPolygonWhenReady();
                     } else {
                         this.currentPolygon = [];
                         this.isPolygonClosed = false;
@@ -2065,10 +2055,12 @@
                 this.polygonList.push(polygon);
                 this.activePolygonId = polygonId;
 
-                // Clear current polygon for new one
+                // Initialize empty polygon for new one
                 this.currentPolygon = [];
                 this.isPolygonClosed = false;
-                this.clearPolygonDisplay();
+
+                // Display all polygons (including existing ones)
+                this.displayAllPolygons();
 
                 // Update UI
                 this.updatePolygonListUI();
