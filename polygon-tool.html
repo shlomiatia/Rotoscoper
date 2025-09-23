@@ -88,9 +88,9 @@
 
         .sprite-canvas {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform-origin: center center;
+            top: 0;
+            left: 0;
+            transform-origin: top left;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
         }
@@ -1648,7 +1648,7 @@
                 canvas.style.display = 'none';
                 canvas.style.imageRendering = 'pixelated';
                 canvas.style.imageRendering = 'crisp-edges';
-                canvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
+                canvas.style.transform = `scale(${this.zoomLevel})`;
 
                 // Create sprite image data
                 const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
@@ -1760,7 +1760,18 @@
                 if (this.spriteCanvases[this.currentAnimation]) {
                     Object.values(this.spriteCanvases[this.currentAnimation]).forEach(spriteCanvas => {
                         if (spriteCanvas) {
-                            spriteCanvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
+                            // Get the current frame dimensions and container position
+                            const containerRect = this.framePreviewContainer.getBoundingClientRect();
+                            const frameRect = this.currentFrameElement ? this.currentFrameElement.getBoundingClientRect() : null;
+                            if (frameRect) {
+                                // Update sprite canvas position and transform to match frame
+                                const relativeX = frameRect.left - containerRect.left;
+                                const relativeY = frameRect.top - containerRect.top;
+
+                                spriteCanvas.style.left = relativeX + 'px';
+                                spriteCanvas.style.top = relativeY + 'px';
+                                spriteCanvas.style.transform = `scale(${frameRect.width / this.frameWidth}, ${frameRect.height / this.frameHeight})`;
+                            }
                         }
                     });
                 }
