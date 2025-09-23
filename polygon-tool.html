@@ -738,11 +738,15 @@
 
                 // Polygon action events
                 this.clearPolygonBtn.addEventListener('click', () => {
-                    this.clearCurrentPolygon();
+                    if (this.currentFrame === 0) {
+                        this.clearCurrentPolygon();
+                    }
                 });
 
                 this.closePolygonBtn.addEventListener('click', () => {
-                    this.closeCurrentPolygon();
+                    if (this.currentFrame === 0) {
+                        this.closeCurrentPolygon();
+                    }
                 });
             }
 
@@ -967,9 +971,14 @@
                 // Check if we clicked on an existing vertex first
                 const vertexInfo = this.getVertexAtPosition(e.clientX, e.clientY);
                 if (vertexInfo) {
-                    if (vertexInfo.isFirst && this.currentPolygon.length > 2) {
+                    if (vertexInfo.isFirst && this.currentPolygon.length > 2 && this.currentFrame === 0) {
                         this.closeCurrentPolygon();
                     }
+                    return;
+                }
+
+                // Only allow vertex creation/insertion on frame 0
+                if (this.currentFrame !== 0) {
                     return;
                 }
 
@@ -1009,6 +1018,11 @@
 
             handleFrameContextMenu(e) {
                 e.preventDefault();
+
+                // Only allow vertex removal on frame 0
+                if (this.currentFrame !== 0) {
+                    return;
+                }
 
                 // Check if we right-clicked on a vertex
                 const vertexInfo = this.getVertexAtPosition(e.clientX, e.clientY);
@@ -1072,6 +1086,9 @@
                 if (this.isDragging) {
                     this.isDragging = false;
                     this.dragVertexIndex = -1;
+
+                    // Save the updated polygon to current frame
+                    this.saveCurrentPolygon();
 
                     // Remove visual feedback
                     const vertices = this.framePreviewContainer.querySelectorAll('.polygon-vertex');
@@ -1154,9 +1171,22 @@
 
                     // Display polygon, but retry if frame dimensions aren't ready
                     this.displayPolygonWhenReady();
-                } else {
+                } else if (this.currentFrame === 0) {
+                    // Only initialize empty polygon on first frame
                     this.currentPolygon = [];
                     this.isPolygonClosed = false;
+                } else {
+                    // For other frames, copy from frame 0 if it exists, otherwise empty
+                    if (this.polygons[this.currentAnimation] &&
+                        this.polygons[this.currentAnimation][0]) {
+                        const frame0Polygon = this.polygons[this.currentAnimation][0];
+                        this.currentPolygon = [...frame0Polygon.vertices];
+                        this.isPolygonClosed = frame0Polygon.closed;
+                        this.displayPolygonWhenReady();
+                    } else {
+                        this.currentPolygon = [];
+                        this.isPolygonClosed = false;
+                    }
                 }
 
                 this.updatePolygonUI();
@@ -1236,7 +1266,9 @@
             }
 
             updatePolygonUI() {
-                this.closePolygonBtn.disabled = this.currentPolygon.length < 3 || this.isPolygonClosed;
+                const isFrame0 = this.currentFrame === 0;
+                this.closePolygonBtn.disabled = this.currentPolygon.length < 3 || this.isPolygonClosed || !isFrame0;
+                this.clearPolygonBtn.disabled = !isFrame0;
             }
 
             updateColor(color) {
