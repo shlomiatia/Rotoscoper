@@ -854,9 +854,16 @@
                 this.saveCurrentPolygon();
 
                 this.currentFrame = Math.max(0, Math.min(frame, this.totalFrames - 1));
-                this.loadCurrentFramePolygon();
                 this.updateFrame();
+                this.loadCurrentFramePolygon();
                 this.updateDisplays();
+
+                // Ensure sprite display after frame elements are ready
+                setTimeout(() => {
+                    // Generate sprites for current frame first, then display
+                    this.generateAllSpritesForFrame(this.currentFrame);
+                    this.displayCurrentFrameSprite();
+                }, 20);
             }
 
             setDelay(delay) {
@@ -910,11 +917,18 @@
 
                     const spriteCanvas = this.spriteCanvases[this.currentAnimation][this.currentFrame];
 
+                    // Wait for frame element to be positioned if needed
+                    if (!this.currentFrameElement || !this.frameWidth || !this.frameHeight) {
+                        // Retry after a short delay
+                        setTimeout(() => this.displayCurrentFrameSprite(), 50);
+                        return;
+                    }
+
                     // Position and show the sprite
                     const containerRect = this.framePreviewContainer.getBoundingClientRect();
-                    const frameRect = this.currentFrameElement ? this.currentFrameElement.getBoundingClientRect() : null;
+                    const frameRect = this.currentFrameElement.getBoundingClientRect();
 
-                    if (frameRect) {
+                    if (frameRect && frameRect.width > 0 && frameRect.height > 0) {
                         const relativeX = frameRect.left - containerRect.left;
                         const relativeY = frameRect.top - containerRect.top;
 
@@ -933,6 +947,9 @@
                         }
 
                         this.currentSpriteCanvas = spriteCanvas;
+                    } else {
+                        // Frame not ready yet, retry
+                        setTimeout(() => this.displayCurrentFrameSprite(), 50);
                     }
                 }
             }
@@ -1361,6 +1378,11 @@
 
                 // Generate sprites for all closed polygons in this frame
                 this.generateAllSpritesForFrame(this.currentFrame);
+
+                // Ensure the sprite is displayed immediately
+                setTimeout(() => {
+                    this.displayCurrentFrameSprite();
+                }, 10);
             }
 
             displayPolygonWhenReady() {
