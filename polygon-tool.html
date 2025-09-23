@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polygon Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .animation-container {
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f8f8f8;
+            padding: 20px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .frame-preview-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        #frame-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+            height: auto;
+        }
+
+        .frame-image {
+            display: none;
+        }
+
+        .frame-image.active {
+            display: block;
+        }
+
+        .sprite-canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .sprite-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .animation-selector {
+            margin-bottom: 10px;
+        }
+
+        .animation-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .control-group {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            flex: 1;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .play-pause-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .play-pause-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .sprite-controls {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .sprite-controls h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+
+        .color-mapping-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 15px;
+            background-color: #ffffff;
+        }
+
+        .color-mapping-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #eee;
+            border-radius: 3px;
+            background-color: #f9f9f9;
+        }
+
+        .color-mapping-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .source-color-preview {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .color-mapping-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .color-hex {
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .color-count {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .target-color-picker {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .color-mapping-controls {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #ffffff;
+        }
+
+        .color-mapping-controls h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .sprite-button {
+            background-color: #6f42c1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .sprite-button:hover {
+            background-color: #5a2d91;
+        }
+
+        .sprite-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .opacity-input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: bold;
+        }
+
+        .zoom-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        .zoom-btn:hover {
+            background-color: #5a6268;
+        }
+
+        #zoom-display {
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .sort-controls label {
+            font-weight: bold;
+            min-width: auto;
+        }
+
+        .sort-select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background-color: white;
+        }
+
+        .polygon-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+
+        .polygon-controls label {
+            font-weight: bold;
+            min-width: auto;
+        }
+
+        .hex-color-input {
+            width: 70px;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .color-input {
+            width: 30px;
+            height: 28px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .polygon-vertex {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #ff0000;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: move;
+            z-index: 30;
+            user-select: none;
+        }
+
+        .polygon-vertex.first {
+            background-color: #00ff00;
+            width: 10px;
+            height: 10px;
+        }
+
+        .polygon-vertex:hover {
+            border-color: #ffff00;
+            box-shadow: 0 0 4px rgba(255, 255, 0, 0.6);
+        }
+
+        .polygon-vertex.dragging {
+            border-color: #ffff00;
+            box-shadow: 0 0 6px rgba(255, 255, 0, 0.8);
+            z-index: 35;
+        }
+
+        .polygon-line {
+            position: absolute;
+            height: 2px;
+            background-color: #ff0000;
+            transform-origin: left center;
+            z-index: 25;
+            pointer-events: auto;
+            cursor: crosshair;
+        }
+
+        .polygon-line:hover {
+            height: 4px;
+            background-color: #ff6600;
+            box-shadow: 0 0 2px rgba(255, 102, 0, 0.6);
+        }
+
+        .frame-preview-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: crosshair;
+        }
+
+        .polygon-info {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .polygon-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .polygon-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .polygon-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .polygon-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Polygon Tool</h1>
+            <a href="index.html" class="back-btn">← Back to Tools</a>
+        </div>
+
+        <div class="control-group">
+            <h3>Playback Controls</h3>
+            <button class="play-pause-btn" id="play-pause-btn">Play</button>
+
+            <div class="input-group">
+                <label>Frame:</label>
+                <input type="range" id="frame-slider" min="0" max="149" value="0">
+                <input type="number" id="frame-input" min="0" max="149" value="0">
+            </div>
+
+            <div class="input-group">
+                <label>Zoom:</label>
+                <button id="zoom-out-btn" class="zoom-btn">-</button>
+                <span id="zoom-display">100%</span>
+                <button id="zoom-in-btn" class="zoom-btn">+</button>
+            </div>
+        </div>
+
+        <div class="animation-container">
+            <div class="frame-preview-container" id="frame-preview-container">
+                <div id="frame-container"></div>
+                <div class="sprite-canvas-container" id="sprite-canvas-container"></div>
+            </div>
+        </div>
+
+        <div class="sprite-controls">
+            <h3>Polygon Controls</h3>
+            <div class="polygon-info">
+                Click on the frame to create polygon vertices. Click on polygon lines to insert vertices. Click on the first vertex (green) to close the polygon.
+            </div>
+            <div class="polygon-controls">
+                <label>Color:</label>
+                <input type="text" class="hex-color-input" id="hex-color-input" value="#FF0000" placeholder="#ff0000">
+                <input type="color" class="color-input" id="color-input" value="#ff0000">
+            </div>
+            <div class="polygon-actions">
+                <button class="polygon-btn" id="clear-polygon-btn">Clear Polygon</button>
+                <button class="polygon-btn" id="close-polygon-btn" disabled>Close Polygon</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Timing Settings</h3>
+            <div class="input-group">
+                <label>Delay (ms):</label>
+                <input type="range" id="delay-slider" min="10" max="1000" value="30">
+                <input type="number" id="delay-input" min="10" max="1000" value="30">
+            </div>
+
+            <div class="input-group">
+                <label>FPS:</label>
+                <span id="fps-display">33.3</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Animation Settings</h3>
+
+            <div class="input-group">
+                <label>Animation:</label>
+                <select id="animation-select">
+                    <option value="Walk">Walk</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Sprite Opacity:</label>
+                <input type="number" id="sprite-opacity-input" class="opacity-input" value="70" min="0" max="100"
+                    step="1">
+                <span>%</span>
+            </div>
+
+            <div class="input-group">
+                <label>
+                    <input type="checkbox" id="show-frames-checkbox" checked>
+                    Show Frames
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0; // achromatic
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return {
+                h: Math.round(h * 360),
+                s: Math.round(s * 100),
+                l: Math.round(l * 100)
+            };
+        }
+
+        function hexToHsl(hex) {
+            const rgb = hexToRgb(hex);
+            return rgb ? rgbToHsl(rgb.r, rgb.g, rgb.b) : null;
+        }
+
+        class PolygonTool {
+            constructor() {
+                this.currentFrame = 0;
+                this.totalFrames = 150;
+                this.delay = 30;
+                this.isPlaying = false;
+                this.animationId = null;
+                this.currentAnimation = 'Walk';
+                this.animations = [];
+                this.animationData = {};
+
+                this.frameWidth = 0;
+                this.frameHeight = 0;
+                this.frameElements = {};
+                this.currentFrameElement = null;
+                this.zoomLevel = 1.0;
+                this.zoomLevels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
+                this.currentZoomIndex = 3;
+
+                this.spriteCanvases = {};
+                this.spriteData = {};
+                this.currentSpriteCanvas = null;
+                this.showFrames = true;
+                this.spriteOpacity = 70;
+
+                // Polygon tool properties
+                this.color = '#FF0000';
+                this.polygons = {}; // Store polygons per animation per frame: {animationName: {frameIndex: {vertices: [{x, y}], closed: boolean}}}
+                this.currentPolygon = []; // Current polygon being created
+                this.isPolygonClosed = false;
+                this.spriteCanvases = {}; // Store canvases per animation per frame
+
+                // Vertex dragging properties
+                this.isDragging = false;
+                this.dragVertexIndex = -1;
+                this.dragStartX = 0;
+                this.dragStartY = 0;
+
+                this.initializeElements();
+                this.bindEvents();
+                this.loadAvailableAnimations();
+                this.updateDisplays();
+                this.updateZoomDisplay();
+
+                setTimeout(() => {
+                    this.createFrameElements();
+                }, 100);
+            }
+
+            initializeElements() {
+                this.frameContainer = document.getElementById('frame-container');
+                this.playPauseBtn = document.getElementById('play-pause-btn');
+                this.frameSlider = document.getElementById('frame-slider');
+                this.frameInput = document.getElementById('frame-input');
+                this.delaySlider = document.getElementById('delay-slider');
+                this.delayInput = document.getElementById('delay-input');
+                this.fpsDisplay = document.getElementById('fps-display');
+                this.animationSelect = document.getElementById('animation-select');
+                this.spriteOpacityInput = document.getElementById('sprite-opacity-input');
+                this.showFramesCheckbox = document.getElementById('show-frames-checkbox');
+                this.spriteCanvasContainer = document.getElementById('sprite-canvas-container');
+                this.framePreviewContainer = document.getElementById('frame-preview-container');
+                this.zoomInBtn = document.getElementById('zoom-in-btn');
+                this.zoomOutBtn = document.getElementById('zoom-out-btn');
+                this.zoomDisplay = document.getElementById('zoom-display');
+                this.hexColorInput = document.getElementById('hex-color-input');
+                this.colorInput = document.getElementById('color-input');
+                this.clearPolygonBtn = document.getElementById('clear-polygon-btn');
+                this.closePolygonBtn = document.getElementById('close-polygon-btn');
+            }
+
+            bindEvents() {
+                this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+
+                this.frameSlider.addEventListener('input', (e) => {
+                    this.setFrame(parseInt(e.target.value));
+                });
+
+                this.frameInput.addEventListener('change', (e) => {
+                    this.setFrame(parseInt(e.target.value));
+                });
+
+                this.delaySlider.addEventListener('input', (e) => {
+                    this.setDelay(parseInt(e.target.value));
+                });
+
+                this.delayInput.addEventListener('change', (e) => {
+                    this.setDelay(parseInt(e.target.value));
+                });
+
+                this.animationSelect.addEventListener('change', (e) => {
+                    this.switchAnimation(e.target.value);
+                });
+
+                this.showFramesCheckbox.addEventListener('change', (e) => {
+                    this.showFrames = e.target.checked;
+                    this.updateVisibility();
+                });
+
+                this.spriteOpacityInput.addEventListener('change', (e) => {
+                    this.spriteOpacity = parseInt(e.target.value) || 0;
+                    this.updateSpriteOpacity();
+                });
+
+                // Frame click event for polygon creation
+                this.framePreviewContainer.addEventListener('click', (e) => {
+                    this.handleFrameClick(e);
+                });
+
+                // Mouse events for vertex dragging and right-click removal
+                this.framePreviewContainer.addEventListener('mousedown', (e) => {
+                    this.handleMouseDown(e);
+                });
+
+                this.framePreviewContainer.addEventListener('mousemove', (e) => {
+                    this.handleMouseMove(e);
+                });
+
+                this.framePreviewContainer.addEventListener('mouseup', (e) => {
+                    this.handleMouseUp(e);
+                });
+
+                // Handle context menu for vertex removal
+                this.framePreviewContainer.addEventListener('contextmenu', (e) => {
+                    this.handleFrameContextMenu(e);
+                });
+
+                this.zoomInBtn.addEventListener('click', () => {
+                    this.zoomIn();
+                });
+
+                this.zoomOutBtn.addEventListener('click', () => {
+                    this.zoomOut();
+                });
+
+                // Color input events
+                this.hexColorInput.addEventListener('change', (e) => {
+                    this.updateColorFromHex(e.target.value);
+                });
+
+                this.hexColorInput.addEventListener('blur', (e) => {
+                    this.updateColorFromHex(e.target.value);
+                });
+
+                this.colorInput.addEventListener('change', (e) => {
+                    this.updateColor(e.target.value);
+                });
+
+                // Polygon action events
+                this.clearPolygonBtn.addEventListener('click', () => {
+                    this.clearCurrentPolygon();
+                });
+
+                this.closePolygonBtn.addEventListener('click', () => {
+                    this.closeCurrentPolygon();
+                });
+            }
+
+            setFrame(frame) {
+                // Save current polygon before changing frames
+                this.saveCurrentPolygon();
+
+                this.currentFrame = Math.max(0, Math.min(frame, this.totalFrames - 1));
+                this.loadCurrentFramePolygon();
+                this.updateFrame();
+                this.updateDisplays();
+            }
+
+            setDelay(delay) {
+                this.delay = Math.max(10, Math.min(delay, 1000));
+                this.delaySlider.value = this.delay;
+                this.delayInput.value = this.delay;
+                this.updateDisplays();
+
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                    this.startAnimation();
+                }
+            }
+
+            updateFrame() {
+                if (this.currentFrameElement) {
+                    this.currentFrameElement.classList.remove('active');
+                }
+
+                if (this.currentSpriteCanvas) {
+                    this.currentSpriteCanvas.style.display = 'none';
+                }
+
+                if (this.frameElements[this.currentAnimation] &&
+                    this.frameElements[this.currentAnimation][this.currentFrame]) {
+                    this.currentFrameElement = this.frameElements[this.currentAnimation][this.currentFrame];
+                    if (this.showFrames) {
+                        this.currentFrameElement.classList.add('active');
+                    }
+                }
+
+                if (this.spriteCanvases[this.currentAnimation] &&
+                    this.spriteCanvases[this.currentAnimation][this.currentFrame]) {
+                    this.currentSpriteCanvas = this.spriteCanvases[this.currentAnimation][this.currentFrame];
+                    this.currentSpriteCanvas.style.display = 'block';
+                    this.currentSpriteCanvas.style.opacity = this.spriteOpacity / 100;
+                }
+            }
+
+            createFrameElements() {
+                this.frameContainer.innerHTML = '';
+                this.currentFrameElement = null;
+
+                if (!this.frameElements[this.currentAnimation]) {
+                    this.frameElements[this.currentAnimation] = {};
+                }
+
+                const frameFiles = this.animationData[this.currentAnimation]?.frames || [];
+
+                for (let frame = 0; frame < this.totalFrames; frame++) {
+                    let img = this.frameElements[this.currentAnimation][frame];
+
+                    if (!img) {
+                        let frameSrc;
+                        if (frameFiles.length > frame) {
+                            frameSrc = `Source/${this.currentAnimation}/${frameFiles[frame]}`;
+                        } else {
+                            // Fallback to old pattern for backwards compatibility
+                            const frameNumber = String(frame).padStart(3, '0');
+                            frameSrc = `Source/${this.currentAnimation}/frame_${frameNumber}_delay-0.03s.gif`;
+                        }
+
+                        img = document.createElement('img');
+                        img.className = 'frame-image';
+                        img.src = frameSrc;
+                        img.alt = `Frame ${frame}`;
+
+                        if (frame === 0) {
+                            img.onload = () => {
+                                this.frameWidth = img.naturalWidth;
+                                this.frameHeight = img.naturalHeight;
+                                this.setContainerDimensions();
+                                this.updateZoomForAllElements();
+                            };
+                        } else {
+                            img.onload = () => {
+                                if (!this.frameWidth || !this.frameHeight) {
+                                    this.frameWidth = img.naturalWidth;
+                                    this.frameHeight = img.naturalHeight;
+                                    this.setContainerDimensions();
+                                    this.updateZoomForAllElements();
+                                }
+                            };
+                        }
+
+                        this.frameElements[this.currentAnimation][frame] = img;
+                    }
+
+                    // Always append the frame element to the container, whether it's new or existing
+                    this.frameContainer.appendChild(img);
+                }
+
+                this.updateFrame();
+            }
+
+            nextFrame() {
+                this.currentFrame++;
+                if (this.currentFrame >= this.totalFrames) {
+                    this.currentFrame = 0;
+                }
+                this.updateFrame();
+                this.updateDisplays();
+            }
+
+            togglePlayPause() {
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                } else {
+                    this.startAnimation();
+                }
+            }
+
+            startAnimation() {
+                this.isPlaying = true;
+                this.playPauseBtn.textContent = 'Pause';
+
+                const animate = () => {
+                    if (this.isPlaying) {
+                        this.nextFrame();
+                        this.animationId = setTimeout(animate, this.delay);
+                    }
+                };
+
+                this.animationId = setTimeout(animate, this.delay);
+            }
+
+            stopAnimation() {
+                this.isPlaying = false;
+                this.playPauseBtn.textContent = 'Play';
+                if (this.animationId) {
+                    clearTimeout(this.animationId);
+                    this.animationId = null;
+                }
+            }
+
+            updateDisplays() {
+                this.frameSlider.value = this.currentFrame;
+                this.frameInput.value = this.currentFrame;
+
+                const fps = (1000 / this.delay).toFixed(1);
+                this.fpsDisplay.textContent = fps;
+            }
+
+            async loadAvailableAnimations() {
+                try {
+                    const response = await fetch('/api/animations');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.animations = data.animations.map(anim => anim.name);
+                        this.animationData = {};
+
+                        data.animations.forEach(anim => {
+                            this.animationData[anim.name] = {
+                                frameCount: anim.frameCount,
+                                frames: anim.frames || []
+                            };
+                        });
+
+                        if (this.animations.includes('Walk')) {
+                            this.currentAnimation = 'Walk';
+                        } else if (this.animations.length > 0) {
+                            this.currentAnimation = this.animations[0];
+                        }
+
+                        if (this.currentAnimation && this.animationData[this.currentAnimation]) {
+                            this.totalFrames = this.animationData[this.currentAnimation].frameCount;
+                        }
+
+                        this.updateAnimationSelect();
+                    } else {
+                        this.animations = ['Walk'];
+                        this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
+                        this.currentAnimation = 'Walk';
+                        this.totalFrames = 150;
+                        this.updateAnimationSelect();
+                    }
+                } catch (error) {
+                    this.animations = ['Walk'];
+                    this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
+                    this.currentAnimation = 'Walk';
+                    this.totalFrames = 150;
+                    this.updateAnimationSelect();
+                }
+            }
+
+            updateAnimationSelect() {
+                this.animationSelect.innerHTML = '';
+                this.animations.forEach(animation => {
+                    const option = document.createElement('option');
+                    option.value = animation;
+                    option.textContent = animation;
+                    if (animation === this.currentAnimation) {
+                        option.selected = true;
+                    }
+                    this.animationSelect.appendChild(option);
+                });
+            }
+
+            handleFrameClick(e) {
+                // Don't add vertices if we're dragging or if it's a right click
+                if (this.isDragging || e.button !== 0) {
+                    return;
+                }
+
+                // Check if we clicked on an existing vertex first
+                const vertexInfo = this.getVertexAtPosition(e.clientX, e.clientY);
+                if (vertexInfo) {
+                    if (vertexInfo.isFirst && this.currentPolygon.length > 2) {
+                        this.closeCurrentPolygon();
+                    }
+                    return;
+                }
+
+                // Check if we clicked on a polygon segment to insert a vertex
+                const segmentInfo = this.getSegmentAtPosition(e.clientX, e.clientY);
+                if (segmentInfo) {
+                    this.insertVertexOnSegment(segmentInfo.segmentIndex, segmentInfo.imageX, segmentInfo.imageY);
+                    return;
+                }
+
+                // If no vertex or segment was clicked, add new vertex at the end
+                const rect = this.framePreviewContainer.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Get the actual image element position
+                if (this.currentFrameElement) {
+                    const imgRect = this.currentFrameElement.getBoundingClientRect();
+                    const containerRect = this.framePreviewContainer.getBoundingClientRect();
+
+                    const imgX = e.clientX - imgRect.left;
+                    const imgY = e.clientY - imgRect.top;
+
+                    // Check if click is within the image bounds
+                    if (imgX >= 0 && imgX < imgRect.width && imgY >= 0 && imgY < imgRect.height) {
+                        // Convert screen coordinates to image coordinates
+                        const scaleX = this.frameWidth / imgRect.width;
+                        const scaleY = this.frameHeight / imgRect.height;
+
+                        const imageX = Math.floor(imgX * scaleX);
+                        const imageY = Math.floor(imgY * scaleY);
+
+                        this.addVertexToPolygon(imageX, imageY, x, y);
+                    }
+                }
+            }
+
+            handleFrameContextMenu(e) {
+                e.preventDefault();
+
+                // Check if we right-clicked on a vertex
+                const vertexInfo = this.getVertexAtPosition(e.clientX, e.clientY);
+                if (vertexInfo) {
+                    this.removeVertex(vertexInfo.index);
+                }
+            }
+
+            handleMouseDown(e) {
+                if (e.button !== 0) return; // Only handle left mouse button
+
+                const vertexInfo = this.getVertexAtPosition(e.clientX, e.clientY);
+                if (vertexInfo) {
+                    this.isDragging = true;
+                    this.dragVertexIndex = vertexInfo.index;
+                    this.dragStartX = e.clientX;
+                    this.dragStartY = e.clientY;
+
+                    // Add visual feedback
+                    const vertex = this.framePreviewContainer.querySelectorAll('.polygon-vertex')[vertexInfo.index];
+                    if (vertex) {
+                        vertex.classList.add('dragging');
+                    }
+
+                    e.preventDefault();
+                }
+            }
+
+            handleMouseMove(e) {
+                if (!this.isDragging || this.dragVertexIndex === -1) return;
+
+                const deltaX = e.clientX - this.dragStartX;
+                const deltaY = e.clientY - this.dragStartY;
+
+                // Convert screen delta to image delta
+                if (this.currentFrameElement) {
+                    const imgRect = this.currentFrameElement.getBoundingClientRect();
+                    const scaleX = this.frameWidth / imgRect.width;
+                    const scaleY = this.frameHeight / imgRect.height;
+
+                    const imageDeltaX = deltaX * scaleX;
+                    const imageDeltaY = deltaY * scaleY;
+
+                    // Update vertex position
+                    const vertex = this.currentPolygon[this.dragVertexIndex];
+                    const newX = Math.max(0, Math.min(this.frameWidth - 1, vertex.x + imageDeltaX));
+                    const newY = Math.max(0, Math.min(this.frameHeight - 1, vertex.y + imageDeltaY));
+
+                    this.currentPolygon[this.dragVertexIndex] = { x: newX, y: newY };
+
+                    // Update display
+                    this.displayPolygon();
+
+                    // Update drag start position for next move
+                    this.dragStartX = e.clientX;
+                    this.dragStartY = e.clientY;
+                }
+            }
+
+            handleMouseUp(e) {
+                if (this.isDragging) {
+                    this.isDragging = false;
+                    this.dragVertexIndex = -1;
+
+                    // Remove visual feedback
+                    const vertices = this.framePreviewContainer.querySelectorAll('.polygon-vertex');
+                    vertices.forEach(vertex => vertex.classList.remove('dragging'));
+
+                    // Regenerate sprite if polygon is closed
+                    if (this.isPolygonClosed) {
+                        this.generateSpriteForFrame(this.currentFrame);
+                        this.updateFrame();
+                    }
+                }
+            }
+
+            getVertexAtPosition(clientX, clientY) {
+                const vertices = this.framePreviewContainer.querySelectorAll('.polygon-vertex');
+                const containerRect = this.framePreviewContainer.getBoundingClientRect();
+
+                for (let i = 0; i < vertices.length; i++) {
+                    const vertex = vertices[i];
+                    const vertexRect = vertex.getBoundingClientRect();
+                    const vertexCenterX = vertexRect.left + vertexRect.width / 2;
+                    const vertexCenterY = vertexRect.top + vertexRect.height / 2;
+
+                    const distance = Math.sqrt(
+                        Math.pow(clientX - vertexCenterX, 2) +
+                        Math.pow(clientY - vertexCenterY, 2)
+                    );
+
+                    if (distance <= 12) { // 12px tolerance for clicking on vertex
+                        return {
+                            index: i,
+                            isFirst: vertex.classList.contains('first'),
+                            element: vertex
+                        };
+                    }
+                }
+                return null;
+            }
+
+            removeVertex(index) {
+                if (this.currentPolygon.length <= 3 && this.isPolygonClosed) {
+                    // Can't remove vertex from a closed triangle
+                    alert('Cannot remove vertex from a triangle. Minimum 3 vertices required.');
+                    return;
+                }
+
+                // Remove vertex from polygon
+                this.currentPolygon.splice(index, 1);
+
+                // If we removed all vertices or only have 1-2 vertices left, open the polygon
+                if (this.currentPolygon.length < 3) {
+                    this.isPolygonClosed = false;
+                }
+
+                // Update display
+                this.displayPolygon();
+                this.updatePolygonUI();
+
+                // Regenerate sprite if needed
+                if (this.isPolygonClosed) {
+                    this.generateSpriteForFrame(this.currentFrame);
+                    this.updateFrame();
+                } else {
+                    // Clear sprite if polygon is now open
+                    this.clearSpriteForFrame(this.currentFrame);
+                    this.updateFrame();
+                }
+            }
+
+            loadCurrentFramePolygon() {
+                // Clear current polygon display
+                this.clearPolygonDisplay();
+
+                // Load polygon for current frame if it exists
+                if (this.polygons[this.currentAnimation] &&
+                    this.polygons[this.currentAnimation][this.currentFrame]) {
+                    const framePolygon = this.polygons[this.currentAnimation][this.currentFrame];
+                    this.currentPolygon = [...framePolygon.vertices];
+                    this.isPolygonClosed = framePolygon.closed;
+                    this.displayPolygon();
+                } else {
+                    this.currentPolygon = [];
+                    this.isPolygonClosed = false;
+                }
+
+                this.updatePolygonUI();
+            }
+
+            addVertexToPolygon(imageX, imageY, screenX, screenY) {
+                if (this.isPolygonClosed) {
+                    return; // Can't add vertices to a closed polygon
+                }
+
+                const vertex = { x: imageX, y: imageY };
+                this.currentPolygon.push(vertex);
+
+                this.displayPolygon();
+                this.updatePolygonUI();
+
+                // Generate sprite if polygon is closed
+                if (this.isPolygonClosed) {
+                    this.generateSpriteForFrame(this.currentFrame);
+                    this.updateFrame();
+                }
+            }
+
+            clearCurrentPolygon() {
+                this.currentPolygon = [];
+                this.isPolygonClosed = false;
+                this.clearPolygonDisplay();
+                this.updatePolygonUI();
+
+                // Clear sprite for current frame
+                this.clearSpriteForFrame(this.currentFrame);
+                this.updateFrame();
+            }
+
+            closeCurrentPolygon() {
+                if (this.currentPolygon.length < 3) {
+                    alert('A polygon needs at least 3 vertices.');
+                    return;
+                }
+
+                this.isPolygonClosed = true;
+                this.displayPolygon();
+                this.updatePolygonUI();
+
+                // Generate sprite
+                this.generateSpriteForFrame(this.currentFrame);
+                this.updateFrame();
+            }
+
+            saveCurrentPolygon() {
+                if (this.currentPolygon.length === 0) {
+                    return;
+                }
+
+                if (!this.polygons[this.currentAnimation]) {
+                    this.polygons[this.currentAnimation] = {};
+                }
+
+                this.polygons[this.currentAnimation][this.currentFrame] = {
+                    vertices: [...this.currentPolygon],
+                    closed: this.isPolygonClosed
+                };
+            }
+
+            updatePolygonUI() {
+                this.closePolygonBtn.disabled = this.currentPolygon.length < 3 || this.isPolygonClosed;
+            }
+
+            updateColor(color) {
+                this.color = color;
+                this.updateAllSprites();
+
+                // Sync the hex input with the color picker
+                this.hexColorInput.value = color.toUpperCase();
+
+                // Save all sprites after color change
+                this.saveAllSprites();
+            }
+
+            updateColorFromHex(hexValue) {
+                // Validate and normalize hex color
+                let normalizedHex = hexValue.trim();
+
+                // Add # if missing
+                if (!normalizedHex.startsWith('#')) {
+                    normalizedHex = '#' + normalizedHex;
+                }
+
+                // Validate hex format
+                const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+                if (!hexRegex.test(normalizedHex)) {
+                    // Invalid hex, revert to current color
+                    this.hexColorInput.value = this.color.toUpperCase();
+                    return;
+                }
+
+                // Convert 3-digit hex to 6-digit
+                if (normalizedHex.length === 4) {
+                    normalizedHex = '#' + normalizedHex[1] + normalizedHex[1] +
+                                   normalizedHex[2] + normalizedHex[2] +
+                                   normalizedHex[3] + normalizedHex[3];
+                }
+
+                this.color = normalizedHex.toUpperCase();
+                this.updateAllSprites();
+
+                // Sync the color picker with the hex input
+                this.colorInput.value = normalizedHex.toLowerCase(); // Color input expects lowercase
+                this.hexColorInput.value = normalizedHex.toUpperCase(); // Display uppercase
+
+                // Save all sprites after color change
+                this.saveAllSprites();
+            }
+
+            displayPolygon() {
+                // Clear existing polygon display
+                this.clearPolygonDisplay();
+
+                if (this.currentPolygon.length === 0) return;
+
+                // Display vertices
+                for (let i = 0; i < this.currentPolygon.length; i++) {
+                    const vertex = this.currentPolygon[i];
+                    const screenCoords = this.imageToScreenCoords(vertex.x, vertex.y);
+                    if (screenCoords) {
+                        this.createVertexElement(screenCoords.x, screenCoords.y, i === 0);
+                    }
+                }
+
+                // Display lines between vertices
+                for (let i = 0; i < this.currentPolygon.length; i++) {
+                    const currentVertex = this.currentPolygon[i];
+                    const nextVertex = this.currentPolygon[(i + 1) % this.currentPolygon.length];
+
+                    // Only draw line to next vertex if polygon is closed or if it's not the last line
+                    if (this.isPolygonClosed || i < this.currentPolygon.length - 1) {
+                        const currentScreen = this.imageToScreenCoords(currentVertex.x, currentVertex.y);
+                        const nextScreen = this.imageToScreenCoords(nextVertex.x, nextVertex.y);
+
+                        if (currentScreen && nextScreen) {
+                            this.createLineElement(currentScreen.x, currentScreen.y, nextScreen.x, nextScreen.y);
+                        }
+                    }
+                }
+            }
+
+            clearPolygonDisplay() {
+                // Remove all polygon elements
+                const vertices = this.framePreviewContainer.querySelectorAll('.polygon-vertex');
+                const lines = this.framePreviewContainer.querySelectorAll('.polygon-line');
+
+                vertices.forEach(vertex => vertex.remove());
+                lines.forEach(line => line.remove());
+            }
+
+            createVertexElement(x, y, isFirst = false) {
+                const vertex = document.createElement('div');
+                vertex.className = 'polygon-vertex';
+                if (isFirst) {
+                    vertex.classList.add('first');
+                }
+                vertex.style.left = x + 'px';
+                vertex.style.top = y + 'px';
+
+                // Add title for user guidance
+                vertex.title = isFirst ? 'First vertex (click to close polygon)' : 'Right-click to remove, drag to move';
+
+                this.framePreviewContainer.appendChild(vertex);
+            }
+
+            createLineElement(x1, y1, x2, y2, segmentIndex) {
+                const line = document.createElement('div');
+                line.className = 'polygon-line';
+                line.dataset.segmentIndex = segmentIndex;
+
+                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+                line.style.left = x1 + 'px';
+                line.style.top = y1 + 'px';
+                line.style.width = length + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+                line.title = 'Click to insert vertex here';
+
+                this.framePreviewContainer.appendChild(line);
+            }
+
+            imageToScreenCoords(imageX, imageY) {
+                if (!this.currentFrameElement || !this.frameWidth || !this.frameHeight) {
+                    return null;
+                }
+
+                const imgRect = this.currentFrameElement.getBoundingClientRect();
+                const containerRect = this.framePreviewContainer.getBoundingClientRect();
+
+                const scaleX = imgRect.width / this.frameWidth;
+                const scaleY = imgRect.height / this.frameHeight;
+
+                const screenX = imageX * scaleX + (imgRect.left - containerRect.left);
+                const screenY = imageY * scaleY + (imgRect.top - containerRect.top);
+
+                return { x: screenX, y: screenY };
+            }
+
+            createPolygonMask() {
+                if (!this.isPolygonClosed || this.currentPolygon.length < 3) {
+                    return null;
+                }
+
+                const mask = new Uint8Array(this.frameWidth * this.frameHeight);
+
+                // Use scan line algorithm to fill polygon
+                for (let y = 0; y < this.frameHeight; y++) {
+                    const intersections = [];
+
+                    // Find intersections of scan line with polygon edges
+                    for (let i = 0; i < this.currentPolygon.length; i++) {
+                        const p1 = this.currentPolygon[i];
+                        const p2 = this.currentPolygon[(i + 1) % this.currentPolygon.length];
+
+                        if ((p1.y <= y && p2.y > y) || (p2.y <= y && p1.y > y)) {
+                            const x = p1.x + (y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y);
+                            intersections.push(Math.round(x));
+                        }
+                    }
+
+                    // Sort intersections
+                    intersections.sort((a, b) => a - b);
+
+                    // Fill between pairs of intersections
+                    for (let i = 0; i < intersections.length; i += 2) {
+                        if (i + 1 < intersections.length) {
+                            const startX = Math.max(0, intersections[i]);
+                            const endX = Math.min(this.frameWidth - 1, intersections[i + 1]);
+
+                            for (let x = startX; x <= endX; x++) {
+                                const index = y * this.frameWidth + x;
+                                if (index >= 0 && index < mask.length) {
+                                    mask[index] = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return {
+                    mask: mask,
+                    width: this.frameWidth,
+                    height: this.frameHeight
+                };
+            }
+
+            generateAllSprites() {
+                if (!this.spriteCanvases[this.currentAnimation]) {
+                    this.spriteCanvases[this.currentAnimation] = {};
+                }
+
+                this.spriteCanvasContainer.innerHTML = '';
+
+                for (let frameIndex = 0; frameIndex < this.totalFrames; frameIndex++) {
+                    this.generateSpriteForFrame(frameIndex);
+                }
+
+                this.updateFrame();
+            }
+
+            generateSpriteForFrame(frameIndex) {
+                const polygonMask = this.createPolygonMask();
+                if (!polygonMask) return;
+
+                // Ensure sprite canvases container exists
+                if (!this.spriteCanvases[this.currentAnimation]) {
+                    this.spriteCanvases[this.currentAnimation] = {};
+                }
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                canvas.className = 'sprite-canvas';
+                canvas.width = polygonMask.width;
+                canvas.height = polygonMask.height;
+                canvas.style.display = 'none';
+                canvas.style.imageRendering = 'pixelated';
+                canvas.style.imageRendering = 'crisp-edges';
+                canvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
+
+                // Create sprite image data
+                const spriteImageData = ctx.createImageData(canvas.width, canvas.height);
+                const targetRgb = hexToRgb(this.color);
+
+                for (let i = 0; i < polygonMask.mask.length; i++) {
+                    const pixelIndex = i * 4;
+
+                    if (polygonMask.mask[i] === 1) {
+                        // Selected pixel - paint with target color
+                        spriteImageData.data[pixelIndex] = targetRgb.r;
+                        spriteImageData.data[pixelIndex + 1] = targetRgb.g;
+                        spriteImageData.data[pixelIndex + 2] = targetRgb.b;
+                        spriteImageData.data[pixelIndex + 3] = 255;
+                    }
+                }
+
+                ctx.putImageData(spriteImageData, 0, 0);
+
+                this.spriteCanvases[this.currentAnimation][frameIndex] = canvas;
+                this.spriteCanvasContainer.appendChild(canvas);
+            }
+
+            clearSpriteForFrame(frameIndex) {
+                if (this.spriteCanvases[this.currentAnimation] &&
+                    this.spriteCanvases[this.currentAnimation][frameIndex]) {
+                    const canvas = this.spriteCanvases[this.currentAnimation][frameIndex];
+                    canvas.remove();
+                    delete this.spriteCanvases[this.currentAnimation][frameIndex];
+                }
+            }
+
+            updateVisibility() {
+                if (this.currentFrameElement) {
+                    if (this.showFrames) {
+                        this.currentFrameElement.classList.add('active');
+                    } else {
+                        this.currentFrameElement.classList.remove('active');
+                    }
+                }
+
+                if (this.currentSpriteCanvas) {
+                    this.currentSpriteCanvas.style.opacity = this.spriteOpacity / 100;
+                }
+            }
+
+            updateSpriteOpacity() {
+                if (this.currentSpriteCanvas) {
+                    this.currentSpriteCanvas.style.opacity = this.spriteOpacity / 100;
+                }
+            }
+
+            updateAllSprites() {
+                // Regenerate all sprites with current color
+                if (!this.polygons[this.currentAnimation]) {
+                    return;
+                }
+
+                this.generateAllSprites();
+            }
+
+            setContainerDimensions() {
+                if (this.frameWidth && this.frameHeight) {
+                    // Scale container dimensions by zoom level
+                    const scaledWidth = this.frameWidth * this.zoomLevel;
+                    const scaledHeight = this.frameHeight * this.zoomLevel;
+                    this.frameContainer.style.width = scaledWidth + 'px';
+                    this.frameContainer.style.height = scaledHeight + 'px';
+                }
+            }
+
+            zoomIn() {
+                if (this.currentZoomIndex < this.zoomLevels.length - 1) {
+                    this.currentZoomIndex++;
+                    this.setZoom(this.zoomLevels[this.currentZoomIndex]);
+                }
+            }
+
+            zoomOut() {
+                if (this.currentZoomIndex > 0) {
+                    this.currentZoomIndex--;
+                    this.setZoom(this.zoomLevels[this.currentZoomIndex]);
+                }
+            }
+
+            setZoom(zoomLevel) {
+                this.zoomLevel = zoomLevel;
+                this.updateZoomDisplay();
+                this.setContainerDimensions();
+                this.updateZoomForAllElements();
+            }
+
+            updateZoomDisplay() {
+                const percentage = Math.round(this.zoomLevel * 100);
+                this.zoomDisplay.textContent = percentage + '%';
+            }
+
+            updateZoomForAllElements() {
+                // Apply zoom to all frame images for the current animation
+                if (this.frameElements[this.currentAnimation]) {
+                    Object.values(this.frameElements[this.currentAnimation]).forEach(frameElement => {
+                        if (frameElement) {
+                            frameElement.style.transform = `scale(${this.zoomLevel})`;
+                        }
+                    });
+                }
+
+                // Apply zoom to all sprite canvases for the current animation
+                if (this.spriteCanvases[this.currentAnimation]) {
+                    Object.values(this.spriteCanvases[this.currentAnimation]).forEach(spriteCanvas => {
+                        if (spriteCanvas) {
+                            spriteCanvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
+                        }
+                    });
+                }
+
+                // Update polygon display for new zoom level
+                this.displayPolygon();
+            }
+
+
+            async saveCurrentSprite() {
+                // Get the current sprite canvas
+                const spriteCanvas = this.spriteCanvases[this.currentAnimation]?.[this.currentFrame];
+                if (!spriteCanvas) {
+                    console.log('No sprite to save for current frame');
+                    return;
+                }
+
+                try {
+                    // Convert canvas to base64 data URL
+                    const imageDataUrl = spriteCanvas.toDataURL('image/png');
+
+                    // Get the frame filename (we'll use the same naming pattern as frames)
+                    const frameNumber = String(this.currentFrame).padStart(3, '0');
+                    const frameName = `frame_${frameNumber}_delay-0.03s`;
+
+                    // Send to server
+                    const response = await fetch(`/api/animations/${this.currentAnimation}/sprites/save`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            imageData: imageDataUrl,
+                            frameName: frameName
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log(`Sprite saved: ${result.message}`);
+                    } else {
+                        console.error('Failed to save sprite:', result.error);
+                        alert(`Failed to save sprite: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error saving sprite:', error);
+                    alert(`Error saving sprite: ${error.message}`);
+                }
+            }
+
+            async saveAllSprites() {
+                // Save all sprites that have been created
+                const spritesToSave = [];
+                const spriteCanvases = this.spriteCanvases[this.currentAnimation];
+
+                if (!spriteCanvases) {
+                    console.log('No sprites to save for current animation');
+                    return;
+                }
+
+                // Collect all sprite canvases that exist
+                for (let frameIndex = 0; frameIndex < this.totalFrames; frameIndex++) {
+                    const spriteCanvas = spriteCanvases[frameIndex];
+                    if (spriteCanvas) {
+                        const frameNumber = String(frameIndex).padStart(3, '0');
+                        const frameName = `frame_${frameNumber}_delay-0.03s`;
+                        const imageDataUrl = spriteCanvas.toDataURL('image/png');
+
+                        spritesToSave.push({
+                            frameIndex: frameIndex,
+                            frameName: frameName,
+                            imageData: imageDataUrl
+                        });
+                    }
+                }
+
+                console.log(`Saving ${spritesToSave.length} sprites...`);
+
+                // Save all sprites
+                const savePromises = spritesToSave.map(async (sprite) => {
+                    try {
+                        const response = await fetch(`/api/animations/${this.currentAnimation}/sprites/save`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                imageData: sprite.imageData,
+                                frameName: sprite.frameName
+                            })
+                        });
+
+                        const result = await response.json();
+                        if (result.success) {
+                            console.log(`Saved sprite for frame ${sprite.frameIndex}: ${result.message}`);
+                        } else {
+                            console.error(`Failed to save sprite for frame ${sprite.frameIndex}:`, result.error);
+                        }
+                        return result;
+                    } catch (error) {
+                        console.error(`Error saving sprite for frame ${sprite.frameIndex}:`, error);
+                        return { success: false, error: error.message };
+                    }
+                });
+
+                try {
+                    const results = await Promise.all(savePromises);
+                    const successCount = results.filter(r => r.success).length;
+                    const failCount = results.length - successCount;
+
+                    if (failCount > 0) {
+                        alert(`Saved ${successCount} sprites, ${failCount} failed. Check console for details.`);
+                    } else {
+                        console.log(`All ${successCount} sprites saved successfully!`);
+                    }
+                } catch (error) {
+                    console.error('Error in batch sprite saving:', error);
+                    alert(`Error saving sprites: ${error.message}`);
+                }
+            }
+
+            switchAnimation(animationName) {
+                if (animationName === this.currentAnimation) return;
+
+                // Save current polygon before switching
+                this.saveCurrentPolygon();
+
+                if (this.currentSpriteCanvas) {
+                    this.currentSpriteCanvas.style.display = 'none';
+                    this.currentSpriteCanvas = null;
+                }
+
+                this.currentAnimation = animationName;
+
+                // Ensure animationData exists and has the animation
+                if (!this.animationData) {
+                    this.animationData = {};
+                }
+
+                if (this.animationData[animationName]) {
+                    this.totalFrames = this.animationData[animationName].frameCount;
+                } else {
+                    // Create default animation data if it doesn't exist
+                    this.animationData[animationName] = {
+                        frameCount: 150,
+                        frames: []
+                    };
+                    this.totalFrames = 150;
+                }
+
+                this.currentFrame = 0;
+
+                this.frameSlider.max = this.totalFrames - 1;
+                this.frameInput.max = this.totalFrames - 1;
+
+                this.spriteCanvasContainer.innerHTML = '';
+
+                // Initialize polygon data for new animation
+                if (!this.polygons) {
+                    this.polygons = {};
+                }
+                if (!this.polygons[animationName]) {
+                    this.polygons[animationName] = {};
+                }
+
+                this.frameWidth = 0;
+                this.frameHeight = 0;
+
+                this.createFrameElements();
+                this.loadCurrentFramePolygon();
+                this.updateDisplays();
+                this.updateZoomDisplay();
+            }
+
+            getSegmentAtPosition(clientX, clientY) {
+                const lines = this.framePreviewContainer.querySelectorAll('.polygon-line');
+                const containerRect = this.framePreviewContainer.getBoundingClientRect();
+
+                const clickX = clientX - containerRect.left;
+                const clickY = clientY - containerRect.top;
+
+                for (let line of lines) {
+                    const lineRect = line.getBoundingClientRect();
+                    const lineLeft = lineRect.left - containerRect.left;
+                    const lineTop = lineRect.top - containerRect.top;
+                    const lineWidth = lineRect.width;
+                    const lineHeight = Math.max(4, lineRect.height); // Minimum 4px height for easier clicking
+
+                    // Check if click is within the line bounds (with some tolerance)
+                    if (clickX >= lineLeft - 2 && clickX <= lineLeft + lineWidth + 2 &&
+                        clickY >= lineTop - 2 && clickY <= lineTop + lineHeight + 2) {
+
+                        const segmentIndex = parseInt(line.dataset.segmentIndex);
+
+                        // Convert click position to image coordinates
+                        if (this.currentFrameElement) {
+                            const imgRect = this.currentFrameElement.getBoundingClientRect();
+                            const imgX = clientX - imgRect.left;
+                            const imgY = clientY - imgRect.top;
+
+                            if (imgX >= 0 && imgX < imgRect.width && imgY >= 0 && imgY < imgRect.height) {
+                                const scaleX = this.frameWidth / imgRect.width;
+                                const scaleY = this.frameHeight / imgRect.height;
+
+                                const imageX = Math.floor(imgX * scaleX);
+                                const imageY = Math.floor(imgY * scaleY);
+
+                                return {
+                                    segmentIndex: segmentIndex,
+                                    imageX: imageX,
+                                    imageY: imageY
+                                };
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
+            insertVertexOnSegment(segmentIndex, imageX, imageY) {
+                if (this.currentPolygon.length < 2) {
+                    return; // Need at least 2 vertices to have a segment
+                }
+
+                // Insert the new vertex after the segment start vertex
+                const insertIndex = segmentIndex + 1;
+                const newVertex = { x: imageX, y: imageY };
+
+                // Insert into the polygon array
+                this.currentPolygon.splice(insertIndex, 0, newVertex);
+
+                // Update display
+                this.displayPolygon();
+                this.updatePolygonUI();
+
+                // Regenerate sprite if polygon is closed
+                if (this.isPolygonClosed) {
+                    this.generateSpriteForFrame(this.currentFrame);
+                    this.updateFrame();
+                }
+            }
+        }
+
+        let polygonTool;
+        document.addEventListener('DOMContentLoaded', () => {
+            polygonTool = new PolygonTool();
+        });
+    </script>
+</body>
+
+</html>

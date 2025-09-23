@@ -29,7 +29,7 @@
 
         .tools-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 30px;
             margin-top: 40px;
         }
@@ -93,6 +93,18 @@
             color: #6f42c1;
         }
 
+        .polygon-tool {
+            border-color: #fd7e14;
+        }
+
+        .polygon-tool:hover {
+            border-color: #fd7e14;
+        }
+
+        .polygon-tool .tool-icon {
+            color: #fd7e14;
+        }
+
     </style>
 </head>
 <body>
@@ -116,6 +128,15 @@
                 <div class="tool-description">
                     Generate and customize sprites from animations with color mapping.
                     Extract colors, apply color changes, and preview results in real-time.
+                </div>
+            </a>
+
+            <a href="polygon-tool.html" class="tool-card polygon-tool">
+                <span class="tool-icon">🔺</span>
+                <div class="tool-title">Polygon Tool</div>
+                <div class="tool-description">
+                    Simple magic wand tool for selecting areas with a single color.
+                    Create polygon selections and generate sprites without layer complexity.
                 </div>
             </a>
 
