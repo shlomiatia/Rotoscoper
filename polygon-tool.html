@@ -783,6 +783,11 @@
                     if (this.showFrames) {
                         this.currentFrameElement.classList.add('active');
                     }
+
+                    // Refresh polygon display when frame changes, in case dimensions changed
+                    if (this.currentPolygon.length > 0) {
+                        this.displayPolygonWhenReady();
+                    }
                 }
 
                 if (this.spriteCanvases[this.currentAnimation] &&
@@ -1146,13 +1151,29 @@
                     const framePolygon = this.polygons[this.currentAnimation][this.currentFrame];
                     this.currentPolygon = [...framePolygon.vertices];
                     this.isPolygonClosed = framePolygon.closed;
-                    this.displayPolygon();
+
+                    // Display polygon, but retry if frame dimensions aren't ready
+                    this.displayPolygonWhenReady();
                 } else {
                     this.currentPolygon = [];
                     this.isPolygonClosed = false;
                 }
 
                 this.updatePolygonUI();
+            }
+
+            displayPolygonWhenReady() {
+                // Check if frame dimensions are ready
+                if (this.frameWidth && this.frameHeight && this.currentFrameElement) {
+                    this.displayPolygon();
+                } else {
+                    // Retry after a short delay to allow frame to load
+                    setTimeout(() => {
+                        if (this.currentPolygon.length > 0) {
+                            this.displayPolygonWhenReady();
+                        }
+                    }, 50);
+                }
             }
 
             addVertexToPolygon(imageX, imageY, screenX, screenY) {
@@ -1290,7 +1311,7 @@
                         const nextScreen = this.imageToScreenCoords(nextVertex.x, nextVertex.y);
 
                         if (currentScreen && nextScreen) {
-                            this.createLineElement(currentScreen.x, currentScreen.y, nextScreen.x, nextScreen.y);
+                            this.createLineElement(currentScreen.x, currentScreen.y, nextScreen.x, nextScreen.y, i);
                         }
                     }
                 }
@@ -1742,6 +1763,12 @@
 
                         const segmentIndex = parseInt(line.dataset.segmentIndex);
 
+                        // Validate segmentIndex
+                        if (isNaN(segmentIndex)) {
+                            console.warn('Invalid segmentIndex detected:', line.dataset.segmentIndex);
+                            continue;
+                        }
+
                         // Convert click position to image coordinates
                         if (this.currentFrameElement) {
                             const imgRect = this.currentFrameElement.getBoundingClientRect();
@@ -1770,6 +1797,12 @@
             insertVertexOnSegment(segmentIndex, imageX, imageY) {
                 if (this.currentPolygon.length < 2) {
                     return; // Need at least 2 vertices to have a segment
+                }
+
+                // Validate segmentIndex
+                if (isNaN(segmentIndex) || segmentIndex < 0 || segmentIndex >= this.currentPolygon.length) {
+                    console.error('Invalid segmentIndex for insertion:', segmentIndex);
+                    return;
                 }
 
                 // Insert the new vertex after the segment start vertex
