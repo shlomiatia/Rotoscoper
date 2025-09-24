@@ -26,7 +26,10 @@
       "Bash(rm:*)",
       "mcp__playwright__browser_close",
       "Bash(taskkill:*)",
-      "mcp__playwright__browser_tabs"
+      "mcp__playwright__browser_tabs",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(python.exe:*)"
     ],
     "deny": [],
     "ask": []

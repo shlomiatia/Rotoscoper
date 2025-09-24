@@ -1061,44 +1061,45 @@
             async loadAvailableAnimations() {
                 try {
                     const response = await fetch('/api/animations');
-                    const data = await response.json();
 
-                    if (data.success) {
-                        this.animations = data.animations.map(anim => anim.name);
-                        this.animationData = {};
+                    if (response.ok) {
+                        const data = await response.json();
 
-                        data.animations.forEach(anim => {
-                            this.animationData[anim.name] = {
-                                frameCount: anim.frameCount,
-                                frames: anim.frames || []
-                            };
-                        });
+                        if (data.success) {
+                            this.animations = data.animations.map(anim => anim.name);
+                            this.animationData = {};
 
-                        if (this.animations.includes('Walk')) {
-                            this.currentAnimation = 'Walk';
-                        } else if (this.animations.length > 0) {
-                            this.currentAnimation = this.animations[0];
+                            data.animations.forEach(anim => {
+                                this.animationData[anim.name] = {
+                                    frameCount: anim.frameCount,
+                                    frames: anim.frames || []
+                                };
+                            });
+
+                            if (this.animations.includes('Walk')) {
+                                this.currentAnimation = 'Walk';
+                            } else if (this.animations.length > 0) {
+                                this.currentAnimation = this.animations[0];
+                            }
+
+                            if (this.currentAnimation && this.animationData[this.currentAnimation]) {
+                                this.totalFrames = this.animationData[this.currentAnimation].frameCount;
+                            }
+
+                            this.updateAnimationSelect();
+                            return;
                         }
-
-                        if (this.currentAnimation && this.animationData[this.currentAnimation]) {
-                            this.totalFrames = this.animationData[this.currentAnimation].frameCount;
-                        }
-
-                        this.updateAnimationSelect();
-                    } else {
-                        this.animations = ['Walk'];
-                        this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
-                        this.currentAnimation = 'Walk';
-                        this.totalFrames = 150;
-                        this.updateAnimationSelect();
                     }
                 } catch (error) {
-                    this.animations = ['Walk'];
-                    this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
-                    this.currentAnimation = 'Walk';
-                    this.totalFrames = 150;
-                    this.updateAnimationSelect();
+                    // Silently handle network/API errors - don't log to console to avoid clutter
                 }
+
+                // Fallback to default data when API is not available
+                this.animations = ['Walk'];
+                this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
+                this.currentAnimation = 'Walk';
+                this.totalFrames = 150;
+                this.updateAnimationSelect();
             }
 
             updateAnimationSelect() {
@@ -1336,6 +1337,11 @@
                     return;
                 }
 
+                // Ensure all polygons from frame 0 are copied to current frame if not already present
+                if (this.currentFrame !== 0) {
+                    this.ensureAllPolygonsInFrame(this.currentFrame);
+                }
+
                 // Load polygon for current frame if it exists
                 let framePolygon = null;
                 if (this.polygons[this.currentAnimation] &&
@@ -1383,6 +1389,40 @@
                 setTimeout(() => {
                     this.displayCurrentFrameSprite();
                 }, 10);
+            }
+
+            ensureAllPolygonsInFrame(frameIndex) {
+                // Copy all polygons from frame 0 to the target frame if they don't already exist
+                if (!this.polygons[this.currentAnimation] || !this.polygons[this.currentAnimation][0]) {
+                    return;
+                }
+
+                const frame0Polygons = this.polygons[this.currentAnimation][0];
+                if (frame0Polygons.length === 0) {
+                    return;
+                }
+
+                // Initialize target frame if it doesn't exist
+                if (!this.polygons[this.currentAnimation][frameIndex]) {
+                    this.polygons[this.currentAnimation][frameIndex] = [];
+                }
+
+                const targetFramePolygons = this.polygons[this.currentAnimation][frameIndex];
+
+                // Copy each polygon from frame 0 if it doesn't exist in target frame
+                frame0Polygons.forEach(frame0Polygon => {
+                    const existsInTarget = targetFramePolygons.find(p => p.id === frame0Polygon.id);
+                    if (!existsInTarget && frame0Polygon.closed) {
+                        // Deep copy the polygon to avoid reference sharing
+                        const polygonCopy = {
+                            id: frame0Polygon.id,
+                            vertices: frame0Polygon.vertices.map(v => ({ x: v.x, y: v.y })),
+                            closed: frame0Polygon.closed,
+                            color: frame0Polygon.color
+                        };
+                        targetFramePolygons.push(polygonCopy);
+                    }
+                });
             }
 
             displayPolygonWhenReady() {
