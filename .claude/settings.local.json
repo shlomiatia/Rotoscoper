@@ -30,7 +30,8 @@
       "Bash(tasklist)",
       "Bash(findstr:*)",
       "Bash(python.exe:*)",
-      "Bash(del \"polygon-tool.html\")"
+      "Bash(del \"polygon-tool.html\")",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
