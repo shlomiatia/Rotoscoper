@@ -51,6 +51,23 @@ def get_frame_files(animation_name):
     except OSError:
         return []
 
+def get_sprite_files(animation_name):
+    """Get the list of sprite files in an animation's sprites folder"""
+    animation_path = os.path.join(SOURCE_DIR, animation_name)
+    sprites_path = os.path.join(animation_path, 'sprites')
+
+    if not os.path.exists(sprites_path):
+        return []
+
+    try:
+        all_files = os.listdir(sprites_path)
+        # Filter to only include image files and sort them
+        sprite_files = [f for f in all_files if os.path.isfile(os.path.join(sprites_path, f))
+                       and f.lower().endswith(('.png', '.gif', '.jpg', '.jpeg'))]
+        return sorted(sprite_files)
+    except OSError:
+        return []
+
 def calculate_padding_requirements(center_offsets):
     """Calculate padding requirements for frames based on center offsets
 
@@ -139,10 +156,12 @@ def list_animations():
 
         for animation in animations:
             frame_files = get_frame_files(animation)
+            sprite_files = get_sprite_files(animation)
             animation_data.append({
                 'name': animation,
                 'frameCount': len(frame_files),
-                'frames': frame_files
+                'frames': frame_files,
+                'sprites': sprite_files
             })
 
         return jsonify({

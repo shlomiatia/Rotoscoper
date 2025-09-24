@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .animation-container {
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f8f8f8;
+            padding: 20px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .frame-preview-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        #frame-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+            height: auto;
+        }
+
+        .frame-image {
+            display: none;
+        }
+
+        .frame-image.active {
+            display: block;
+        }
+
+        .sprite-canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .sprite-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .animation-selector {
+            margin-bottom: 10px;
+        }
+
+        .animation-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .control-group {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            flex: 1;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .play-pause-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .play-pause-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .sprite-controls {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .sprite-controls h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+
+        .color-mapping-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 15px;
+            background-color: #ffffff;
+        }
+
+        .color-mapping-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #eee;
+            border-radius: 3px;
+            background-color: #f9f9f9;
+        }
+
+        .color-mapping-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .source-color-preview {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .color-mapping-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .color-hex {
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .color-count {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .target-color-picker {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .color-mapping-controls {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #ffffff;
+        }
+
+        .color-mapping-controls h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .sprite-button {
+            background-color: #fd7e14;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .sprite-button:hover {
+            background-color: #e8620e;
+        }
+
+        .sprite-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .opacity-input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: bold;
+        }
+
+        .zoom-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        .zoom-btn:hover {
+            background-color: #5a6268;
+        }
+
+        #zoom-display {
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .sort-controls label {
+            font-weight: bold;
+            min-width: auto;
+        }
+
+        .sort-select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background-color: white;
+        }
+
+
+        .frame-preview-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Crop Tool</h1>
+            <a href="index.html" class="back-btn">← Back to Tools</a>
+        </div>
+
+        <div class="control-group">
+            <h3>Playback Controls</h3>
+            <button class="play-pause-btn" id="play-pause-btn">Play</button>
+
+            <div class="input-group">
+                <label>Frame:</label>
+                <input type="range" id="frame-slider" min="0" max="149" value="0">
+                <input type="number" id="frame-input" min="0" max="149" value="0">
+            </div>
+
+            <div class="input-group">
+                <label>Zoom:</label>
+                <button id="zoom-out-btn" class="zoom-btn">-</button>
+                <span id="zoom-display">100%</span>
+                <button id="zoom-in-btn" class="zoom-btn">+</button>
+            </div>
+        </div>
+
+        <div class="animation-container">
+            <div class="frame-preview-container" id="frame-preview-container">
+                <div id="frame-container"></div>
+                <div class="sprite-canvas-container" id="sprite-canvas-container"></div>
+            </div>
+        </div>
+
+
+        <div class="control-group">
+            <h3>Timing Settings</h3>
+            <div class="input-group">
+                <label>Delay (ms):</label>
+                <input type="range" id="delay-slider" min="10" max="1000" value="30">
+                <input type="number" id="delay-input" min="10" max="1000" value="30">
+            </div>
+
+            <div class="input-group">
+                <label>FPS:</label>
+                <span id="fps-display">33.3</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Animation Settings</h3>
+
+            <div class="input-group">
+                <label>Animation:</label>
+                <select id="animation-select">
+                    <option value="Walk">Walk</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Sprite Opacity:</label>
+                <input type="number" id="sprite-opacity-input" class="opacity-input" value="70" min="0" max="100"
+                    step="1">
+                <span>%</span>
+            </div>
+
+            <div class="input-group">
+                <label>
+                    <input type="checkbox" id="show-frames-checkbox" checked>
+                    Show Frames
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0; // achromatic
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return {
+                h: Math.round(h * 360),
+                s: Math.round(s * 100),
+                l: Math.round(l * 100)
+            };
+        }
+
+        function hexToHsl(hex) {
+            const rgb = hexToRgb(hex);
+            return rgb ? rgbToHsl(rgb.r, rgb.g, rgb.b) : null;
+        }
+
+        class CropTool {
+            constructor() {
+                this.currentFrame = 0;
+                this.totalFrames = 150;
+                this.delay = 30;
+                this.isPlaying = false;
+                this.animationId = null;
+                this.currentAnimation = 'Walk';
+                this.animations = [];
+                this.animationData = {};
+
+                this.frameWidth = 0;
+                this.frameHeight = 0;
+                this.frameElements = {};
+                this.currentFrameElement = null;
+                this.zoomLevel = 1.0;
+                this.zoomLevels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
+                this.currentZoomIndex = 3;
+
+                this.spriteElements = {};
+                this.currentSpriteElement = null;
+                this.showFrames = true;
+                this.spriteOpacity = 70;
+
+
+                this.initializeElements();
+                this.bindEvents();
+                this.loadAvailableAnimations();
+                this.updateDisplays();
+                this.updateZoomDisplay();
+
+                setTimeout(() => {
+                    this.createFrameElements();
+                }, 100);
+            }
+
+            initializeElements() {
+                this.frameContainer = document.getElementById('frame-container');
+                this.playPauseBtn = document.getElementById('play-pause-btn');
+                this.frameSlider = document.getElementById('frame-slider');
+                this.frameInput = document.getElementById('frame-input');
+                this.delaySlider = document.getElementById('delay-slider');
+                this.delayInput = document.getElementById('delay-input');
+                this.fpsDisplay = document.getElementById('fps-display');
+                this.animationSelect = document.getElementById('animation-select');
+                this.spriteOpacityInput = document.getElementById('sprite-opacity-input');
+                this.showFramesCheckbox = document.getElementById('show-frames-checkbox');
+                this.spriteCanvasContainer = document.getElementById('sprite-canvas-container');
+                this.framePreviewContainer = document.getElementById('frame-preview-container');
+                this.zoomInBtn = document.getElementById('zoom-in-btn');
+                this.zoomOutBtn = document.getElementById('zoom-out-btn');
+                this.zoomDisplay = document.getElementById('zoom-display');
+            }
+
+            bindEvents() {
+                this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+
+                this.frameSlider.addEventListener('input', (e) => {
+                    this.setFrame(parseInt(e.target.value));
+                });
+
+                this.frameInput.addEventListener('change', (e) => {
+                    this.setFrame(parseInt(e.target.value));
+                });
+
+                this.delaySlider.addEventListener('input', (e) => {
+                    this.setDelay(parseInt(e.target.value));
+                });
+
+                this.delayInput.addEventListener('change', (e) => {
+                    this.setDelay(parseInt(e.target.value));
+                });
+
+                this.animationSelect.addEventListener('change', (e) => {
+                    this.switchAnimation(e.target.value);
+                });
+
+                this.showFramesCheckbox.addEventListener('change', (e) => {
+                    this.showFrames = e.target.checked;
+                    this.updateVisibility();
+                });
+
+                this.spriteOpacityInput.addEventListener('change', (e) => {
+                    this.spriteOpacity = parseInt(e.target.value) || 0;
+                    this.updateSpriteOpacity();
+                });
+
+
+                this.zoomInBtn.addEventListener('click', () => {
+                    this.zoomIn();
+                });
+
+                this.zoomOutBtn.addEventListener('click', () => {
+                    this.zoomOut();
+                });
+
+            }
+
+
+            setFrame(frame) {
+                this.currentFrame = Math.max(0, Math.min(frame, this.totalFrames - 1));
+                this.updateFrame();
+                this.updateDisplays();
+            }
+
+            setDelay(delay) {
+                this.delay = Math.max(10, Math.min(delay, 1000));
+                this.delaySlider.value = this.delay;
+                this.delayInput.value = this.delay;
+                this.updateDisplays();
+
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                    this.startAnimation();
+                }
+            }
+
+            updateFrame() {
+                if (this.currentFrameElement) {
+                    this.currentFrameElement.classList.remove('active');
+                }
+
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.style.display = 'none';
+                }
+
+                if (this.frameElements[this.currentAnimation] &&
+                    this.frameElements[this.currentAnimation][this.currentFrame]) {
+                    this.currentFrameElement = this.frameElements[this.currentAnimation][this.currentFrame];
+                    if (this.showFrames) {
+                        this.currentFrameElement.classList.add('active');
+                    }
+                }
+
+                if (this.spriteElements[this.currentAnimation] &&
+                    this.spriteElements[this.currentAnimation][this.currentFrame]) {
+                    this.currentSpriteElement = this.spriteElements[this.currentAnimation][this.currentFrame];
+                    this.currentSpriteElement.style.display = 'block';
+                    this.currentSpriteElement.style.opacity = this.spriteOpacity / 100;
+                }
+            }
+
+            createFrameElements() {
+                this.frameContainer.innerHTML = '';
+                this.spriteCanvasContainer.innerHTML = '';
+                this.currentFrameElement = null;
+                this.currentSpriteElement = null;
+
+                if (!this.frameElements[this.currentAnimation]) {
+                    this.frameElements[this.currentAnimation] = {};
+                }
+
+                if (!this.spriteElements[this.currentAnimation]) {
+                    this.spriteElements[this.currentAnimation] = {};
+                }
+
+                const frameFiles = this.animationData[this.currentAnimation]?.frames || [];
+                const spriteFiles = this.animationData[this.currentAnimation]?.sprites || [];
+
+                for (let frame = 0; frame < this.totalFrames; frame++) {
+                    let img = this.frameElements[this.currentAnimation][frame];
+
+                    if (!img) {
+                        let frameSrc;
+                        if (frameFiles.length > frame) {
+                            frameSrc = `Source/${this.currentAnimation}/${frameFiles[frame]}`;
+                        } else {
+                            const frameNumber = String(frame).padStart(3, '0');
+                            frameSrc = `Source/${this.currentAnimation}/frame_${frameNumber}_delay-0.03s.gif`;
+                        }
+
+                        img = document.createElement('img');
+                        img.className = 'frame-image';
+                        img.src = frameSrc;
+                        img.alt = `Frame ${frame}`;
+
+                        if (frame === 0) {
+                            img.onload = () => {
+                                this.frameWidth = img.naturalWidth;
+                                this.frameHeight = img.naturalHeight;
+                                this.setContainerDimensions();
+                                this.updateZoomForAllElements();
+                            };
+                        } else {
+                            img.onload = () => {
+                                if (!this.frameWidth || !this.frameHeight) {
+                                    this.frameWidth = img.naturalWidth;
+                                    this.frameHeight = img.naturalHeight;
+                                    this.setContainerDimensions();
+                                    this.updateZoomForAllElements();
+                                }
+                            };
+                        }
+
+                        this.frameElements[this.currentAnimation][frame] = img;
+                    }
+
+                    this.frameContainer.appendChild(img);
+
+                    // Create sprite element if sprite exists for this frame
+                    let spriteImg = this.spriteElements[this.currentAnimation][frame];
+                    if (!spriteImg && spriteFiles.length > frame && spriteFiles[frame]) {
+                        const spriteSrc = `Source/${this.currentAnimation}/sprites/${spriteFiles[frame]}`;
+
+                        spriteImg = document.createElement('img');
+                        spriteImg.className = 'sprite-image';
+                        spriteImg.src = spriteSrc;
+                        spriteImg.alt = `Sprite ${frame}`;
+                        spriteImg.style.display = 'none';
+                        spriteImg.style.position = 'absolute';
+                        spriteImg.style.top = '0';
+                        spriteImg.style.left = '0';
+                        spriteImg.style.transformOrigin = 'top left';
+                        spriteImg.style.imageRendering = 'pixelated';
+                        spriteImg.style.imageRendering = 'crisp-edges';
+                        spriteImg.style.opacity = this.spriteOpacity / 100;
+
+                        this.spriteElements[this.currentAnimation][frame] = spriteImg;
+                        this.spriteCanvasContainer.appendChild(spriteImg);
+                    } else if (spriteImg) {
+                        // Always append existing sprite elements to container
+                        this.spriteCanvasContainer.appendChild(spriteImg);
+                    }
+                }
+
+                this.updateFrame();
+            }
+
+            nextFrame() {
+                this.currentFrame++;
+                if (this.currentFrame >= this.totalFrames) {
+                    this.currentFrame = 0;
+                }
+                this.updateFrame();
+                this.updateDisplays();
+            }
+
+            togglePlayPause() {
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                } else {
+                    this.startAnimation();
+                }
+            }
+
+            startAnimation() {
+                this.isPlaying = true;
+                this.playPauseBtn.textContent = 'Pause';
+
+                const animate = () => {
+                    if (this.isPlaying) {
+                        this.nextFrame();
+                        this.animationId = setTimeout(animate, this.delay);
+                    }
+                };
+
+                this.animationId = setTimeout(animate, this.delay);
+            }
+
+            stopAnimation() {
+                this.isPlaying = false;
+                this.playPauseBtn.textContent = 'Play';
+                if (this.animationId) {
+                    clearTimeout(this.animationId);
+                    this.animationId = null;
+                }
+            }
+
+            updateDisplays() {
+                this.frameSlider.value = this.currentFrame;
+                this.frameInput.value = this.currentFrame;
+
+                const fps = (1000 / this.delay).toFixed(1);
+                this.fpsDisplay.textContent = fps;
+            }
+
+            async loadAvailableAnimations() {
+                try {
+                    const response = await fetch('/api/animations');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.animations = data.animations.map(anim => anim.name);
+                        this.animationData = {};
+
+                        data.animations.forEach(anim => {
+                            this.animationData[anim.name] = {
+                                frameCount: anim.frameCount,
+                                frames: anim.frames || [],
+                                sprites: anim.sprites || []
+                            };
+                        });
+
+                        if (this.animations.includes('Walk')) {
+                            this.currentAnimation = 'Walk';
+                        } else if (this.animations.length > 0) {
+                            this.currentAnimation = this.animations[0];
+                        }
+
+                        if (this.currentAnimation && this.animationData[this.currentAnimation]) {
+                            this.totalFrames = this.animationData[this.currentAnimation].frameCount;
+                        }
+
+                        this.updateAnimationSelect();
+                    } else {
+                        this.animations = ['Walk'];
+                        this.animationData = { 'Walk': { frameCount: 150, frames: [], sprites: [] } };
+                        this.currentAnimation = 'Walk';
+                        this.totalFrames = 150;
+                        this.updateAnimationSelect();
+                    }
+                } catch (error) {
+                    this.animations = ['Walk'];
+                    this.animationData = { 'Walk': { frameCount: 150, frames: [], sprites: [] } };
+                    this.currentAnimation = 'Walk';
+                    this.totalFrames = 150;
+                    this.updateAnimationSelect();
+                }
+            }
+
+            updateAnimationSelect() {
+                this.animationSelect.innerHTML = '';
+                this.animations.forEach(animation => {
+                    const option = document.createElement('option');
+                    option.value = animation;
+                    option.textContent = animation;
+                    if (animation === this.currentAnimation) {
+                        option.selected = true;
+                    }
+                    this.animationSelect.appendChild(option);
+                });
+            }
+
+
+
+
+            updateVisibility() {
+                if (this.currentFrameElement) {
+                    if (this.showFrames) {
+                        this.currentFrameElement.classList.add('active');
+                    } else {
+                        this.currentFrameElement.classList.remove('active');
+                    }
+                }
+
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.style.opacity = this.spriteOpacity / 100;
+                }
+            }
+
+            updateSpriteOpacity() {
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.style.opacity = this.spriteOpacity / 100;
+                }
+            }
+
+
+            setContainerDimensions() {
+                if (this.frameWidth && this.frameHeight) {
+                    const scaledWidth = this.frameWidth * this.zoomLevel;
+                    const scaledHeight = this.frameHeight * this.zoomLevel;
+                    this.frameContainer.style.width = scaledWidth + 'px';
+                    this.frameContainer.style.height = scaledHeight + 'px';
+                }
+            }
+
+            zoomIn() {
+                if (this.currentZoomIndex < this.zoomLevels.length - 1) {
+                    this.currentZoomIndex++;
+                    this.setZoom(this.zoomLevels[this.currentZoomIndex]);
+                }
+            }
+
+            zoomOut() {
+                if (this.currentZoomIndex > 0) {
+                    this.currentZoomIndex--;
+                    this.setZoom(this.zoomLevels[this.currentZoomIndex]);
+                }
+            }
+
+            setZoom(zoomLevel) {
+                this.zoomLevel = zoomLevel;
+                this.updateZoomDisplay();
+                this.setContainerDimensions();
+                this.updateZoomForAllElements();
+            }
+
+            updateZoomDisplay() {
+                const percentage = Math.round(this.zoomLevel * 100);
+                this.zoomDisplay.textContent = percentage + '%';
+            }
+
+            updateZoomForAllElements() {
+                if (this.frameElements[this.currentAnimation]) {
+                    Object.values(this.frameElements[this.currentAnimation]).forEach(frameElement => {
+                        if (frameElement) {
+                            frameElement.style.transform = `scale(${this.zoomLevel})`;
+                        }
+                    });
+                }
+
+                if (this.spriteElements[this.currentAnimation]) {
+                    Object.values(this.spriteElements[this.currentAnimation]).forEach(spriteElement => {
+                        if (spriteElement) {
+                            spriteElement.style.transform = `scale(${this.zoomLevel})`;
+                        }
+                    });
+                }
+
+            }
+
+            async saveCurrentSprite() {
+                const spriteCanvas = this.spriteCanvases[this.currentAnimation]?.[this.currentFrame];
+                if (!spriteCanvas) {
+                    console.log('No sprite to save for current frame');
+                    return;
+                }
+
+                try {
+                    const imageDataUrl = spriteCanvas.toDataURL('image/png');
+                    const frameNumber = String(this.currentFrame).padStart(3, '0');
+                    const frameName = `frame_${frameNumber}_delay-0.03s`;
+
+                    const response = await fetch(`/api/animations/${this.currentAnimation}/sprites/save`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            imageData: imageDataUrl,
+                            frameName: frameName
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log(`Sprite saved: ${result.message}`);
+                    } else {
+                        console.error('Failed to save sprite:', result.error);
+                        alert(`Failed to save sprite: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error saving sprite:', error);
+                    alert(`Error saving sprite: ${error.message}`);
+                }
+            }
+
+
+            switchAnimation(animationName) {
+                if (animationName === this.currentAnimation) return;
+
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.style.display = 'none';
+                    this.currentSpriteElement = null;
+                }
+
+                this.currentAnimation = animationName;
+
+                if (!this.animationData) {
+                    this.animationData = {};
+                }
+
+                if (this.animationData[animationName]) {
+                    this.totalFrames = this.animationData[animationName].frameCount;
+                } else {
+                    this.animationData[animationName] = {
+                        frameCount: 150,
+                        frames: [],
+                        sprites: []
+                    };
+                    this.totalFrames = 150;
+                }
+
+                this.currentFrame = 0;
+
+                this.frameSlider.max = this.totalFrames - 1;
+                this.frameInput.max = this.totalFrames - 1;
+
+                this.spriteCanvasContainer.innerHTML = '';
+
+                this.frameWidth = 0;
+                this.frameHeight = 0;
+
+                this.createFrameElements();
+                this.updateDisplays();
+                this.updateZoomDisplay();
+            }
+        }
+
+        let cropTool;
+        document.addEventListener('DOMContentLoaded', () => {
+            cropTool = new CropTool();
+        });
+    </script>
+</body>
+
+</html>

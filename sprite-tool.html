@@ -629,6 +629,8 @@
                 this.spriteCanvases = {};
                 this.spriteData = {};
                 this.currentSpriteCanvas = null;
+                this.spriteElements = {};
+                this.currentSpriteElement = null;
                 this.showFrames = true;
                 this.spriteOpacity = 70;
 
@@ -976,6 +978,10 @@
                     this.currentSpriteCanvas.style.display = 'none';
                 }
 
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.style.display = 'none';
+                }
+
                 if (this.frameElements[this.currentAnimation] &&
                     this.frameElements[this.currentAnimation][this.currentFrame]) {
                     this.currentFrameElement = this.frameElements[this.currentAnimation][this.currentFrame];
@@ -984,11 +990,20 @@
                     }
                 }
 
+                // Show generated sprite canvas (from layer system) with higher priority
                 if (this.spriteCanvases[this.currentAnimation] &&
                     this.spriteCanvases[this.currentAnimation][this.currentFrame]) {
                     this.currentSpriteCanvas = this.spriteCanvases[this.currentAnimation][this.currentFrame];
                     this.currentSpriteCanvas.style.display = 'block';
                     this.currentSpriteCanvas.style.opacity = this.spriteOpacity / 100;
+                    this.currentSpriteElement = null; // Clear preloaded sprite when showing generated sprite
+                }
+                // Show preloaded sprite element if no generated sprite exists
+                else if (this.spriteElements[this.currentAnimation] &&
+                         this.spriteElements[this.currentAnimation][this.currentFrame]) {
+                    this.currentSpriteElement = this.spriteElements[this.currentAnimation][this.currentFrame];
+                    this.currentSpriteElement.style.display = 'block';
+                    this.currentSpriteElement.style.opacity = this.spriteOpacity / 100;
                 }
             }
 
@@ -1000,7 +1015,12 @@
                     this.frameElements[this.currentAnimation] = {};
                 }
 
+                if (!this.spriteElements[this.currentAnimation]) {
+                    this.spriteElements[this.currentAnimation] = {};
+                }
+
                 const frameFiles = this.animationData[this.currentAnimation]?.frames || [];
+                const spriteFiles = this.animationData[this.currentAnimation]?.sprites || [];
 
                 for (let frame = 0; frame < this.totalFrames; frame++) {
                     let img = this.frameElements[this.currentAnimation][frame];
@@ -1043,6 +1063,32 @@
 
                     // Always append the frame element to the container, whether it's new or existing
                     this.frameContainer.appendChild(img);
+
+                    // Create sprite element if sprite exists for this frame
+                    let spriteImg = this.spriteElements[this.currentAnimation][frame];
+                    if (!spriteImg && spriteFiles.length > frame && spriteFiles[frame]) {
+                        const spriteSrc = `Source/${this.currentAnimation}/sprites/${spriteFiles[frame]}`;
+
+                        spriteImg = document.createElement('img');
+                        spriteImg.className = 'preloaded-sprite-image';
+                        spriteImg.src = spriteSrc;
+                        spriteImg.alt = `Preloaded Sprite ${frame}`;
+                        spriteImg.style.display = 'none';
+                        spriteImg.style.position = 'absolute';
+                        spriteImg.style.top = '0';
+                        spriteImg.style.left = '0';
+                        spriteImg.style.transformOrigin = 'top left';
+                        spriteImg.style.imageRendering = 'pixelated';
+                        spriteImg.style.imageRendering = 'crisp-edges';
+                        spriteImg.style.opacity = this.spriteOpacity / 100;
+                        spriteImg.style.pointerEvents = 'none';
+
+                        this.spriteElements[this.currentAnimation][frame] = spriteImg;
+                        this.spriteCanvasContainer.appendChild(spriteImg);
+                    } else if (spriteImg) {
+                        // Always append existing sprite elements to container
+                        this.spriteCanvasContainer.appendChild(spriteImg);
+                    }
                 }
 
                 this.updateFrame();
@@ -1110,7 +1156,8 @@
                         data.animations.forEach(anim => {
                             this.animationData[anim.name] = {
                                 frameCount: anim.frameCount,
-                                frames: anim.frames || []
+                                frames: anim.frames || [],
+                                sprites: anim.sprites || []
                             };
                         });
 
@@ -1127,14 +1174,14 @@
                         this.updateAnimationSelect();
                     } else {
                         this.animations = ['Walk'];
-                        this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
+                        this.animationData = { 'Walk': { frameCount: 150, frames: [], sprites: [] } };
                         this.currentAnimation = 'Walk';
                         this.totalFrames = 150;
                         this.updateAnimationSelect();
                     }
                 } catch (error) {
                     this.animations = ['Walk'];
-                    this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
+                    this.animationData = { 'Walk': { frameCount: 150, frames: [], sprites: [] } };
                     this.currentAnimation = 'Walk';
                     this.totalFrames = 150;
                     this.updateAnimationSelect();
@@ -1745,11 +1792,17 @@
                 if (this.currentSpriteCanvas) {
                     this.currentSpriteCanvas.style.opacity = this.spriteOpacity / 100;
                 }
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.style.opacity = this.spriteOpacity / 100;
+                }
             }
 
             updateSpriteOpacity() {
                 if (this.currentSpriteCanvas) {
                     this.currentSpriteCanvas.style.opacity = this.spriteOpacity / 100;
+                }
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.style.opacity = this.spriteOpacity / 100;
                 }
             }
 
@@ -1814,6 +1867,15 @@
                     Object.values(this.spriteCanvases[this.currentAnimation]).forEach(spriteCanvas => {
                         if (spriteCanvas) {
                             spriteCanvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
+                        }
+                    });
+                }
+
+                // Apply zoom to all preloaded sprite elements for the current animation
+                if (this.spriteElements[this.currentAnimation]) {
+                    Object.values(this.spriteElements[this.currentAnimation]).forEach(spriteElement => {
+                        if (spriteElement) {
+                            spriteElement.style.transform = `scale(${this.zoomLevel})`;
                         }
                     });
                 }
@@ -1955,6 +2017,11 @@
                     this.currentSpriteCanvas = null;
                 }
 
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.style.display = 'none';
+                    this.currentSpriteElement = null;
+                }
+
                 this.currentAnimation = animationName;
 
                 // Ensure animationData exists and has the animation
@@ -1968,7 +2035,8 @@
                     // Create default animation data if it doesn't exist
                     this.animationData[animationName] = {
                         frameCount: 150,
-                        frames: []
+                        frames: [],
+                        sprites: []
                     };
                     this.totalFrames = 150;
                 }
