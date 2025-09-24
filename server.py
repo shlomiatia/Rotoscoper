@@ -490,6 +490,190 @@ def save_sprite(animation_name):
             'error': str(e)
         }), 500
 
+@app.route('/api/animations/crop', methods=['POST'])
+def crop_animation():
+    """Create a new animation with cropped frames and sprites"""
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+
+        source_animation = data.get('sourceAnimation', '').strip()
+        new_name = data.get('newName', '').strip()
+        crop_bounds = data.get('cropBounds', {})
+
+        if not source_animation:
+            return jsonify({
+                'success': False,
+                'error': 'Source animation is required'
+            }), 400
+
+        if not new_name:
+            return jsonify({
+                'success': False,
+                'error': 'New animation name is required'
+            }), 400
+
+        if not crop_bounds:
+            return jsonify({
+                'success': False,
+                'error': 'Crop bounds are required'
+            }), 400
+
+        # Check if source animation exists
+        source_path = os.path.join(SOURCE_DIR, source_animation)
+        if not os.path.exists(source_path):
+            return jsonify({
+                'success': False,
+                'error': f'Source animation "{source_animation}" not found'
+            }), 404
+
+        # Check if new animation already exists
+        new_path = os.path.join(SOURCE_DIR, new_name)
+        if os.path.exists(new_path):
+            return jsonify({
+                'success': False,
+                'error': f'Animation "{new_name}" already exists'
+            }), 409
+
+        # Create new animation directory
+        os.makedirs(new_path)
+
+        # Create sprites directory
+        new_sprites_path = os.path.join(new_path, 'sprites')
+        os.makedirs(new_sprites_path, exist_ok=True)
+
+        # Get crop bounds
+        left = int(crop_bounds.get('left', 0))
+        right = int(crop_bounds.get('right', 0))
+        top = int(crop_bounds.get('top', 0))
+        bottom = int(crop_bounds.get('bottom', 0))
+
+        if left < 0 or right < 0 or top < 0 or bottom < 0:
+            os.rmdir(new_sprites_path)
+            os.rmdir(new_path)
+            return jsonify({
+                'success': False,
+                'error': 'Invalid crop bounds'
+            }), 400
+
+        # Get source files
+        source_frame_files = get_frame_files(source_animation)
+        source_sprite_files = get_sprite_files(source_animation)
+
+        frames_processed = 0
+        sprites_processed = 0
+
+        # Process frames
+        for i, frame_file in enumerate(source_frame_files):
+            source_frame_path = os.path.join(source_path, frame_file)
+            if os.path.exists(source_frame_path):
+                try:
+                    with Image.open(source_frame_path) as img:
+                        # Convert to RGBA if not already
+                        if img.mode != 'RGBA':
+                            img = img.convert('RGBA')
+
+                        # Get original dimensions
+                        width, height = img.size
+
+                        # Calculate crop box (left, top, right, bottom)
+                        crop_box = (
+                            left,
+                            top,
+                            width - right,
+                            height - bottom
+                        )
+
+                        # Crop the image
+                        cropped_img = img.crop(crop_box)
+
+                        # Create new filename
+                        new_frame_name = f'frame_{i:03d}_delay-0.03s.gif'
+                        new_frame_path = os.path.join(new_path, new_frame_name)
+
+                        # Save as GIF with transparency
+                        cropped_img.save(new_frame_path, 'GIF', transparency=0, disposal=2)
+                        frames_processed += 1
+
+                except Exception as e:
+                    print(f"Warning: Failed to process frame {frame_file}: {e}")
+
+        # Process sprites
+        source_sprites_path = os.path.join(source_path, 'sprites')
+        if os.path.exists(source_sprites_path):
+            for i, sprite_file in enumerate(source_sprite_files):
+                source_sprite_path = os.path.join(source_sprites_path, sprite_file)
+                if os.path.exists(source_sprite_path):
+                    try:
+                        with Image.open(source_sprite_path) as img:
+                            # Convert to RGBA if not already
+                            if img.mode != 'RGBA':
+                                img = img.convert('RGBA')
+
+                            # Get original dimensions
+                            width, height = img.size
+
+                            # Calculate crop box (left, top, right, bottom)
+                            crop_box = (
+                                left,
+                                top,
+                                width - right,
+                                height - bottom
+                            )
+
+                            # Crop the image
+                            cropped_img = img.crop(crop_box)
+
+                            # Create new filename
+                            new_sprite_name = f'frame_{i:03d}_delay-0.03s.png'
+                            new_sprite_path = os.path.join(new_sprites_path, new_sprite_name)
+
+                            # Save as PNG
+                            cropped_img.save(new_sprite_path, 'PNG')
+                            sprites_processed += 1
+
+                    except Exception as e:
+                        print(f"Warning: Failed to process sprite {sprite_file}: {e}")
+
+        if frames_processed == 0:
+            # Clean up empty directories
+            try:
+                os.rmdir(new_sprites_path)
+                os.rmdir(new_path)
+            except:
+                pass
+            return jsonify({
+                'success': False,
+                'error': 'No frames were processed'
+            }), 400
+
+        return jsonify({
+            'success': True,
+            'message': f'Cropped animation "{new_name}" created successfully',
+            'frameCount': frames_processed,
+            'spriteCount': sprites_processed,
+            'name': new_name,
+            'cropBounds': crop_bounds
+        })
+
+    except Exception as e:
+        # Clean up if something went wrong
+        try:
+            if 'new_path' in locals() and os.path.exists(new_path):
+                shutil.rmtree(new_path)
+        except:
+            pass
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     print("Starting Animation Server...")
     print("Server will be available at: http://localhost:5000")

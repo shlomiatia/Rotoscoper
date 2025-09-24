@@ -332,6 +332,47 @@
             background-color: white;
         }
 
+        .crop-rectangle {
+            position: absolute;
+            border: 2px solid #ff0000;
+            background-color: rgba(255, 0, 0, 0.1);
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+        }
+
+        .crop-info {
+            background-color: #e7f3ff;
+            border: 1px solid #0066cc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .crop-info h3 {
+            margin: 0 0 10px 0;
+            color: #0066cc;
+        }
+
+        .crop-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .crop-stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 10px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+
+        .crop-stat-label {
+            font-weight: bold;
+        }
+
 
         .frame-preview-container {
             position: relative;
@@ -369,10 +410,30 @@
             </div>
         </div>
 
+        <div class="crop-info" id="crop-info" style="display: none;">
+            <h3>Crop Analysis</h3>
+            <p id="crop-description">Analyzing sprites to find optimal crop area...</p>
+            <div class="crop-stats" id="crop-stats"></div>
+
+            <div class="crop-export" id="crop-export" style="margin-top: 15px; display: none;">
+                <h4 style="margin: 0 0 10px 0; color: #0066cc;">Export Cropped Animation</h4>
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                    <label style="font-weight: bold; min-width: 120px;">New Animation Name:</label>
+                    <input type="text" id="new-animation-name" placeholder="Enter animation name"
+                           style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 3px;">
+                </div>
+                <button id="crop-export-btn" class="sprite-button" style="width: 100%; margin: 0;">
+                    Create Cropped Animation
+                </button>
+                <div id="crop-export-status" style="margin-top: 10px; font-size: 14px;"></div>
+            </div>
+        </div>
+
         <div class="animation-container">
             <div class="frame-preview-container" id="frame-preview-container">
                 <div id="frame-container"></div>
                 <div class="sprite-canvas-container" id="sprite-canvas-container"></div>
+                <div class="crop-rectangle" id="crop-rectangle"></div>
             </div>
         </div>
 
@@ -485,6 +546,11 @@
                 this.showFrames = true;
                 this.spriteOpacity = 70;
 
+                // Crop calculation properties
+                this.cropRectangle = null;
+                this.cropBounds = null;
+                this.spriteAnalysisData = {};
+
 
                 this.initializeElements();
                 this.bindEvents();
@@ -513,6 +579,14 @@
                 this.zoomInBtn = document.getElementById('zoom-in-btn');
                 this.zoomOutBtn = document.getElementById('zoom-out-btn');
                 this.zoomDisplay = document.getElementById('zoom-display');
+                this.cropInfo = document.getElementById('crop-info');
+                this.cropDescription = document.getElementById('crop-description');
+                this.cropStats = document.getElementById('crop-stats');
+                this.cropRectangleElement = document.getElementById('crop-rectangle');
+                this.cropExportSection = document.getElementById('crop-export');
+                this.newAnimationNameInput = document.getElementById('new-animation-name');
+                this.cropExportBtn = document.getElementById('crop-export-btn');
+                this.cropExportStatus = document.getElementById('crop-export-status');
             }
 
             bindEvents() {
@@ -555,6 +629,10 @@
 
                 this.zoomOutBtn.addEventListener('click', () => {
                     this.zoomOut();
+                });
+
+                this.cropExportBtn.addEventListener('click', () => {
+                    this.exportCroppedAnimation();
                 });
 
             }
@@ -677,6 +755,13 @@
                         spriteImg.style.imageRendering = 'pixelated';
                         spriteImg.style.imageRendering = 'crisp-edges';
                         spriteImg.style.opacity = this.spriteOpacity / 100;
+
+                        spriteImg.onload = () => {
+                            // Trigger crop calculation when a sprite loads
+                            setTimeout(() => {
+                                this.calculateCropBounds();
+                            }, 100);
+                        };
 
                         this.spriteElements[this.currentAnimation][frame] = spriteImg;
                         this.spriteCanvasContainer.appendChild(spriteImg);
@@ -846,6 +931,7 @@
                 this.updateZoomDisplay();
                 this.setContainerDimensions();
                 this.updateZoomForAllElements();
+                this.showCropRectangle();
             }
 
             updateZoomDisplay() {
@@ -948,6 +1034,312 @@
                 this.createFrameElements();
                 this.updateDisplays();
                 this.updateZoomDisplay();
+
+                // Calculate crop bounds after sprites are loaded
+                setTimeout(() => {
+                    this.calculateCropBounds();
+                }, 500);
+            }
+
+            // Get pixel data from sprite image
+            getSpritePixelData(spriteImg) {
+                return new Promise((resolve) => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    canvas.width = spriteImg.naturalWidth;
+                    canvas.height = spriteImg.naturalHeight;
+
+                    ctx.drawImage(spriteImg, 0, 0);
+
+                    try {
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        resolve({
+                            data: imageData.data,
+                            width: canvas.width,
+                            height: canvas.height
+                        });
+                    } catch (error) {
+                        console.warn('Could not get pixel data for sprite:', error);
+                        resolve(null);
+                    }
+                });
+            }
+
+            // Find bounding box of non-transparent pixels in sprite
+            findSpriteBounds(pixelData) {
+                if (!pixelData) return null;
+
+                const { data, width, height } = pixelData;
+                let minX = width, minY = height, maxX = -1, maxY = -1;
+
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const idx = (y * width + x) * 4;
+                        const alpha = data[idx + 3];
+
+                        if (alpha > 0) {
+                            minX = Math.min(minX, x);
+                            minY = Math.min(minY, y);
+                            maxX = Math.max(maxX, x);
+                            maxY = Math.max(maxY, y);
+                        }
+                    }
+                }
+
+                if (maxX === -1) return null; // No non-transparent pixels
+
+                return { minX, minY, maxX, maxY, width: maxX - minX + 1, height: maxY - minY + 1 };
+            }
+
+            // Calculate optimal crop bounds for all sprites
+            async calculateCropBounds() {
+                if (!this.animationData[this.currentAnimation]?.sprites?.length) {
+                    this.cropDescription.textContent = "No sprites found for this animation. Crop analysis is only available for animations with sprites.";
+                    this.cropInfo.style.display = 'block';
+                    this.cropStats.innerHTML = '<div class="crop-stat-item"><span class="crop-stat-label">Status:</span><span>No sprite data available</span></div>';
+                    this.hideCropRectangle();
+                    return;
+                }
+
+                this.cropDescription.textContent = "Analyzing sprites to find optimal crop area...";
+                this.cropInfo.style.display = 'block';
+
+                const sprites = this.spriteElements[this.currentAnimation];
+                if (!sprites) {
+                    this.hideCropInfo();
+                    return;
+                }
+
+                const spriteBounds = [];
+                let allSpritesLoaded = 0;
+                const totalSprites = Object.keys(sprites).length;
+
+                for (const frameIndex in sprites) {
+                    const spriteImg = sprites[frameIndex];
+                    if (spriteImg && spriteImg.complete) {
+                        const pixelData = await this.getSpritePixelData(spriteImg);
+                        const bounds = this.findSpriteBounds(pixelData);
+                        if (bounds) {
+                            spriteBounds.push({
+                                frameIndex: parseInt(frameIndex),
+                                ...bounds
+                            });
+                        }
+                        allSpritesLoaded++;
+                    }
+                }
+
+                if (spriteBounds.length === 0) {
+                    this.cropDescription.textContent = "No sprite data found for analysis.";
+                    this.hideCropRectangle();
+                    return;
+                }
+
+                // Find the bounds that encompass all sprites
+                const overallBounds = {
+                    minX: Math.min(...spriteBounds.map(b => b.minX)),
+                    minY: Math.min(...spriteBounds.map(b => b.minY)),
+                    maxX: Math.max(...spriteBounds.map(b => b.maxX)),
+                    maxY: Math.max(...spriteBounds.map(b => b.maxY))
+                };
+
+                // Calculate maximum crop amounts while keeping centered
+                const spriteWidth = this.frameWidth;
+                const spriteHeight = this.frameHeight;
+
+                const contentWidth = overallBounds.maxX - overallBounds.minX + 1;
+                const contentHeight = overallBounds.maxY - overallBounds.minY + 1;
+
+                // Calculate maximum crop amounts for each side independently
+                // These are the maximum amounts we can crop while preserving all sprite content
+                const leftCrop = overallBounds.minX;
+                const rightCrop = spriteWidth - overallBounds.maxX - 1;
+                const topCrop = overallBounds.minY;
+                const bottomCrop = spriteHeight - overallBounds.maxY - 1;
+
+                // Validate crop values - must be non-negative and reasonable
+                if (leftCrop < 0 || rightCrop < 0 || topCrop < 0 || bottomCrop < 0 ||
+                    leftCrop + rightCrop >= spriteWidth || topCrop + bottomCrop >= spriteHeight ||
+                    spriteWidth === 0 || spriteHeight === 0) {
+                    this.cropDescription.textContent = "Unable to calculate optimal crop - sprites may be too varied in size or have invalid bounds.";
+                    this.cropStats.innerHTML = `
+                        <div class="crop-stat-item">
+                            <span class="crop-stat-label">Status:</span>
+                            <span>Crop calculation failed</span>
+                        </div>
+                        <div class="crop-stat-item">
+                            <span class="crop-stat-label">Reason:</span>
+                            <span>Invalid sprite bounds detected</span>
+                        </div>
+                    `;
+                    this.hideCropRectangle();
+                    return;
+                }
+
+                this.cropBounds = {
+                    left: leftCrop,
+                    right: rightCrop,
+                    top: topCrop,
+                    bottom: bottomCrop,
+                    contentWidth: spriteWidth - leftCrop - rightCrop,
+                    contentHeight: spriteHeight - topCrop - bottomCrop,
+                    originalWidth: spriteWidth,
+                    originalHeight: spriteHeight
+                };
+
+                this.updateCropDisplay();
+                this.showCropRectangle();
+                this.showCropExport();
+            }
+
+            updateCropDisplay() {
+                if (!this.cropBounds) return;
+
+                const { left, right, top, bottom, contentWidth, contentHeight, originalWidth, originalHeight } = this.cropBounds;
+
+                // Create description based on whether crops are symmetric or asymmetric
+                let description = "Found optimal crop: ";
+                if (left === right && top === bottom) {
+                    if (left === top) {
+                        description += `${left}px from all sides.`;
+                    } else {
+                        description += `${left}px left/right, ${top}px top/bottom.`;
+                    }
+                } else {
+                    description += `${left}px left, ${right}px right, ${top}px top, ${bottom}px bottom.`;
+                }
+
+                this.cropDescription.textContent = description;
+
+                this.cropStats.innerHTML = `
+                    <div class="crop-stat-item">
+                        <span class="crop-stat-label">Original Size:</span>
+                        <span>${originalWidth} × ${originalHeight}</span>
+                    </div>
+                    <div class="crop-stat-item">
+                        <span class="crop-stat-label">Cropped Size:</span>
+                        <span>${contentWidth} × ${contentHeight}</span>
+                    </div>
+                    <div class="crop-stat-item">
+                        <span class="crop-stat-label">Left Crop:</span>
+                        <span>${left}px</span>
+                    </div>
+                    <div class="crop-stat-item">
+                        <span class="crop-stat-label">Right Crop:</span>
+                        <span>${right}px</span>
+                    </div>
+                    <div class="crop-stat-item">
+                        <span class="crop-stat-label">Top Crop:</span>
+                        <span>${top}px</span>
+                    </div>
+                    <div class="crop-stat-item">
+                        <span class="crop-stat-label">Bottom Crop:</span>
+                        <span>${bottom}px</span>
+                    </div>
+                    <div class="crop-stat-item">
+                        <span class="crop-stat-label">Size Reduction:</span>
+                        <span>${((1 - (contentWidth * contentHeight) / (originalWidth * originalHeight)) * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="crop-stat-item">
+                        <span class="crop-stat-label">Aspect Ratio:</span>
+                        <span>${(contentWidth / contentHeight).toFixed(2)}:1</span>
+                    </div>
+                `;
+            }
+
+            showCropRectangle() {
+                if (!this.cropBounds || !this.frameWidth || !this.frameHeight) return;
+
+                const { left, top, contentWidth, contentHeight } = this.cropBounds;
+
+                // Apply current zoom level to crop rectangle
+                const scaledLeft = left * this.zoomLevel;
+                const scaledTop = top * this.zoomLevel;
+                const scaledWidth = contentWidth * this.zoomLevel;
+                const scaledHeight = contentHeight * this.zoomLevel;
+
+                this.cropRectangleElement.style.left = scaledLeft + 'px';
+                this.cropRectangleElement.style.top = scaledTop + 'px';
+                this.cropRectangleElement.style.width = scaledWidth + 'px';
+                this.cropRectangleElement.style.height = scaledHeight + 'px';
+                this.cropRectangleElement.style.display = 'block';
+            }
+
+            hideCropRectangle() {
+                this.cropRectangleElement.style.display = 'none';
+            }
+
+            hideCropInfo() {
+                this.cropInfo.style.display = 'none';
+                this.hideCropRectangle();
+                this.hideCropExport();
+            }
+
+            showCropExport() {
+                this.cropExportSection.style.display = 'block';
+                // Suggest a default name based on current animation
+                if (!this.newAnimationNameInput.value) {
+                    this.newAnimationNameInput.value = this.currentAnimation + '_cropped';
+                }
+            }
+
+            hideCropExport() {
+                this.cropExportSection.style.display = 'none';
+                this.cropExportStatus.textContent = '';
+            }
+
+            async exportCroppedAnimation() {
+                const newName = this.newAnimationNameInput.value.trim();
+                if (!newName) {
+                    this.cropExportStatus.textContent = 'Please enter a name for the new animation.';
+                    this.cropExportStatus.style.color = 'red';
+                    return;
+                }
+
+                if (!this.cropBounds) {
+                    this.cropExportStatus.textContent = 'No crop data available.';
+                    this.cropExportStatus.style.color = 'red';
+                    return;
+                }
+
+                this.cropExportBtn.disabled = true;
+                this.cropExportBtn.textContent = 'Creating...';
+                this.cropExportStatus.textContent = 'Processing frames and sprites...';
+                this.cropExportStatus.style.color = 'blue';
+
+                try {
+                    const response = await fetch('/api/animations/crop', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            sourceAnimation: this.currentAnimation,
+                            newName: newName,
+                            cropBounds: this.cropBounds
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.cropExportStatus.textContent = `✅ Successfully created "${newName}" with ${result.frameCount} cropped frames!`;
+                        this.cropExportStatus.style.color = 'green';
+
+                        // Refresh the animation list
+                        await this.loadAvailableAnimations();
+                    } else {
+                        this.cropExportStatus.textContent = `❌ Error: ${result.error}`;
+                        this.cropExportStatus.style.color = 'red';
+                    }
+                } catch (error) {
+                    this.cropExportStatus.textContent = `❌ Network error: ${error.message}`;
+                    this.cropExportStatus.style.color = 'red';
+                }
+
+                this.cropExportBtn.disabled = false;
+                this.cropExportBtn.textContent = 'Create Cropped Animation';
             }
         }
 
