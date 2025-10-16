@@ -278,7 +278,7 @@
 
         <div class="control-group">
             <h3>Playback Controls</h3>
-            <button class="play-pause-btn" id="play-pause-btn">Pause</button>
+            <button class="play-pause-btn" id="play-pause-btn">Play</button>
 
             <div class="input-group">
                 <label>Frame:</label>
@@ -361,7 +361,7 @@
                 this.startFrame = 0;
                 this.endFrame = 149;
                 this.delay = 30;
-                this.isPlaying = true;
+                this.isPlaying = false;
                 this.animationId = null;
                 this.startTime = Date.now();
                 this.currentAnimation = 'Walk';
@@ -382,7 +382,6 @@
                 this.initializeElements();
                 this.bindEvents();
                 this.loadAvailableAnimations();
-                this.startAnimation();
                 this.updateDisplays();
                 this.updateZoomDisplay();
 
@@ -432,6 +431,14 @@
 
                 this.centerInput.addEventListener('change', (e) => {
                     this.setCenterPoint(parseInt(e.target.value) || 0);
+                });
+
+                this.centerInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.applyCenterToSubsequentFrames();
+                        this.nextFrame();
+                    }
                 });
 
                 this.applyCenterBtn.addEventListener('click', () => {
