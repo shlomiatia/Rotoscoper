@@ -495,8 +495,8 @@
 
             <div class="input-group">
                 <label>Frame:</label>
-                <input type="range" id="frame-slider" min="0" max="149" value="0">
-                <input type="number" id="frame-input" min="0" max="149" value="0">
+                <input type="range" id="frame-slider" min="0" value="0">
+                <input type="number" id="frame-input" min="0" value="0">
             </div>
 
             <div class="input-group">
@@ -543,7 +543,6 @@
             <div class="input-group">
                 <label>Animation:</label>
                 <select id="animation-select">
-                    <option value="Walk">Walk</option>
                 </select>
             </div>
 
@@ -610,13 +609,13 @@
         class SpriteTool {
             constructor() {
                 this.currentFrame = 0;
-                this.totalFrames = 150;
                 this.delay = 30;
                 this.isPlaying = false;
                 this.animationId = null;
-                this.currentAnimation = 'Walk';
+                this.currentAnimation = '';
                 this.animations = [];
                 this.animationData = {};
+                this.totalFrames = 0;
 
                 this.frameWidth = 0;
                 this.frameHeight = 0;
@@ -1161,30 +1160,17 @@
                             };
                         });
 
-                        if (this.animations.includes('Walk')) {
-                            this.currentAnimation = 'Walk';
-                        } else if (this.animations.length > 0) {
-                            this.currentAnimation = this.animations[0];
-                        }
-
-                        if (this.currentAnimation && this.animationData[this.currentAnimation]) {
-                            this.totalFrames = this.animationData[this.currentAnimation].frameCount;
-                        }
-
                         this.updateAnimationSelect();
+                        if (this.animations.length > 0) {
+                            this.switchAnimation(this.animations[0]);
+                        }
                     } else {
-                        this.animations = ['Walk'];
-                        this.animationData = { 'Walk': { frameCount: 150, frames: [], sprites: [] } };
-                        this.currentAnimation = 'Walk';
-                        this.totalFrames = 150;
-                        this.updateAnimationSelect();
+                        alert('Failed to load animations. Please try refreshing the page.');
+                        return;
                     }
                 } catch (error) {
-                    this.animations = ['Walk'];
-                    this.animationData = { 'Walk': { frameCount: 150, frames: [], sprites: [] } };
-                    this.currentAnimation = 'Walk';
-                    this.totalFrames = 150;
-                    this.updateAnimationSelect();
+                    alert('Failed to load animations. Please try refreshing the page.');
+                    return;
                 }
             }
 
@@ -2032,13 +2018,7 @@
                 if (this.animationData[animationName]) {
                     this.totalFrames = this.animationData[animationName].frameCount;
                 } else {
-                    // Create default animation data if it doesn't exist
-                    this.animationData[animationName] = {
-                        frameCount: 150,
-                        frames: [],
-                        sprites: []
-                    };
-                    this.totalFrames = 150;
+                    alert('Failed to load animations. Please try refreshing the page.');
                 }
 
                 this.currentFrame = 0;
