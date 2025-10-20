@@ -804,7 +804,7 @@
                 const pixelCount = parseInt(toolbar.querySelector('.numeric-input').value) || 0;
 
                 // If full mode or pixel count is 0, use original behavior
-                if (direction === 'full' || pixelCount === 0) {
+                if (direction === 'full') {
                     for (let i = 0; i < pixels.length; i += 4) {
                         if (pixels[i] === sourceRgb.r &&
                             pixels[i + 1] === sourceRgb.g &&
@@ -824,6 +824,13 @@
                     // Clear all pixels first
                     for (let i = 0; i < pixels.length; i += 4) {
                         pixels[i + 3] = 0; // Make everything transparent initially
+                    }
+
+                    // If pixel count is 0, just write the transparent pixels and return
+                    if (pixelCount === 0) {
+                        const ctx = layer.canvas.getContext('2d');
+                        ctx.putImageData(imageData, 0, 0);
+                        return;
                     }
 
                     // Process each region
