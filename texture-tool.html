@@ -265,6 +265,20 @@
             font-size: 12px;
             text-transform: uppercase;
         }
+
+        .delete-layer-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .delete-layer-btn:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 
@@ -363,6 +377,9 @@
                 this.layersCanvas.style.top = '0';
                 this.layersCanvas.style.left = '0';
                 this.layersCanvas.style.pointerEvents = 'none';
+                this.layersCanvas.style.imageRendering = 'pixelated';
+                this.layersCanvas.style.imageRendering = '-moz-crisp-edges';
+                this.layersCanvas.style.imageRendering = 'crisp-edges';
             };
             
             this.updateLayerColorFromHex = function(layerId, sourceColorHex, hexValue) {
@@ -411,6 +428,43 @@
                 this.addLayerBtn.addEventListener('click', () => this.addLayer());
             };
             
+            this.deleteLayer = function(layerId, colorHex) {
+                const layers = this.colorLayers.get(colorHex);
+                if (!layers) return;
+
+                const layerIndex = layers.findIndex(l => l.id === layerId);
+                if (layerIndex === -1) return;
+
+                // Get the layer and remove it from the array
+                const layer = layers[layerIndex];
+                layers.splice(layerIndex, 1);
+
+                // Return the canvas to the pool after clearing it
+                const ctx = layer.canvas.getContext('2d');
+                ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+                this.canvasPool.push(layer.canvas);
+
+                // Remove the layer row from UI
+                const layerRow = this.layerRows.querySelector(`[data-layer-id="${layerId}"][data-color-hex="${colorHex}"]`);
+                if (layerRow) {
+                    layerRow.remove();
+                }
+
+                // If no more layers for this color, remove the color entry
+                if (layers.length === 0) {
+                    this.colorLayers.delete(colorHex);
+                }
+
+                // Update the display
+                this.updateLayerDisplay();
+
+                // Hide layers container if no layers for current color
+                if (this.selectedColor && (!this.colorLayers.has(this.selectedColor.hex) || 
+                    this.colorLayers.get(this.selectedColor.hex).length === 0)) {
+                    this.layersContainer.style.display = 'none';
+                }
+            };
+
             this.addLayer = function() {
                 if (!this.selectedColor) return;
                 
@@ -462,6 +516,13 @@
                 hexInput.maxLength = 7;
                 hexInput.placeholder = '#RRGGBB';
 
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-layer-btn';
+                deleteBtn.innerHTML = '&times;'; // × symbol
+                deleteBtn.title = 'Delete Layer';
+                deleteBtn.onclick = () => this.deleteLayer(layerId, this.selectedColor.hex);
+
                 // Sync color picker and hex input
                 colorInput.addEventListener('input', (e) => {
                     hexInput.value = e.target.value.toUpperCase();
@@ -494,6 +555,7 @@
 
                 layerRow.appendChild(colorInput);
                 layerRow.appendChild(hexInput);
+                layerRow.appendChild(deleteBtn);
                 this.layerRows.insertBefore(layerRow, this.layerRows.firstChild);
                 this.layersContainer.style.display = 'block';
                 
