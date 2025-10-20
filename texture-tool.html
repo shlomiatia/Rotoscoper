@@ -207,6 +207,56 @@
             color: #666;
             margin-left: auto;
         }
+
+        .layers-container {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .layer-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background-color: #f8f8f8;
+        }
+
+        .add-layer-btn {
+            padding: 8px 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .add-layer-btn:hover:not(:disabled) {
+            background-color: #218838;
+        }
+
+        .add-layer-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        .layer-color-input {
+            width: 50px;
+            height: 30px;
+            padding: 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -237,10 +287,16 @@
         <div class="image-container">
             <div class="image-preview-container" id="image-preview-container">
                 <img id="image-preview" style="display: none;">
+                <canvas id="layers-canvas"></canvas>
                 <canvas id="overlay-canvas"></canvas>
             </div>
             <div class="colors-container" id="colors-container" style="display: none;">
                 <h3>Image Colors</h3>
+                <button id="add-layer-btn" class="add-layer-btn" disabled>Add Layer</button>
+                <div class="layers-container" id="layers-container" style="display: none;">
+                    <h3>Layers</h3>
+                    <div id="layer-rows"></div>
+                </div>
                 <div id="color-options"></div>
             </div>
         </div>
@@ -256,6 +312,8 @@
             this.zoomLevels = [25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
             this.selectedColor = null;
             this.colorMap = new Map(); // Map to store colors and their counts
+            this.layers = []; // Array to store layer information
+            this.nextLayerId = 1; // Counter for generating unique layer IDs
             
             this.initializeElements = function() {
                 this.fileInput = document.getElementById('file-input');
@@ -268,6 +326,17 @@
                 this.colorOptions = document.getElementById('color-options');
                 this.overlayCanvas = document.getElementById('overlay-canvas');
                 this.overlayCtx = this.overlayCanvas.getContext('2d');
+                this.layersCanvas = document.getElementById('layers-canvas');
+                this.layersCtx = this.layersCanvas.getContext('2d');
+                this.layersContainer = document.getElementById('layers-container');
+                this.layerRows = document.getElementById('layer-rows');
+                this.addLayerBtn = document.getElementById('add-layer-btn');
+
+                // Configure the layers canvas
+                this.layersCanvas.style.position = 'absolute';
+                this.layersCanvas.style.top = '0';
+                this.layersCanvas.style.left = '0';
+                this.layersCanvas.style.pointerEvents = 'none';
             };
             
             this.bindEvents = function() {
@@ -275,6 +344,53 @@
                 this.zoomInBtn.addEventListener('click', () => this.zoomIn());
                 this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
                 window.addEventListener('resize', () => this.updateZoom());
+                this.addLayerBtn.addEventListener('click', () => this.addLayer());
+            };
+            
+            this.addLayer = function() {
+                if (!this.selectedColor) return;
+                
+                const layerId = this.nextLayerId++;
+                const layer = {
+                    id: layerId,
+                    color: '#ffffff', // Default white color
+                    sourceColor: this.selectedColor,
+                    canvas: document.createElement('canvas')
+                };
+                
+                // Initialize the layer canvas
+                layer.canvas.width = this.imagePreview.naturalWidth;
+                layer.canvas.height = this.imagePreview.naturalHeight;
+                const ctx = layer.canvas.getContext('2d');
+                
+                // Add the layer to our array
+                this.layers.push(layer);
+                
+                // Create and add the layer UI row
+                const layerRow = document.createElement('div');
+                layerRow.className = 'layer-row';
+                layerRow.dataset.layerId = layerId;
+                
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.className = 'layer-color-input';
+                colorInput.value = layer.color;
+                
+                layerRow.appendChild(colorInput);
+                this.layerRows.insertBefore(layerRow, this.layerRows.firstChild);
+                this.layersContainer.style.display = 'block';
+                
+                // Update canvases
+                this.updateLayerCanvases();
+            };
+            
+            this.updateLayerCanvases = function() {
+                const scale = this.zoomLevel / 100;
+                this.layersCanvas.width = this.imagePreview.naturalWidth * scale;
+                this.layersCanvas.height = this.imagePreview.naturalHeight * scale;
+                this.layersCtx.clearRect(0, 0, this.layersCanvas.width, this.layersCanvas.height);
+                
+                // We'll implement the layer drawing logic in the next step
             };
             
             this.clearOverlay = function() {
@@ -508,9 +624,18 @@
                     colorDiv.appendChild(label);
                     
                     this.colorOptions.appendChild(colorDiv);
+                    
+                    // Auto-select the first color
+                    if (index === 0) {
+                        input.checked = true;
+                        this.selectedColor = { hex, ...data };
+                        this.addLayerBtn.disabled = false;
+                        this.findAndDrawBoundingBoxes();
+                    }
                 });
                 
                 this.colorsContainer.style.display = 'block';
+                this.layersContainer.style.display = 'none'; // Reset layers container
                 this.clearOverlay(); // Clear any existing bounding boxes
             };
             
@@ -554,9 +679,12 @@
                         this.imagePreview.style.margin = '0';
                     }
 
-                    // Update overlay if there's a selected color
+                    // Update canvases if there's content
                     if (this.selectedColor) {
                         this.findAndDrawBoundingBoxes();
+                    }
+                    if (this.layers.length > 0) {
+                        this.updateLayerCanvases();
                     }
                 }
             };
