@@ -157,8 +157,6 @@
             background-color: white;
             border-radius: 5px;
             border: 1px solid #ddd;
-            max-height: 300px;
-            overflow-y: auto;
         }
 
         .color-option {
@@ -570,6 +568,10 @@
                 }
                 
                 this.displayColors();
+                // Ensure bounding boxes are drawn after colors are loaded
+                if (this.selectedColor) {
+                    requestAnimationFrame(() => this.findAndDrawBoundingBoxes());
+                }
             };
             
             this.displayColors = function() {
@@ -630,7 +632,8 @@
                         input.checked = true;
                         this.selectedColor = { hex, ...data };
                         this.addLayerBtn.disabled = false;
-                        this.findAndDrawBoundingBoxes();
+                        // Ensure bounding boxes are drawn for the auto-selected color
+                        requestAnimationFrame(() => this.findAndDrawBoundingBoxes());
                     }
                 });
                 
