@@ -70,6 +70,13 @@
             image-rendering: crisp-edges;
         }
 
+        #overlay-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
         .control-group {
             background-color: #f8f8f8;
             padding: 15px;
@@ -230,6 +237,7 @@
         <div class="image-container">
             <div class="image-preview-container" id="image-preview-container">
                 <img id="image-preview" style="display: none;">
+                <canvas id="overlay-canvas"></canvas>
             </div>
             <div class="colors-container" id="colors-container" style="display: none;">
                 <h3>Image Colors</h3>
@@ -258,14 +266,126 @@
                 this.zoomOutBtn = document.getElementById('zoom-out-btn');
                 this.colorsContainer = document.getElementById('colors-container');
                 this.colorOptions = document.getElementById('color-options');
+                this.overlayCanvas = document.getElementById('overlay-canvas');
+                this.overlayCtx = this.overlayCanvas.getContext('2d');
             };
             
             this.bindEvents = function() {
                 this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
                 this.zoomInBtn.addEventListener('click', () => this.zoomIn());
                 this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
+                window.addEventListener('resize', () => this.updateZoom());
             };
             
+            this.clearOverlay = function() {
+                if (this.overlayCanvas && this.imagePreview.naturalWidth) {
+                    const scale = this.zoomLevel / 100;
+                    this.overlayCanvas.width = this.imagePreview.naturalWidth * scale;
+                    this.overlayCanvas.height = this.imagePreview.naturalHeight * scale;
+                    this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+                }
+            };
+            
+            this.findAndDrawBoundingBoxes = function() {
+                if (!this.selectedColor || !this.imagePreview.naturalWidth) return;
+
+                // Create a canvas to read pixel data
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = this.imagePreview.naturalWidth;
+                canvas.height = this.imagePreview.naturalHeight;
+                ctx.drawImage(this.imagePreview, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+                
+                // Create a visited array for flood fill
+                const visited = new Array(canvas.width * canvas.height).fill(false);
+                const boundingBoxes = [];
+
+                // Helper function to check if a pixel matches the selected color
+                const isMatchingColor = (index) => {
+                    const r = pixels[index];
+                    const g = pixels[index + 1];
+                    const b = pixels[index + 2];
+                    const a = pixels[index + 3];
+                    return r === this.selectedColor.r && 
+                           g === this.selectedColor.g && 
+                           b === this.selectedColor.b && 
+                           a === this.selectedColor.a;
+                };
+
+                // Helper function to get pixel index from coordinates
+                const getPixelIndex = (x, y) => (y * canvas.width + x) * 4;
+
+                // Flood fill to find connected components
+                const floodFill = (startX, startY) => {
+                    const box = { minX: startX, minY: startY, maxX: startX, maxY: startY };
+                    const stack = [[startX, startY]];
+                    const pixelIdx = getPixelIndex(startX, startY);
+                    
+                    if (!isMatchingColor(pixelIdx)) return null;
+                    
+                    visited[startY * canvas.width + startX] = true;
+
+                    while (stack.length > 0) {
+                        const [x, y] = stack.pop();
+                        
+                        // Update bounding box
+                        box.minX = Math.min(box.minX, x);
+                        box.minY = Math.min(box.minY, y);
+                        box.maxX = Math.max(box.maxX, x);
+                        box.maxY = Math.max(box.maxY, y);
+
+                        // Check orthogonally adjacent pixels
+                        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                        for (const [dx, dy] of directions) {
+                            const newX = x + dx;
+                            const newY = y + dy;
+                            
+                            if (newX >= 0 && newX < canvas.width && 
+                                newY >= 0 && newY < canvas.height && 
+                                !visited[newY * canvas.width + newX]) {
+                                
+                                const newPixelIdx = getPixelIndex(newX, newY);
+                                if (isMatchingColor(newPixelIdx)) {
+                                    stack.push([newX, newY]);
+                                    visited[newY * canvas.width + newX] = true;
+                                }
+                            }
+                        }
+                    }
+                    return box;
+                };
+
+                // Find all connected components
+                for (let y = 0; y < canvas.height; y++) {
+                    for (let x = 0; x < canvas.width; x++) {
+                        if (!visited[y * canvas.width + x]) {
+                            const box = floodFill(x, y);
+                            if (box) boundingBoxes.push(box);
+                        }
+                    }
+                }
+
+                // Clear and update overlay canvas size
+                this.clearOverlay();
+
+                // Draw bounding boxes
+                const scale = this.zoomLevel / 100;
+                this.overlayCtx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+                this.overlayCtx.lineWidth = Math.max(1, Math.floor(scale));
+                
+                boundingBoxes.forEach(box => {
+                    this.overlayCtx.strokeRect(
+                        box.minX * scale,
+                        box.minY * scale,
+                        (box.maxX - box.minX + 1) * scale,
+                        (box.maxY - box.minY + 1) * scale
+                    );
+                });
+            };
+
             this.handleFileSelect = function(event) {
                 const file = event.target.files[0];
                 if (file) {
@@ -273,11 +393,13 @@
                     reader.onload = (e) => {
                         this.imagePreview.src = e.target.result;
                         this.imagePreview.style.display = 'block';
+                        this.selectedColor = null; // Clear selected color
                         
                         // Wait for image to load to get dimensions
                         this.imagePreview.onload = () => {
                             this.updateImageInfo();
                             this.updateZoom();
+                            this.clearOverlay();
                         };
                     };
                     reader.readAsDataURL(file);
@@ -354,6 +476,7 @@
                     input.value = hex;
                     input.addEventListener('change', () => {
                         this.selectedColor = { hex, ...data };
+                        this.findAndDrawBoundingBoxes();
                     });
                     
                     const preview = document.createElement('div');
@@ -388,6 +511,7 @@
                 });
                 
                 this.colorsContainer.style.display = 'block';
+                this.clearOverlay(); // Clear any existing bounding boxes
             };
             
             this.zoomIn = function() {
@@ -416,23 +540,23 @@
                     const scaledHeight = this.imagePreview.naturalHeight * scale;
                     
                     const container = document.querySelector('.image-preview-container');
-                    
-                    // Set the container width to match the window width if image is smaller
                     container.style.width = `${Math.max(scaledWidth, window.innerWidth - 100)}px`;
-                    // Set the container height to match the scaled image height plus scrollbar height if needed
-                    const scrollbarHeight = scaledWidth > (window.innerWidth - 100) ? 17 : 0; // Account for scrollbar if image is wider than container
+                    const scrollbarHeight = scaledWidth > (window.innerWidth - 100) ? 17 : 0;
                     container.style.height = `${scaledHeight + scrollbarHeight}px`;
                     
-                    // Apply transform to the image
                     this.imagePreview.style.transformOrigin = 'top left';
                     this.imagePreview.style.transform = `scale(${scale})`;
                     
-                    // If the scaled image is smaller than the container, center it
                     if (scaledWidth < (window.innerWidth - 100)) {
                         this.imagePreview.style.display = 'block';
                         this.imagePreview.style.margin = '0 auto';
                     } else {
                         this.imagePreview.style.margin = '0';
+                    }
+
+                    // Update overlay if there's a selected color
+                    if (this.selectedColor) {
+                        this.findAndDrawBoundingBoxes();
                     }
                 }
             };
@@ -440,183 +564,6 @@
             // Initialize
             this.initializeElements();
             this.bindEvents();
-
-            this.bindEvents = function() {
-                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-                this.zoomInBtn.addEventListener('click', () => this.zoomIn());
-                this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
-            };
-
-            this.handleFileSelect = function(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.imagePreview.src = e.target.result;
-                        this.imagePreview.style.display = 'block';
-                        
-                        // Wait for image to load to get dimensions
-                        this.imagePreview.onload = () => {
-                            this.updateImageInfo();
-                            this.updateZoom();
-                        };
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            this.updateImageInfo = function() {
-                const width = this.imagePreview.naturalWidth;
-                const height = this.imagePreview.naturalHeight;
-                this.imageInfo.textContent = `Image dimensions: ${width}×${height} pixels`;
-                
-                // Scan for colors when image is loaded
-                this.scanImageColors();
-            };
-
-            this.scanImageColors = function() {
-                // Create a canvas to read the pixel colors
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = this.imagePreview.naturalWidth;
-                canvas.height = this.imagePreview.naturalHeight;
-                ctx.drawImage(this.imagePreview, 0, 0);
-                
-                // Get all pixel data
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const pixels = imageData.data;
-                
-                // Clear previous color map
-                this.colorMap.clear();
-                
-                // Scan all pixels
-                for (let i = 0; i < pixels.length; i += 4) {
-                    const r = pixels[i];
-                    const g = pixels[i + 1];
-                    const b = pixels[i + 2];
-                    const a = pixels[i + 3];
-                    
-                    // Skip transparent pixels
-                    if (a === 0) continue;
-                    
-                    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-                    
-                    // Count occurrences of each color
-                    if (this.colorMap.has(hex)) {
-                        this.colorMap.set(hex, {
-                            count: this.colorMap.get(hex).count + 1,
-                            r, g, b, a
-                        });
-                    } else {
-                        this.colorMap.set(hex, { count: 1, r, g, b, a });
-                    }
-                }
-                
-                this.displayColors();
-            };
-            
-            this.displayColors = function() {
-                // Clear previous options
-                this.colorOptions.innerHTML = '';
-                
-                // Sort colors by count (most frequent first)
-                const sortedColors = Array.from(this.colorMap.entries())
-                    .sort((a, b) => b[1].count - a[1].count);
-                
-                // Create radio buttons for each color
-                sortedColors.forEach(([hex, data], index) => {
-                    const colorDiv = document.createElement('div');
-                    colorDiv.className = 'color-option';
-                    
-                    const input = document.createElement('input');
-                    input.type = 'radio';
-                    input.name = 'color';
-                    input.id = `color-${index}`;
-                    input.value = hex;
-                    input.addEventListener('change', () => {
-                        this.selectedColor = { hex, ...data };
-                    });
-                    
-                    const preview = document.createElement('div');
-                    preview.className = 'color-preview';
-                    preview.style.backgroundColor = hex;
-                    
-                    const label = document.createElement('label');
-                    label.htmlFor = `color-${index}`;
-                    label.className = 'color-info';
-                    
-                    const hexSpan = document.createElement('span');
-                    hexSpan.className = 'color-hex';
-                    hexSpan.textContent = hex.toUpperCase();
-                    
-                    const rgbSpan = document.createElement('span');
-                    rgbSpan.className = 'color-rgb';
-                    rgbSpan.textContent = `RGB(${data.r}, ${data.g}, ${data.b})`;
-                    
-                    const countSpan = document.createElement('span');
-                    countSpan.className = 'color-count';
-                    countSpan.textContent = `${data.count} pixels`;
-                    
-                    label.appendChild(preview);
-                    label.appendChild(hexSpan);
-                    label.appendChild(rgbSpan);
-                    label.appendChild(countSpan);
-                    
-                    colorDiv.appendChild(input);
-                    colorDiv.appendChild(label);
-                    
-                    this.colorOptions.appendChild(colorDiv);
-                });
-                
-                this.colorsContainer.style.display = 'block';
-            }
-
-            this.zoomIn = function() {
-                const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
-                if (currentIndex < this.zoomLevels.length - 1) {
-                    this.zoomLevel = this.zoomLevels[currentIndex + 1];
-                    this.updateZoom();
-                }
-            };
-
-            this.zoomOut = function() {
-                const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
-                if (currentIndex > 0) {
-                    this.zoomLevel = this.zoomLevels[currentIndex - 1];
-                    this.updateZoom();
-                }
-            };
-
-            this.updateZoom = function() {
-                const scale = this.zoomLevel / 100;
-                this.zoomDisplay.textContent = `${this.zoomLevel}%`;
-
-                // Update image and container sizes
-                if (this.imagePreview.naturalWidth && this.imagePreview.naturalHeight) {
-                    const scaledWidth = this.imagePreview.naturalWidth * scale;
-                    const scaledHeight = this.imagePreview.naturalHeight * scale;
-                    
-                    const container = document.querySelector('.image-preview-container');
-                    
-                    // Set the container width to match the window width if image is smaller
-                    container.style.width = `${Math.max(scaledWidth, window.innerWidth - 100)}px`;
-                    // Set the container height to match the scaled image height plus scrollbar height if needed
-                    const scrollbarHeight = scaledWidth > (window.innerWidth - 100) ? 17 : 0; // Account for scrollbar if image is wider than container
-                    container.style.height = `${scaledHeight + scrollbarHeight}px`;
-                    
-                    // Apply transform to the image
-                    this.imagePreview.style.transformOrigin = 'top left';
-                    this.imagePreview.style.transform = `scale(${scale})`;
-                    
-                    // If the scaled image is smaller than the container, center it
-                    if (scaledWidth < (window.innerWidth - 100)) {
-                        this.imagePreview.style.display = 'block';
-                        this.imagePreview.style.margin = '0 auto';
-                    } else {
-                        this.imagePreview.style.margin = '0';
-                    }
-                }
-            };
         }
 
         let textureTool;
