@@ -861,16 +861,15 @@
                 this.layersCanvas.height = this.imagePreview.naturalHeight * scale;
                 this.layersCtx.clearRect(0, 0, this.layersCanvas.width, this.layersCanvas.height);
 
-                // Only display layers for the selected color
-                if (this.selectedColor && this.colorLayers.has(this.selectedColor.hex)) {
-                    const layers = this.colorLayers.get(this.selectedColor.hex);
+                // Display all layers from all colors
+                this.colorLayers.forEach(layers => {
                     layers.forEach(layer => {
                         this.layersCtx.save();
                         this.layersCtx.scale(scale, scale);
                         this.layersCtx.drawImage(layer.canvas, 0, 0);
                         this.layersCtx.restore();
                     });
-                }
+                });
 
                 // Show/hide layer rows based on selected color
                 const allLayerRows = this.layerRows.querySelectorAll('.layer-row');
