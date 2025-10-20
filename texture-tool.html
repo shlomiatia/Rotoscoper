@@ -607,9 +607,13 @@
 
             this.clearOverlay = function() {
                 if (this.overlayCanvas && this.imagePreview.naturalWidth) {
-                    this.overlayCanvas.width = this.imagePreview.naturalWidth;
-                    this.overlayCanvas.height = this.imagePreview.naturalHeight;
+                    const scale = this.zoomLevel / 100;
+                    // Set canvas size to match zoomed dimensions
+                    this.overlayCanvas.width = this.imagePreview.naturalWidth * scale;
+                    this.overlayCanvas.height = this.imagePreview.naturalHeight * scale;
                     this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+                    // Reset transform scale since we're using zoomed canvas dimensions
+                    this.overlayCanvas.style.transform = 'none';
                 }
             };
             
@@ -698,11 +702,17 @@
                 // Clear and update overlay canvas size
                 this.clearOverlay();
 
-                // Draw bounding boxes at original size
+                // Draw bounding boxes
+                const scale = this.zoomLevel / 100;
                 this.overlayCtx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
                 this.overlayCtx.lineWidth = 1;
                 
+                // Scale the context for drawing
+                this.overlayCtx.save();
+                this.overlayCtx.scale(scale, scale);
+                
                 boundingBoxes.forEach(box => {
+                    // Draw at original coordinates, letting the context scale handle the zoom
                     this.overlayCtx.strokeRect(
                         box.minX,
                         box.minY,
@@ -710,6 +720,8 @@
                         box.maxY - box.minY + 1
                     );
                 });
+                
+                this.overlayCtx.restore();
             };
 
             this.resetLayers = function() {
@@ -964,9 +976,9 @@
                     const scrollbarHeight = scaledWidth > (window.innerWidth - 100) ? 17 : 0;
                     container.style.height = `${scaledHeight + scrollbarHeight}px`;
                     
-                    // Apply transform scaling to both image and canvases
+                    // Apply transform scaling to image and layers canvas
                     const transformStyle = `scale(${scale})`;
-                    const elements = [this.imagePreview, this.boundingBoxCanvas, this.layersCanvas];
+                    const elements = [this.imagePreview, this.layersCanvas];
                     
                     elements.forEach(element => {
                         if (element) {
