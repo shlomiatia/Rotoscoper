@@ -666,6 +666,69 @@
                 this.updateLayerDisplay();
             };
             
+            this.findBoundingBoxes = function(pixels, sourceRgb, width, height) {
+                const visited = new Array(width * height).fill(false);
+                const boundingBoxes = [];
+
+                const isMatchingColor = (index) => {
+                    return pixels[index] === sourceRgb.r &&
+                           pixels[index + 1] === sourceRgb.g &&
+                           pixels[index + 2] === sourceRgb.b;
+                };
+
+                // Flood fill to find connected components
+                const floodFill = (startX, startY) => {
+                    const box = { minX: startX, minY: startY, maxX: startX, maxY: startY };
+                    const stack = [[startX, startY]];
+                    
+                    visited[startY * width + startX] = true;
+
+                    while (stack.length > 0) {
+                        const [x, y] = stack.pop();
+                        
+                        // Update bounding box
+                        box.minX = Math.min(box.minX, x);
+                        box.minY = Math.min(box.minY, y);
+                        box.maxX = Math.max(box.maxX, x);
+                        box.maxY = Math.max(box.maxY, y);
+
+                        // Check orthogonally adjacent pixels
+                        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                        for (const [dx, dy] of directions) {
+                            const newX = x + dx;
+                            const newY = y + dy;
+                            
+                            if (newX >= 0 && newX < width && 
+                                newY >= 0 && newY < height && 
+                                !visited[newY * width + newX]) {
+                                
+                                const index = (newY * width + newX) * 4;
+                                if (isMatchingColor(index)) {
+                                    stack.push([newX, newY]);
+                                    visited[newY * width + newX] = true;
+                                }
+                            }
+                        }
+                    }
+                    return box;
+                };
+
+                // Find all connected components
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        if (!visited[y * width + x]) {
+                            const index = (y * width + x) * 4;
+                            if (isMatchingColor(index)) {
+                                const box = floodFill(x, y);
+                                boundingBoxes.push(box);
+                            }
+                        }
+                    }
+                }
+
+                return boundingBoxes;
+            };
+
             this.updateLayerCanvas = function(layer) {
                 // Create a temporary canvas to read the original image
                 const tempCanvas = document.createElement('canvas');
@@ -686,18 +749,73 @@
                 // Get target color components
                 const targetRgb = hexToRgb(layer.color);
                 
-                // Replace colors
-                for (let i = 0; i < pixels.length; i += 4) {
-                    if (pixels[i] === sourceRgb.r &&
-                        pixels[i + 1] === sourceRgb.g &&
-                        pixels[i + 2] === sourceRgb.b) {
-                        pixels[i] = targetRgb.r;
-                        pixels[i + 1] = targetRgb.g;
-                        pixels[i + 2] = targetRgb.b;
-                        pixels[i + 3] = 255; // Full opacity for replaced colors
-                    } else {
-                        pixels[i + 3] = 0; // Make all other pixels transparent
+                // Get current layer settings
+                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layer.id}"]`);
+                if (!toolbar) return;
+                
+                const direction = toolbar.querySelector('input[type="radio"]:checked').value;
+                const pixelCount = parseInt(toolbar.querySelector('.numeric-input').value) || 0;
+
+                // If full mode or pixel count is 0, use original behavior
+                if (direction === 'full' || pixelCount === 0) {
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        if (pixels[i] === sourceRgb.r &&
+                            pixels[i + 1] === sourceRgb.g &&
+                            pixels[i + 2] === sourceRgb.b) {
+                            pixels[i] = targetRgb.r;
+                            pixels[i + 1] = targetRgb.g;
+                            pixels[i + 2] = targetRgb.b;
+                            pixels[i + 3] = 255; // Full opacity
+                        } else {
+                            pixels[i + 3] = 0; // Transparent
+                        }
                     }
+                } else {
+                    // Find all bounding boxes first
+                    const boundingBoxes = this.findBoundingBoxes(pixels, sourceRgb, tempCanvas.width, tempCanvas.height);
+                    
+                    // Clear all pixels first
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        pixels[i + 3] = 0; // Make everything transparent initially
+                    }
+
+                    // Process each bounding box
+                    boundingBoxes.forEach(box => {
+                        for (let y = box.minY; y <= box.maxY; y++) {
+                            let matchingPixels = [];
+                            
+                            // Find all matching pixels in this row within the box
+                            for (let x = box.minX; x <= box.maxX; x++) {
+                                const i = (y * tempCanvas.width + x) * 4;
+                                if (pixels[i] === sourceRgb.r &&
+                                    pixels[i + 1] === sourceRgb.g &&
+                                    pixels[i + 2] === sourceRgb.b) {
+                                    matchingPixels.push(x);
+                                }
+                            }
+
+                            // Select pixels based on direction
+                            let pixelsToColor = [];
+                            if (direction === 'left') {
+                                pixelsToColor = matchingPixels.slice(0, pixelCount);
+                            } else if (direction === 'right') {
+                                pixelsToColor = matchingPixels.slice(-pixelCount);
+                            } else if (direction === 'top' && y <= box.minY + pixelCount - 1) {
+                                pixelsToColor = matchingPixels;
+                            } else if (direction === 'bottom' && y >= box.maxY - pixelCount + 1) {
+                                pixelsToColor = matchingPixels;
+                            }
+
+                            // Color the selected pixels
+                            pixelsToColor.forEach(x => {
+                                const i = (y * tempCanvas.width + x) * 4;
+                                pixels[i] = targetRgb.r;
+                                pixels[i + 1] = targetRgb.g;
+                                pixels[i + 2] = targetRgb.b;
+                                pixels[i + 3] = 255; // Full opacity
+                            });
+                        }
+                    });
                 }
                 
                 // Update the layer's canvas
