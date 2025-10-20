@@ -830,29 +830,58 @@
                     regions.forEach(region => {
                         const { box, pixelsByRow } = region;
 
-                        // Process each row in the region
-                        pixelsByRow.forEach((rowPixels, row) => {
-                            let pixelsToColor = [];
-                            
-                            if (direction === 'left') {
-                                pixelsToColor = rowPixels.slice(0, pixelCount);
-                            } else if (direction === 'right') {
-                                pixelsToColor = rowPixels.slice(-pixelCount);
-                            } else if (direction === 'top' && row <= box.minY + pixelCount - 1) {
-                                pixelsToColor = rowPixels;
-                            } else if (direction === 'bottom' && row >= box.maxY - pixelCount + 1) {
-                                pixelsToColor = rowPixels;
-                            }
+                        if (direction === 'left' || direction === 'right') {
+                            // Process by rows for left/right
+                            pixelsByRow.forEach((rowPixels, row) => {
+                                let pixelsToColor = direction === 'left' ? 
+                                    rowPixels.slice(0, pixelCount) : 
+                                    rowPixels.slice(-pixelCount);
 
-                            // Color the selected pixels
-                            pixelsToColor.forEach(x => {
-                                const i = (row * tempCanvas.width + x) * 4;
-                                pixels[i] = targetRgb.r;
-                                pixels[i + 1] = targetRgb.g;
-                                pixels[i + 2] = targetRgb.b;
-                                pixels[i + 3] = 255; // Full opacity
+                                // Color the selected pixels
+                                pixelsToColor.forEach(x => {
+                                    const i = (row * tempCanvas.width + x) * 4;
+                                    pixels[i] = targetRgb.r;
+                                    pixels[i + 1] = targetRgb.g;
+                                    pixels[i + 2] = targetRgb.b;
+                                    pixels[i + 3] = 255;
+                                });
                             });
-                        });
+                        } else if (direction === 'top' || direction === 'bottom') {
+                            // Organize pixels by column
+                            const pixelsByColumn = new Map();
+                            
+                            // Build columns from our row data
+                            pixelsByRow.forEach((rowPixels, row) => {
+                                rowPixels.forEach(x => {
+                                    if (!pixelsByColumn.has(x)) {
+                                        pixelsByColumn.set(x, []);
+                                    }
+                                    pixelsByColumn.get(x).push(row);
+                                });
+                            });
+
+                            // Sort rows in each column
+                            pixelsByColumn.forEach(columnPixels => columnPixels.sort((a, b) => a - b));
+
+                            // Process each column
+                            pixelsByColumn.forEach((columnPixels, x) => {
+                                let pixelsToColor;
+                                if (direction === 'top') {
+                                    pixelsToColor = columnPixels.slice(0, pixelCount);
+                                } else { // bottom
+                                    pixelsToColor = columnPixels.slice(-pixelCount);
+                                }
+
+                                // Color the selected pixels
+                                pixelsToColor.forEach(y => {
+                                    const i = (y * tempCanvas.width + x) * 4;
+                                    pixels[i] = targetRgb.r;
+                                    pixels[i + 1] = targetRgb.g;
+                                    pixels[i + 2] = targetRgb.b;
+                                    pixels[i + 3] = 255;
+                                });
+                            });
+                        }
                     });
                 }
                 
