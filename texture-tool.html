@@ -377,9 +377,12 @@
                 this.layersCanvas.style.top = '0';
                 this.layersCanvas.style.left = '0';
                 this.layersCanvas.style.pointerEvents = 'none';
-                this.layersCanvas.style.imageRendering = 'pixelated';
-                this.layersCanvas.style.imageRendering = '-moz-crisp-edges';
-                this.layersCanvas.style.imageRendering = 'crisp-edges';
+                // Set pixelated rendering for both canvases
+                [this.layersCanvas, this.overlayCanvas].forEach(canvas => {
+                    canvas.style.imageRendering = 'pixelated';
+                    canvas.style.imageRendering = '-moz-crisp-edges';
+                    canvas.style.imageRendering = 'crisp-edges';
+                });
             };
             
             this.updateLayerColorFromHex = function(layerId, sourceColorHex, hexValue) {
@@ -604,9 +607,8 @@
 
             this.clearOverlay = function() {
                 if (this.overlayCanvas && this.imagePreview.naturalWidth) {
-                    const scale = this.zoomLevel / 100;
-                    this.overlayCanvas.width = this.imagePreview.naturalWidth * scale;
-                    this.overlayCanvas.height = this.imagePreview.naturalHeight * scale;
+                    this.overlayCanvas.width = this.imagePreview.naturalWidth;
+                    this.overlayCanvas.height = this.imagePreview.naturalHeight;
                     this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
                 }
             };
@@ -696,17 +698,16 @@
                 // Clear and update overlay canvas size
                 this.clearOverlay();
 
-                // Draw bounding boxes
-                const scale = this.zoomLevel / 100;
+                // Draw bounding boxes at original size
                 this.overlayCtx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-                this.overlayCtx.lineWidth = Math.max(1, Math.floor(scale));
+                this.overlayCtx.lineWidth = 1;
                 
                 boundingBoxes.forEach(box => {
                     this.overlayCtx.strokeRect(
-                        box.minX * scale,
-                        box.minY * scale,
-                        (box.maxX - box.minX + 1) * scale,
-                        (box.maxY - box.minY + 1) * scale
+                        box.minX,
+                        box.minY,
+                        box.maxX - box.minX + 1,
+                        box.maxY - box.minY + 1
                     );
                 });
             };
@@ -918,18 +919,15 @@
             this.updateLayerDisplay = function() {
                 if (!this.layersCanvas || !this.imagePreview.naturalWidth) return;
 
-                const scale = this.zoomLevel / 100;
-                this.layersCanvas.width = this.imagePreview.naturalWidth * scale;
-                this.layersCanvas.height = this.imagePreview.naturalHeight * scale;
+                // Set canvas to original image size
+                this.layersCanvas.width = this.imagePreview.naturalWidth;
+                this.layersCanvas.height = this.imagePreview.naturalHeight;
                 this.layersCtx.clearRect(0, 0, this.layersCanvas.width, this.layersCanvas.height);
 
-                // Display all layers from all colors
+                // Display all layers from all colors at original size
                 this.colorLayers.forEach(layers => {
                     layers.forEach(layer => {
-                        this.layersCtx.save();
-                        this.layersCtx.scale(scale, scale);
                         this.layersCtx.drawImage(layer.canvas, 0, 0);
-                        this.layersCtx.restore();
                     });
                 });
 
@@ -966,8 +964,16 @@
                     const scrollbarHeight = scaledWidth > (window.innerWidth - 100) ? 17 : 0;
                     container.style.height = `${scaledHeight + scrollbarHeight}px`;
                     
-                    this.imagePreview.style.transformOrigin = 'top left';
-                    this.imagePreview.style.transform = `scale(${scale})`;
+                    // Apply transform scaling to both image and canvases
+                    const transformStyle = `scale(${scale})`;
+                    const elements = [this.imagePreview, this.boundingBoxCanvas, this.layersCanvas];
+                    
+                    elements.forEach(element => {
+                        if (element) {
+                            element.style.transformOrigin = 'top left';
+                            element.style.transform = transformStyle;
+                        }
+                    });
                     
                     if (scaledWidth < (window.innerWidth - 100)) {
                         this.imagePreview.style.display = 'block';
