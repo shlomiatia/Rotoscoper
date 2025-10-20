@@ -255,6 +255,16 @@
             border-radius: 3px;
             cursor: pointer;
         }
+
+        .hex-color-input {
+            width: 70px;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 
@@ -337,6 +347,43 @@
                 this.layersCanvas.style.pointerEvents = 'none';
             };
             
+            this.updateLayerColorFromHex = function(layerId, hexValue) {
+                // Validate and normalize hex color
+                let normalizedHex = hexValue.trim().toUpperCase();
+
+                // Add # if missing
+                if (!normalizedHex.startsWith('#')) {
+                    normalizedHex = '#' + normalizedHex;
+                }
+
+                // Validate hex format
+                const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+                if (!hexRegex.test(normalizedHex)) {
+                    // If invalid, get the current color from the layer and revert
+                    const layer = this.layers.find(l => l.id === layerId);
+                    if (layer) {
+                        const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                        if (toolbar) {
+                            const hexInput = toolbar.querySelector('.hex-color-input');
+                            if (hexInput) {
+                                hexInput.value = layer.color.toUpperCase();
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // Convert 3-digit hex to 6-digit
+                if (normalizedHex.length === 4) {
+                    normalizedHex = '#' + normalizedHex[1] + normalizedHex[1] +
+                                      normalizedHex[2] + normalizedHex[2] +
+                                      normalizedHex[3] + normalizedHex[3];
+                }
+
+                // Update the layer color
+                this.updateLayerColor(layerId, normalizedHex);
+            };
+
             this.bindEvents = function() {
                 this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
                 this.zoomInBtn.addEventListener('click', () => this.zoomIn());
@@ -369,12 +416,51 @@
                 layerRow.className = 'layer-row';
                 layerRow.dataset.layerId = layerId;
                 
+                // Color picker input
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
                 colorInput.className = 'layer-color-input';
                 colorInput.value = layer.color;
-                
+
+                // Hex color input
+                const hexInput = document.createElement('input');
+                hexInput.type = 'text';
+                hexInput.className = 'hex-color-input';
+                hexInput.value = layer.color.toUpperCase();
+                hexInput.maxLength = 7;
+                hexInput.placeholder = '#RRGGBB';
+
+                // Sync color picker and hex input
+                colorInput.addEventListener('input', (e) => {
+                    hexInput.value = e.target.value.toUpperCase();
+                });
+
+                colorInput.addEventListener('change', (e) => {
+                    const color = e.target.value.toUpperCase();
+                    hexInput.value = color;
+                    this.updateLayerColor(layer.id, color);
+                });
+
+                hexInput.addEventListener('input', (e) => {
+                    let value = e.target.value.toUpperCase();
+                    if (value.length === 6 && !value.startsWith('#')) {
+                        value = '#' + value;
+                        e.target.value = value;
+                    }
+                });
+
+                hexInput.addEventListener('change', (e) => {
+                    this.updateLayerColorFromHex(layer.id, e.target.value);
+                    // Update color picker to match (in case hex was corrected)
+                    const layer = this.layers.find(l => l.id === layerId);
+                    if (layer) {
+                        colorInput.value = layer.color;
+                        hexInput.value = layer.color;
+                    }
+                });
+
                 layerRow.appendChild(colorInput);
+                layerRow.appendChild(hexInput);
                 this.layerRows.insertBefore(layerRow, this.layerRows.firstChild);
                 this.layersContainer.style.display = 'block';
                 
