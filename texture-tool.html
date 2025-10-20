@@ -143,6 +143,63 @@
             font-size: 14px;
             color: #666;
         }
+
+        .colors-container {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .color-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px;
+            margin-bottom: 5px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+        }
+
+        .color-option:hover {
+            background-color: #f8f8f8;
+        }
+
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .color-info {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .color-hex {
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            min-width: 70px;
+        }
+
+        .color-rgb {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .color-count {
+            font-size: 12px;
+            color: #666;
+            margin-left: auto;
+        }
     </style>
 </head>
 
@@ -174,37 +231,42 @@
             <div class="image-preview-container" id="image-preview-container">
                 <img id="image-preview" style="display: none;">
             </div>
+            <div class="colors-container" id="colors-container" style="display: none;">
+                <h3>Image Colors</h3>
+                <div id="color-options"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        class TextureTool {
-            constructor() {
-                this.zoomLevel = 100;
-                this.maxZoom = 1000;
-                this.minZoom = 25;
-                this.zoomLevels = [25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-                
-                this.initializeElements();
-                this.bindEvents();
-            }
-
-            initializeElements() {
+        const TextureTool = function() {
+            const self = this;
+            
+            this.zoomLevel = 100;
+            this.maxZoom = 1000;
+            this.minZoom = 25;
+            this.zoomLevels = [25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
+            this.selectedColor = null;
+            this.colorMap = new Map(); // Map to store colors and their counts
+            
+            this.initializeElements = function() {
                 this.fileInput = document.getElementById('file-input');
                 this.imagePreview = document.getElementById('image-preview');
                 this.imageInfo = document.getElementById('image-info');
                 this.zoomDisplay = document.getElementById('zoom-display');
                 this.zoomInBtn = document.getElementById('zoom-in-btn');
                 this.zoomOutBtn = document.getElementById('zoom-out-btn');
-            }
-
-            bindEvents() {
+                this.colorsContainer = document.getElementById('colors-container');
+                this.colorOptions = document.getElementById('color-options');
+            };
+            
+            this.bindEvents = function() {
                 this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
                 this.zoomInBtn.addEventListener('click', () => this.zoomIn());
                 this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
-            }
-
-            handleFileSelect(event) {
+            };
+            
+            this.handleFileSelect = function(event) {
                 const file = event.target.files[0];
                 if (file) {
                     const reader = new FileReader();
@@ -220,31 +282,131 @@
                     };
                     reader.readAsDataURL(file);
                 }
-            }
-
-            updateImageInfo() {
+            };
+            
+            this.updateImageInfo = function() {
                 const width = this.imagePreview.naturalWidth;
                 const height = this.imagePreview.naturalHeight;
                 this.imageInfo.textContent = `Image dimensions: ${width}×${height} pixels`;
-            }
-
-            zoomIn() {
+                
+                // Scan for colors when image is loaded
+                this.scanImageColors();
+            };
+            
+            this.scanImageColors = function() {
+                // Create a canvas to read the pixel colors
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = this.imagePreview.naturalWidth;
+                canvas.height = this.imagePreview.naturalHeight;
+                ctx.drawImage(this.imagePreview, 0, 0);
+                
+                // Get all pixel data
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+                
+                // Clear previous color map
+                this.colorMap.clear();
+                
+                // Scan all pixels
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+                    const a = pixels[i + 3];
+                    
+                    // Skip transparent pixels
+                    if (a === 0) continue;
+                    
+                    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                    
+                    // Count occurrences of each color
+                    if (this.colorMap.has(hex)) {
+                        this.colorMap.set(hex, {
+                            count: this.colorMap.get(hex).count + 1,
+                            r, g, b, a
+                        });
+                    } else {
+                        this.colorMap.set(hex, { count: 1, r, g, b, a });
+                    }
+                }
+                
+                this.displayColors();
+            };
+            
+            this.displayColors = function() {
+                // Clear previous options
+                this.colorOptions.innerHTML = '';
+                
+                // Sort colors by count (most frequent first)
+                const sortedColors = Array.from(this.colorMap.entries())
+                    .sort((a, b) => b[1].count - a[1].count);
+                
+                // Create radio buttons for each color
+                sortedColors.forEach(([hex, data], index) => {
+                    const colorDiv = document.createElement('div');
+                    colorDiv.className = 'color-option';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'radio';
+                    input.name = 'color';
+                    input.id = `color-${index}`;
+                    input.value = hex;
+                    input.addEventListener('change', () => {
+                        this.selectedColor = { hex, ...data };
+                    });
+                    
+                    const preview = document.createElement('div');
+                    preview.className = 'color-preview';
+                    preview.style.backgroundColor = hex;
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `color-${index}`;
+                    label.className = 'color-info';
+                    
+                    const hexSpan = document.createElement('span');
+                    hexSpan.className = 'color-hex';
+                    hexSpan.textContent = hex.toUpperCase();
+                    
+                    const rgbSpan = document.createElement('span');
+                    rgbSpan.className = 'color-rgb';
+                    rgbSpan.textContent = `RGB(${data.r}, ${data.g}, ${data.b})`;
+                    
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'color-count';
+                    countSpan.textContent = `${data.count} pixels`;
+                    
+                    label.appendChild(preview);
+                    label.appendChild(hexSpan);
+                    label.appendChild(rgbSpan);
+                    label.appendChild(countSpan);
+                    
+                    colorDiv.appendChild(input);
+                    colorDiv.appendChild(label);
+                    
+                    this.colorOptions.appendChild(colorDiv);
+                });
+                
+                this.colorsContainer.style.display = 'block';
+            };
+            
+            this.zoomIn = function() {
                 const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
                 if (currentIndex < this.zoomLevels.length - 1) {
                     this.zoomLevel = this.zoomLevels[currentIndex + 1];
                     this.updateZoom();
                 }
-            }
-
-            zoomOut() {
+            };
+            
+            this.zoomOut = function() {
                 const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
                 if (currentIndex > 0) {
                     this.zoomLevel = this.zoomLevels[currentIndex - 1];
                     this.updateZoom();
                 }
-            }
-
-            updateZoom() {
+            };
+            
+            this.updateZoom = function() {
                 const scale = this.zoomLevel / 100;
                 this.zoomDisplay.textContent = `${this.zoomLevel}%`;
 
@@ -273,7 +435,188 @@
                         this.imagePreview.style.margin = '0';
                     }
                 }
+            };
+            
+            // Initialize
+            this.initializeElements();
+            this.bindEvents();
+
+            this.bindEvents = function() {
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.zoomInBtn.addEventListener('click', () => this.zoomIn());
+                this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
+            };
+
+            this.handleFileSelect = function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.imagePreview.src = e.target.result;
+                        this.imagePreview.style.display = 'block';
+                        
+                        // Wait for image to load to get dimensions
+                        this.imagePreview.onload = () => {
+                            this.updateImageInfo();
+                            this.updateZoom();
+                        };
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            this.updateImageInfo = function() {
+                const width = this.imagePreview.naturalWidth;
+                const height = this.imagePreview.naturalHeight;
+                this.imageInfo.textContent = `Image dimensions: ${width}×${height} pixels`;
+                
+                // Scan for colors when image is loaded
+                this.scanImageColors();
+            };
+
+            this.scanImageColors = function() {
+                // Create a canvas to read the pixel colors
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = this.imagePreview.naturalWidth;
+                canvas.height = this.imagePreview.naturalHeight;
+                ctx.drawImage(this.imagePreview, 0, 0);
+                
+                // Get all pixel data
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+                
+                // Clear previous color map
+                this.colorMap.clear();
+                
+                // Scan all pixels
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+                    const a = pixels[i + 3];
+                    
+                    // Skip transparent pixels
+                    if (a === 0) continue;
+                    
+                    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                    
+                    // Count occurrences of each color
+                    if (this.colorMap.has(hex)) {
+                        this.colorMap.set(hex, {
+                            count: this.colorMap.get(hex).count + 1,
+                            r, g, b, a
+                        });
+                    } else {
+                        this.colorMap.set(hex, { count: 1, r, g, b, a });
+                    }
+                }
+                
+                this.displayColors();
+            };
+            
+            this.displayColors = function() {
+                // Clear previous options
+                this.colorOptions.innerHTML = '';
+                
+                // Sort colors by count (most frequent first)
+                const sortedColors = Array.from(this.colorMap.entries())
+                    .sort((a, b) => b[1].count - a[1].count);
+                
+                // Create radio buttons for each color
+                sortedColors.forEach(([hex, data], index) => {
+                    const colorDiv = document.createElement('div');
+                    colorDiv.className = 'color-option';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'radio';
+                    input.name = 'color';
+                    input.id = `color-${index}`;
+                    input.value = hex;
+                    input.addEventListener('change', () => {
+                        this.selectedColor = { hex, ...data };
+                    });
+                    
+                    const preview = document.createElement('div');
+                    preview.className = 'color-preview';
+                    preview.style.backgroundColor = hex;
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `color-${index}`;
+                    label.className = 'color-info';
+                    
+                    const hexSpan = document.createElement('span');
+                    hexSpan.className = 'color-hex';
+                    hexSpan.textContent = hex.toUpperCase();
+                    
+                    const rgbSpan = document.createElement('span');
+                    rgbSpan.className = 'color-rgb';
+                    rgbSpan.textContent = `RGB(${data.r}, ${data.g}, ${data.b})`;
+                    
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'color-count';
+                    countSpan.textContent = `${data.count} pixels`;
+                    
+                    label.appendChild(preview);
+                    label.appendChild(hexSpan);
+                    label.appendChild(rgbSpan);
+                    label.appendChild(countSpan);
+                    
+                    colorDiv.appendChild(input);
+                    colorDiv.appendChild(label);
+                    
+                    this.colorOptions.appendChild(colorDiv);
+                });
+                
+                this.colorsContainer.style.display = 'block';
             }
+
+            this.zoomIn = function() {
+                const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
+                if (currentIndex < this.zoomLevels.length - 1) {
+                    this.zoomLevel = this.zoomLevels[currentIndex + 1];
+                    this.updateZoom();
+                }
+            };
+
+            this.zoomOut = function() {
+                const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
+                if (currentIndex > 0) {
+                    this.zoomLevel = this.zoomLevels[currentIndex - 1];
+                    this.updateZoom();
+                }
+            };
+
+            this.updateZoom = function() {
+                const scale = this.zoomLevel / 100;
+                this.zoomDisplay.textContent = `${this.zoomLevel}%`;
+
+                // Update image and container sizes
+                if (this.imagePreview.naturalWidth && this.imagePreview.naturalHeight) {
+                    const scaledWidth = this.imagePreview.naturalWidth * scale;
+                    const scaledHeight = this.imagePreview.naturalHeight * scale;
+                    
+                    const container = document.querySelector('.image-preview-container');
+                    
+                    // Set the container width to match the window width if image is smaller
+                    container.style.width = `${Math.max(scaledWidth, window.innerWidth - 100)}px`;
+                    // Set the container height to match the scaled image height plus scrollbar height if needed
+                    const scrollbarHeight = scaledWidth > (window.innerWidth - 100) ? 17 : 0; // Account for scrollbar if image is wider than container
+                    container.style.height = `${scaledHeight + scrollbarHeight}px`;
+                    
+                    // Apply transform to the image
+                    this.imagePreview.style.transformOrigin = 'top left';
+                    this.imagePreview.style.transform = `scale(${scale})`;
+                    
+                    // If the scaled image is smaller than the container, center it
+                    if (scaledWidth < (window.innerWidth - 100)) {
+                        this.imagePreview.style.display = 'block';
+                        this.imagePreview.style.margin = '0 auto';
+                    } else {
+                        this.imagePreview.style.margin = '0';
+                    }
+                }
+            };
         }
 
         let textureTool;
