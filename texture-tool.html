@@ -279,6 +279,43 @@
         .delete-layer-btn:hover {
             background-color: #c82333;
         }
+
+        .layer-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .direction-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 0 10px;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+        }
+
+        .direction-label {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .direction-radio {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .numeric-input {
+            width: 50px;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 12px;
+        }
     </style>
 </head>
 
@@ -397,15 +434,17 @@
                 // Validate hex format
                 const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
                 if (!hexRegex.test(normalizedHex)) {
-                    // If invalid, get the current color from the layer and revert
+                    // If invalid, revert to current color
                     const layers = this.colorLayers.get(sourceColorHex) || [];
                     const layer = layers.find(l => l.id === layerId);
                     if (layer) {
                         const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"][data-color-hex="${sourceColorHex}"]`);
                         if (toolbar) {
                             const hexInput = toolbar.querySelector('.hex-color-input');
-                            if (hexInput) {
+                            const colorInput = toolbar.querySelector('.layer-color-input');
+                            if (hexInput && colorInput) {
                                 hexInput.value = layer.color.toUpperCase();
+                                colorInput.value = layer.color;
                             }
                         }
                     }
@@ -419,8 +458,24 @@
                                       normalizedHex[3] + normalizedHex[3];
                 }
 
+                // Find layer and toolbar elements
+                const layers = this.colorLayers.get(sourceColorHex) || [];
+                const layer = layers.find(l => l.id === layerId);
+                if (!layer) return;
+
                 // Update the layer color
                 this.updateLayerColor(layerId, sourceColorHex, normalizedHex);
+
+                // Update UI controls
+                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"][data-color-hex="${sourceColorHex}"]`);
+                if (toolbar) {
+                    const hexInput = toolbar.querySelector('.hex-color-input');
+                    const colorInput = toolbar.querySelector('.layer-color-input');
+                    if (hexInput && colorInput) {
+                        hexInput.value = normalizedHex;
+                        colorInput.value = normalizedHex;
+                    }
+                }
             };
 
             this.bindEvents = function() {
@@ -546,19 +601,64 @@
                 });
 
                 hexInput.addEventListener('change', (e) => {
-                    this.updateLayerColorFromHex(layer.id, this.selectedColor.hex, e.target.value);
-                    // Update color picker to match (in case hex was corrected)
-                    const layers = this.colorLayers.get(this.selectedColor.hex) || [];
-                    const layer = layers.find(l => l.id === layerId);
-                    if (layer) {
-                        colorInput.value = layer.color;
-                        hexInput.value = layer.color;
+                    let value = e.target.value;
+                    // Add # if missing
+                    if (!value.startsWith('#')) {
+                        value = '#' + value;
                     }
+                    // Update the color everywhere
+                    this.updateLayerColorFromHex(layer.id, this.selectedColor.hex, value);
+                    colorInput.value = value; // Update color picker
+                    hexInput.value = value.toUpperCase(); // Ensure uppercase format
                 });
 
-                layerRow.appendChild(colorInput);
-                layerRow.appendChild(hexInput);
-                layerRow.appendChild(deleteBtn);
+                // Create container for all controls
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'layer-controls';
+
+                // Color controls
+                controlsDiv.appendChild(colorInput);
+                controlsDiv.appendChild(hexInput);
+
+                // Direction radio buttons
+                const directionDiv = document.createElement('div');
+                directionDiv.className = 'direction-controls';
+
+                const directions = ['full', 'left', 'right', 'top', 'bottom'];
+                directions.forEach((direction, index) => {
+                    const label = document.createElement('label');
+                    label.className = 'direction-label';
+                    
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `direction-${layerId}`;
+                    radio.value = direction;
+                    radio.className = 'direction-radio';
+                    radio.checked = direction === 'full';
+                    
+                    const text = document.createElement('span');
+                    text.textContent = direction.charAt(0).toUpperCase() + direction.slice(1);
+                    
+                    label.appendChild(radio);
+                    label.appendChild(text);
+                    directionDiv.appendChild(label);
+                });
+
+                controlsDiv.appendChild(directionDiv);
+
+                // Numeric input
+                const numericInput = document.createElement('input');
+                numericInput.type = 'number';
+                numericInput.className = 'numeric-input';
+                numericInput.value = '0';
+                numericInput.min = '0';
+                controlsDiv.appendChild(numericInput);
+
+                // Delete button
+                controlsDiv.appendChild(deleteBtn);
+
+                // Add all controls to the layer row
+                layerRow.appendChild(controlsDiv);
                 this.layerRows.insertBefore(layerRow, this.layerRows.firstChild);
                 this.layersContainer.style.display = 'block';
                 
