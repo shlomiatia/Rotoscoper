@@ -636,6 +636,18 @@
                     radio.className = 'direction-radio';
                     radio.checked = direction === 'full';
                     
+                    // Add change event listener
+                    radio.addEventListener('change', () => {
+                        if (radio.checked) {
+                            // Clear existing pixels before applying new direction
+                            const layerCtx = layer.canvas.getContext('2d');
+                            layerCtx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+                            // Update the layer with new direction
+                            this.updateLayerCanvas(layer);
+                            this.updateLayerDisplay();
+                        }
+                    });
+                    
                     const text = document.createElement('span');
                     text.textContent = direction.charAt(0).toUpperCase() + direction.slice(1);
                     
@@ -652,6 +664,27 @@
                 numericInput.className = 'numeric-input';
                 numericInput.value = '0';
                 numericInput.min = '0';
+
+                // Add change and input event listeners
+                numericInput.addEventListener('change', () => {
+                    // Clear existing pixels before applying new value
+                    const layerCtx = layer.canvas.getContext('2d');
+                    layerCtx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+                    // Update the layer with new value
+                    this.updateLayerCanvas(layer);
+                    this.updateLayerDisplay();
+                });
+
+                // Also update while typing
+                numericInput.addEventListener('input', () => {
+                    // Clear existing pixels before applying new value
+                    const layerCtx = layer.canvas.getContext('2d');
+                    layerCtx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+                    // Update the layer with new value
+                    this.updateLayerCanvas(layer);
+                    this.updateLayerDisplay();
+                });
+
                 controlsDiv.appendChild(numericInput);
 
                 // Delete button
