@@ -303,10 +303,9 @@ script = ExtResource("1_i6c2i")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_wo8av")
-animation = &"start_walk"
+animation = &"walk"
 autoplay = "stand"
-frame = 11
-frame_progress = 1.0
+frame_progress = 0.726408
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, 1)
