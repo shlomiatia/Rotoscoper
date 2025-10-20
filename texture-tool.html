@@ -311,6 +311,19 @@
     </div>
 
     <script>
+        function hexToRgb(hex) {
+            // Remove the # if present
+            hex = hex.replace(/^#/, '');
+            
+            // Parse the hex values
+            const bigint = parseInt(hex, 16);
+            return {
+                r: (bigint >> 16) & 255,
+                g: (bigint >> 8) & 255,
+                b: bigint & 255
+            };
+        }
+
         const TextureTool = function() {
             const self = this;
             
@@ -398,7 +411,7 @@
                 const layerId = this.nextLayerId++;
                 const layer = {
                     id: layerId,
-                    color: '#ffffff', // Default white color
+                    color: this.selectedColor.hex, // Use selected color as initial color
                     sourceColor: this.selectedColor,
                     canvas: document.createElement('canvas')
                 };
@@ -407,6 +420,9 @@
                 layer.canvas.width = this.imagePreview.naturalWidth;
                 layer.canvas.height = this.imagePreview.naturalHeight;
                 const ctx = layer.canvas.getContext('2d');
+                
+                // Create initial color replacement
+                this.updateLayerCanvas(layer);
                 
                 // Add the layer to our array
                 this.layers.push(layer);
@@ -465,18 +481,48 @@
                 this.layersContainer.style.display = 'block';
                 
                 // Update canvases
-                this.updateLayerCanvases();
+                this.updateLayerDisplay();
             };
             
-            this.updateLayerCanvases = function() {
-                const scale = this.zoomLevel / 100;
-                this.layersCanvas.width = this.imagePreview.naturalWidth * scale;
-                this.layersCanvas.height = this.imagePreview.naturalHeight * scale;
-                this.layersCtx.clearRect(0, 0, this.layersCanvas.width, this.layersCanvas.height);
+            this.updateLayerCanvas = function(layer) {
+                // Create a temporary canvas to read the original image
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = this.imagePreview.naturalWidth;
+                tempCanvas.height = this.imagePreview.naturalHeight;
                 
-                // We'll implement the layer drawing logic in the next step
+                // Draw the original image
+                tempCtx.drawImage(this.imagePreview, 0, 0);
+                
+                // Get image data
+                const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                const pixels = imageData.data;
+                
+                // Get source color components
+                const sourceRgb = hexToRgb(layer.sourceColor.hex);
+                
+                // Get target color components
+                const targetRgb = hexToRgb(layer.color);
+                
+                // Replace colors
+                for (let i = 0; i < pixels.length; i += 4) {
+                    if (pixels[i] === sourceRgb.r &&
+                        pixels[i + 1] === sourceRgb.g &&
+                        pixels[i + 2] === sourceRgb.b) {
+                        pixels[i] = targetRgb.r;
+                        pixels[i + 1] = targetRgb.g;
+                        pixels[i + 2] = targetRgb.b;
+                        pixels[i + 3] = 255; // Full opacity for replaced colors
+                    } else {
+                        pixels[i + 3] = 0; // Make all other pixels transparent
+                    }
+                }
+                
+                // Update the layer's canvas
+                const ctx = layer.canvas.getContext('2d');
+                ctx.putImageData(imageData, 0, 0);
             };
-            
+
             this.clearOverlay = function() {
                 if (this.overlayCanvas && this.imagePreview.naturalWidth) {
                     const scale = this.zoomLevel / 100;
@@ -744,6 +790,41 @@
                 }
             };
             
+            this.updateLayerColor = function(layerId, newColor) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (!layer) return;
+
+                layer.color = newColor;
+                this.updateLayerCanvas(layer);
+                this.updateLayerDisplay();
+
+                // Update color picker and hex input to match
+                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                if (toolbar) {
+                    const colorInput = toolbar.querySelector('.layer-color-input');
+                    const hexInput = toolbar.querySelector('.hex-color-input');
+                    if (colorInput) colorInput.value = newColor;
+                    if (hexInput) hexInput.value = newColor.toUpperCase();
+                }
+            };
+
+            this.updateLayerDisplay = function() {
+                if (!this.layersCanvas || !this.imagePreview.naturalWidth) return;
+
+                const scale = this.zoomLevel / 100;
+                this.layersCanvas.width = this.imagePreview.naturalWidth * scale;
+                this.layersCanvas.height = this.imagePreview.naturalHeight * scale;
+                this.layersCtx.clearRect(0, 0, this.layersCanvas.width, this.layersCanvas.height);
+
+                // Draw each layer's canvas
+                this.layers.forEach(layer => {
+                    this.layersCtx.save();
+                    this.layersCtx.scale(scale, scale);
+                    this.layersCtx.drawImage(layer.canvas, 0, 0);
+                    this.layersCtx.restore();
+                });
+            };
+
             this.updateZoom = function() {
                 const scale = this.zoomLevel / 100;
                 this.zoomDisplay.textContent = `${this.zoomLevel}%`;
@@ -773,7 +854,7 @@
                         this.findAndDrawBoundingBoxes();
                     }
                     if (this.layers.length > 0) {
-                        this.updateLayerCanvases();
+                        this.updateLayerDisplay();
                     }
                 }
             };
