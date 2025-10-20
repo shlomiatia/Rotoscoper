@@ -333,7 +333,8 @@
             this.zoomLevels = [25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
             this.selectedColor = null;
             this.colorMap = new Map(); // Map to store colors and their counts
-            this.layers = []; // Array to store layer information
+            this.colorLayers = new Map(); // Map to store layers for each color
+            this.canvasPool = []; // Pool of reusable canvases
             this.nextLayerId = 1; // Counter for generating unique layer IDs
             
             this.initializeElements = function() {
@@ -353,6 +354,10 @@
                 this.layerRows = document.getElementById('layer-rows');
                 this.addLayerBtn = document.getElementById('add-layer-btn');
 
+                // Initialize color layers map and canvas pool
+                this.colorLayers = new Map();
+                this.canvasPool = [];
+
                 // Configure the layers canvas
                 this.layersCanvas.style.position = 'absolute';
                 this.layersCanvas.style.top = '0';
@@ -360,7 +365,7 @@
                 this.layersCanvas.style.pointerEvents = 'none';
             };
             
-            this.updateLayerColorFromHex = function(layerId, hexValue) {
+            this.updateLayerColorFromHex = function(layerId, sourceColorHex, hexValue) {
                 // Validate and normalize hex color
                 let normalizedHex = hexValue.trim().toUpperCase();
 
@@ -373,9 +378,10 @@
                 const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
                 if (!hexRegex.test(normalizedHex)) {
                     // If invalid, get the current color from the layer and revert
-                    const layer = this.layers.find(l => l.id === layerId);
+                    const layers = this.colorLayers.get(sourceColorHex) || [];
+                    const layer = layers.find(l => l.id === layerId);
                     if (layer) {
-                        const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                        const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"][data-color-hex="${sourceColorHex}"]`);
                         if (toolbar) {
                             const hexInput = toolbar.querySelector('.hex-color-input');
                             if (hexInput) {
@@ -394,7 +400,7 @@
                 }
 
                 // Update the layer color
-                this.updateLayerColor(layerId, normalizedHex);
+                this.updateLayerColor(layerId, sourceColorHex, normalizedHex);
             };
 
             this.bindEvents = function() {
@@ -409,28 +415,38 @@
                 if (!this.selectedColor) return;
                 
                 const layerId = this.nextLayerId++;
+                
+                // Get or create canvas from pool
+                let canvas;
+                if (this.canvasPool.length > 0) {
+                    canvas = this.canvasPool.pop();
+                } else {
+                    canvas = document.createElement('canvas');
+                    canvas.width = this.imagePreview.naturalWidth;
+                    canvas.height = this.imagePreview.naturalHeight;
+                }
+                
                 const layer = {
                     id: layerId,
                     color: this.selectedColor.hex, // Use selected color as initial color
                     sourceColor: this.selectedColor,
-                    canvas: document.createElement('canvas')
+                    canvas: canvas
                 };
-                
-                // Initialize the layer canvas
-                layer.canvas.width = this.imagePreview.naturalWidth;
-                layer.canvas.height = this.imagePreview.naturalHeight;
-                const ctx = layer.canvas.getContext('2d');
                 
                 // Create initial color replacement
                 this.updateLayerCanvas(layer);
                 
-                // Add the layer to our array
-                this.layers.push(layer);
+                // Store the layer for this color
+                if (!this.colorLayers.has(this.selectedColor.hex)) {
+                    this.colorLayers.set(this.selectedColor.hex, []);
+                }
+                this.colorLayers.get(this.selectedColor.hex).push(layer);
                 
                 // Create and add the layer UI row
                 const layerRow = document.createElement('div');
                 layerRow.className = 'layer-row';
                 layerRow.dataset.layerId = layerId;
+                layerRow.dataset.colorHex = this.selectedColor.hex;
                 
                 // Color picker input
                 const colorInput = document.createElement('input');
@@ -454,7 +470,7 @@
                 colorInput.addEventListener('change', (e) => {
                     const color = e.target.value.toUpperCase();
                     hexInput.value = color;
-                    this.updateLayerColor(layer.id, color);
+                    this.updateLayerColor(layer.id, this.selectedColor.hex, color);
                 });
 
                 hexInput.addEventListener('input', (e) => {
@@ -466,9 +482,10 @@
                 });
 
                 hexInput.addEventListener('change', (e) => {
-                    this.updateLayerColorFromHex(layer.id, e.target.value);
+                    this.updateLayerColorFromHex(layer.id, this.selectedColor.hex, e.target.value);
                     // Update color picker to match (in case hex was corrected)
-                    const layer = this.layers.find(l => l.id === layerId);
+                    const layers = this.colorLayers.get(this.selectedColor.hex) || [];
+                    const layer = layers.find(l => l.id === layerId);
                     if (layer) {
                         colorInput.value = layer.color;
                         hexInput.value = layer.color;
@@ -480,7 +497,7 @@
                 this.layerRows.insertBefore(layerRow, this.layerRows.firstChild);
                 this.layersContainer.style.display = 'block';
                 
-                // Update canvases
+                // Update display
                 this.updateLayerDisplay();
             };
             
@@ -632,6 +649,30 @@
                 });
             };
 
+            this.resetLayers = function() {
+                // Return all canvases to the pool
+                this.colorLayers.forEach(layers => {
+                    layers.forEach(layer => {
+                        // Clear the canvas before adding to pool
+                        const ctx = layer.canvas.getContext('2d');
+                        ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+                        this.canvasPool.push(layer.canvas);
+                    });
+                });
+                
+                // Clear the color layers map
+                this.colorLayers.clear();
+                
+                // Clear the UI
+                this.layerRows.innerHTML = '';
+                this.layersContainer.style.display = 'none';
+                
+                // Clear the layers canvas
+                if (this.layersCanvas) {
+                    this.layersCtx.clearRect(0, 0, this.layersCanvas.width, this.layersCanvas.height);
+                }
+            };
+
             this.handleFileSelect = function(event) {
                 const file = event.target.files[0];
                 if (file) {
@@ -640,6 +681,7 @@
                         this.imagePreview.src = e.target.result;
                         this.imagePreview.style.display = 'block';
                         this.selectedColor = null; // Clear selected color
+                        this.resetLayers(); // Reset all layers
                         
                         // Wait for image to load to get dimensions
                         this.imagePreview.onload = () => {
@@ -727,6 +769,8 @@
                     input.addEventListener('change', () => {
                         this.selectedColor = { hex, ...data };
                         this.findAndDrawBoundingBoxes();
+                        this.updateLayerDisplay(); // Update layer display when color changes
+                        this.addLayerBtn.disabled = false;
                     });
                     
                     const preview = document.createElement('div');
@@ -790,8 +834,9 @@
                 }
             };
             
-            this.updateLayerColor = function(layerId, newColor) {
-                const layer = this.layers.find(l => l.id === layerId);
+            this.updateLayerColor = function(layerId, sourceColorHex, newColor) {
+                const layers = this.colorLayers.get(sourceColorHex) || [];
+                const layer = layers.find(l => l.id === layerId);
                 if (!layer) return;
 
                 layer.color = newColor;
@@ -799,7 +844,7 @@
                 this.updateLayerDisplay();
 
                 // Update color picker and hex input to match
-                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"]`);
+                const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layerId}"][data-color-hex="${sourceColorHex}"]`);
                 if (toolbar) {
                     const colorInput = toolbar.querySelector('.layer-color-input');
                     const hexInput = toolbar.querySelector('.hex-color-input');
@@ -816,13 +861,34 @@
                 this.layersCanvas.height = this.imagePreview.naturalHeight * scale;
                 this.layersCtx.clearRect(0, 0, this.layersCanvas.width, this.layersCanvas.height);
 
-                // Draw each layer's canvas
-                this.layers.forEach(layer => {
-                    this.layersCtx.save();
-                    this.layersCtx.scale(scale, scale);
-                    this.layersCtx.drawImage(layer.canvas, 0, 0);
-                    this.layersCtx.restore();
+                // Only display layers for the selected color
+                if (this.selectedColor && this.colorLayers.has(this.selectedColor.hex)) {
+                    const layers = this.colorLayers.get(this.selectedColor.hex);
+                    layers.forEach(layer => {
+                        this.layersCtx.save();
+                        this.layersCtx.scale(scale, scale);
+                        this.layersCtx.drawImage(layer.canvas, 0, 0);
+                        this.layersCtx.restore();
+                    });
+                }
+
+                // Show/hide layer rows based on selected color
+                const allLayerRows = this.layerRows.querySelectorAll('.layer-row');
+                allLayerRows.forEach(row => {
+                    if (this.selectedColor && row.dataset.colorHex === this.selectedColor.hex) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
                 });
+
+                // Show/hide layers container based on whether there are layers for this color
+                if (this.selectedColor && this.colorLayers.has(this.selectedColor.hex) && 
+                    this.colorLayers.get(this.selectedColor.hex).length > 0) {
+                    this.layersContainer.style.display = 'block';
+                } else {
+                    this.layersContainer.style.display = 'none';
+                }
             };
 
             this.updateZoom = function() {
@@ -852,9 +918,10 @@
                     // Update canvases if there's content
                     if (this.selectedColor) {
                         this.findAndDrawBoundingBoxes();
-                    }
-                    if (this.layers.length > 0) {
-                        this.updateLayerDisplay();
+                        // Only update layers if we have any for the selected color
+                        if (this.colorLayers.has(this.selectedColor.hex)) {
+                            this.updateLayerDisplay();
+                        }
                     }
                 }
             };
