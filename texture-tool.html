@@ -701,7 +701,7 @@
             
             this.findBoundingBoxes = function(pixels, sourceRgb, width, height) {
                 const visited = new Array(width * height).fill(false);
-                const boundingBoxes = [];
+                const regions = [];
 
                 const isMatchingColor = (index) => {
                     return pixels[index] === sourceRgb.r &&
@@ -712,6 +712,7 @@
                 // Flood fill to find connected components
                 const floodFill = (startX, startY) => {
                     const box = { minX: startX, minY: startY, maxX: startX, maxY: startY };
+                    const pixelsByRow = new Map();
                     const stack = [[startX, startY]];
                     
                     visited[startY * width + startX] = true;
@@ -724,6 +725,12 @@
                         box.minY = Math.min(box.minY, y);
                         box.maxX = Math.max(box.maxX, x);
                         box.maxY = Math.max(box.maxY, y);
+
+                        // Add pixel to row collection
+                        if (!pixelsByRow.has(y)) {
+                            pixelsByRow.set(y, []);
+                        }
+                        pixelsByRow.get(y).push(x);
 
                         // Check orthogonally adjacent pixels
                         const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
@@ -743,7 +750,14 @@
                             }
                         }
                     }
-                    return box;
+
+                    // Sort pixels in each row
+                    pixelsByRow.forEach(pixels => pixels.sort((a, b) => a - b));
+
+                    return {
+                        box,
+                        pixelsByRow
+                    };
                 };
 
                 // Find all connected components
@@ -752,14 +766,14 @@
                         if (!visited[y * width + x]) {
                             const index = (y * width + x) * 4;
                             if (isMatchingColor(index)) {
-                                const box = floodFill(x, y);
-                                boundingBoxes.push(box);
+                                const region = floodFill(x, y);
+                                regions.push(region);
                             }
                         }
                     }
                 }
 
-                return boundingBoxes;
+                return regions;
             };
 
             this.updateLayerCanvas = function(layer) {
@@ -804,50 +818,41 @@
                         }
                     }
                 } else {
-                    // Find all bounding boxes first
-                    const boundingBoxes = this.findBoundingBoxes(pixels, sourceRgb, tempCanvas.width, tempCanvas.height);
+                    // Find all regions first
+                    const regions = this.findBoundingBoxes(pixels, sourceRgb, tempCanvas.width, tempCanvas.height);
                     
                     // Clear all pixels first
                     for (let i = 0; i < pixels.length; i += 4) {
                         pixels[i + 3] = 0; // Make everything transparent initially
                     }
 
-                    // Process each bounding box
-                    boundingBoxes.forEach(box => {
-                        for (let y = box.minY; y <= box.maxY; y++) {
-                            let matchingPixels = [];
-                            
-                            // Find all matching pixels in this row within the box
-                            for (let x = box.minX; x <= box.maxX; x++) {
-                                const i = (y * tempCanvas.width + x) * 4;
-                                if (pixels[i] === sourceRgb.r &&
-                                    pixels[i + 1] === sourceRgb.g &&
-                                    pixels[i + 2] === sourceRgb.b) {
-                                    matchingPixels.push(x);
-                                }
-                            }
+                    // Process each region
+                    regions.forEach(region => {
+                        const { box, pixelsByRow } = region;
 
-                            // Select pixels based on direction
+                        // Process each row in the region
+                        pixelsByRow.forEach((rowPixels, row) => {
                             let pixelsToColor = [];
+                            
                             if (direction === 'left') {
-                                pixelsToColor = matchingPixels.slice(0, pixelCount);
+                                pixelsToColor = rowPixels.slice(0, pixelCount);
                             } else if (direction === 'right') {
-                                pixelsToColor = matchingPixels.slice(-pixelCount);
-                            } else if (direction === 'top' && y <= box.minY + pixelCount - 1) {
-                                pixelsToColor = matchingPixels;
-                            } else if (direction === 'bottom' && y >= box.maxY - pixelCount + 1) {
-                                pixelsToColor = matchingPixels;
+                                pixelsToColor = rowPixels.slice(-pixelCount);
+                            } else if (direction === 'top' && row <= box.minY + pixelCount - 1) {
+                                pixelsToColor = rowPixels;
+                            } else if (direction === 'bottom' && row >= box.maxY - pixelCount + 1) {
+                                pixelsToColor = rowPixels;
                             }
 
                             // Color the selected pixels
                             pixelsToColor.forEach(x => {
-                                const i = (y * tempCanvas.width + x) * 4;
+                                const i = (row * tempCanvas.width + x) * 4;
                                 pixels[i] = targetRgb.r;
                                 pixels[i + 1] = targetRgb.g;
                                 pixels[i + 2] = targetRgb.b;
                                 pixels[i + 3] = 255; // Full opacity
                             });
-                        }
+                        });
                     });
                 }
                 
