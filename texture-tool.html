@@ -387,6 +387,7 @@
             this.colorLayers = new Map(); // Map to store layers for each color
             this.canvasPool = []; // Pool of reusable canvases
             this.nextLayerId = 1; // Counter for generating unique layer IDs
+            this.originalFile = null; // Original file object for saving
             
             this.initializeElements = function() {
                 this.fileInput = document.getElementById('file-input');
@@ -1050,6 +1051,9 @@
                         this.selectedColor = null; // Clear selected color
                         this.resetLayers(); // Reset all layers
                         
+                        // Store the original file path
+                        this.originalFile = file;
+                        
                         // Wait for image to load to get dimensions
                         this.imagePreview.onload = () => {
                             this.updateImageInfo();
@@ -1220,6 +1224,62 @@
                 }
             };
 
+            this.saveCompositeImage = async function() {
+                // Create a temporary canvas for the composite
+                const compositeCanvas = document.createElement('canvas');
+                compositeCanvas.width = this.imagePreview.naturalWidth;
+                compositeCanvas.height = this.imagePreview.naturalHeight;
+                const compositeCtx = compositeCanvas.getContext('2d');
+
+                // Draw the original image first
+                compositeCtx.drawImage(this.imagePreview, 0, 0);
+
+                // Draw all layers in order
+                this.colorLayers.forEach(layers => {
+                    layers.forEach(layer => {
+                        compositeCtx.drawImage(layer.canvas, 0, 0);
+                    });
+                });
+
+                // Convert to base64
+                const imageData = compositeCanvas.toDataURL('image/png');
+
+                // Get path information from the original file
+                const filename = this.originalFile.name;
+                const baseName = filename.substring(0, filename.lastIndexOf('.'));
+                
+                // Create the new filename in the same directory
+                const newFilename = `${baseName}_textured.png`;
+                
+                // Use the file API to get path relative to workspace
+                const relativePath = this.originalFile.webkitRelativePath || '';
+                const dirPath = relativePath ? relativePath.split('/').slice(0, -1).join('/') : '.';
+                const finalPath = dirPath === '.' ? newFilename : `${dirPath}/${newFilename}`;
+
+                try {
+                    // Send to server using the new endpoint
+                    const response = await fetch('/api/files/save', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            imageData: imageData,
+                            filePath: finalPath
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        console.error('Failed to save composite image:', result.error);
+                    } else {
+                        console.log('Saved composite image:', result.message);
+                    }
+                } catch (error) {
+                    console.error('Error saving composite image:', error);
+                }
+            };
+
             this.updateLayerDisplay = function() {
                 if (!this.layersCanvas || !this.imagePreview.naturalWidth) return;
 
@@ -1234,6 +1294,9 @@
                         this.layersCtx.drawImage(layer.canvas, 0, 0);
                     });
                 });
+
+                // Save the composite image automatically
+                this.saveCompositeImage();
 
                 // Show/hide layer rows based on selected color
                 const allLayerRows = this.layerRows.querySelectorAll('.layer-row');

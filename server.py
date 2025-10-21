@@ -490,6 +490,71 @@ def save_sprite(animation_name):
             'error': str(e)
         }), 500
 
+@app.route('/api/files/save', methods=['POST'])
+def save_file():
+    """Save a file to any specified path"""
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+
+        image_data = data.get('imageData')
+        file_path = data.get('filePath')
+
+        if not image_data:
+            return jsonify({
+                'success': False,
+                'error': 'Image data is required'
+            }), 400
+
+        if not file_path:
+            return jsonify({
+                'success': False,
+                'error': 'File path is required'
+            }), 400
+
+        # Handle directory creation
+        dir_path = os.path.dirname(file_path)
+        if dir_path:  # Only create directories if there's a directory path
+            os.makedirs(dir_path, exist_ok=True)
+
+        # Decode base64 image data
+        try:
+            # Remove data URL prefix if present
+            if ',' in image_data:
+                image_data = image_data.split(',')[1]
+
+            # Decode base64
+            image_bytes = base64.b64decode(image_data)
+
+            # Open image with PIL
+            image = Image.open(io.BytesIO(image_bytes))
+
+            # Save image
+            image.save(file_path, 'PNG')
+
+            return jsonify({
+                'success': True,
+                'message': f'File saved as {os.path.basename(file_path)}',
+                'path': file_path
+            })
+
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to process image: {str(e)}'
+            }), 400
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/animations/crop', methods=['POST'])
 def crop_animation():
     """Create a new animation with cropped frames and sprites"""
