@@ -664,7 +664,6 @@
                 numericInput.type = 'number';
                 numericInput.className = 'numeric-input';
                 numericInput.value = '0';
-                numericInput.min = '0';
 
                 // Add change and input event listeners
                 numericInput.addEventListener('change', () => {
@@ -819,6 +818,9 @@
                         }
                     }
                 } else {
+                    // Store original image data before modifications
+                    const originalImageData = new Uint8ClampedArray(pixels);
+                    
                     // Find all regions first
                     const regions = this.findBoundingBoxes(pixels, sourceRgb, tempCanvas.width, tempCanvas.height);
                     
@@ -841,9 +843,56 @@
                         if (direction === 'left' || direction === 'right') {
                             // Process by rows for left/right
                             pixelsByRow.forEach((rowPixels, row) => {
-                                let pixelsToColor = direction === 'left' ? 
-                                    rowPixels.slice(0, pixelCount) : 
-                                    rowPixels.slice(-pixelCount);
+                                let pixelsToColor;
+                                if (pixelCount >= 0) {
+                                    // Positive values - paint inside the region
+                                    pixelsToColor = direction === 'left' ? 
+                                        rowPixels.slice(0, pixelCount) : 
+                                        rowPixels.slice(-pixelCount);
+                                } else {
+                                    // Negative values - paint outside the region
+                                    const absCount = Math.abs(pixelCount);
+                                    const possiblePixels = [];
+                                    
+                                    if (direction === 'left') {
+                                        // Check pixels to the left of the leftmost pixel
+                                        const minX = Math.min(...rowPixels);
+                                        console.log(`Row ${row}: Found leftmost pixel at x=${minX}`);
+                                        console.log(`Row ${row}: Checking pixels from x=${minX - 1} to x=${Math.max(0, minX - absCount)}`);
+                                        
+                                        for (let x = minX - 1; x >= Math.max(0, minX - absCount); x--) {
+                                            const idx = (row * tempCanvas.width + x) * 4;
+                                            // Check against original image data for transparency and color
+                                            const isNonTransparent = originalImageData[idx + 3] === 255;
+                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r && 
+                                                                 originalImageData[idx + 1] === sourceRgb.g && 
+                                                                 originalImageData[idx + 2] === sourceRgb.b);
+                                            
+                                            console.log(`Row ${row}, x=${x}: nonTransparent=${isNonTransparent}, isSourceColor=${isSourceColor}`);
+                                            
+                                            if (isNonTransparent && !isSourceColor) {
+                                                console.log(`Row ${row}: Adding pixel at x=${x} to possible pixels`);
+                                                possiblePixels.push(x);
+                                            }
+                                        }
+                                    } else { // right
+                                        // Check pixels to the right of the rightmost pixel
+                                        const maxX = Math.max(...rowPixels);
+                                        for (let x = maxX + 1; x < Math.min(tempCanvas.width, maxX + absCount + 1); x++) {
+                                            const idx = (row * tempCanvas.width + x) * 4;
+                                            // Only include non-transparent pixels from the original
+                                            if (pixels[idx + 3] === 255 && 
+                                                !(pixels[idx] === sourceRgb.r && 
+                                                  pixels[idx + 1] === sourceRgb.g && 
+                                                  pixels[idx + 2] === sourceRgb.b)) {
+                                                possiblePixels.push(x);
+                                            }
+                                        }
+                                    }
+                                    pixelsToColor = possiblePixels;
+                                }
+
+                                console.log(pixelsToColor);
 
                                 // Color the selected pixels
                                 pixelsToColor.forEach(x => {
@@ -874,10 +923,46 @@
                             // Process each column
                             pixelsByColumn.forEach((columnPixels, x) => {
                                 let pixelsToColor;
-                                if (direction === 'top') {
-                                    pixelsToColor = columnPixels.slice(0, pixelCount);
-                                } else { // bottom
-                                    pixelsToColor = columnPixels.slice(-pixelCount);
+                                if (pixelCount >= 0) {
+                                    // Positive values - paint inside the region
+                                    if (direction === 'top') {
+                                        pixelsToColor = columnPixels.slice(0, pixelCount);
+                                    } else { // bottom
+                                        pixelsToColor = columnPixels.slice(-pixelCount);
+                                    }
+                                } else {
+                                    // Negative values - paint outside the region
+                                    const absCount = Math.abs(pixelCount);
+                                    const possiblePixels = [];
+                                    
+                                    if (direction === 'top') {
+                                        // Check pixels above the topmost pixel
+                                        const minY = Math.min(...columnPixels);
+                                        for (let y = minY - 1; y >= Math.max(0, minY - absCount); y--) {
+                                            const idx = (y * tempCanvas.width + x) * 4;
+                                            // Only include non-transparent pixels from the original
+                                            if (pixels[idx + 3] === 255 && 
+                                                !(pixels[idx] === sourceRgb.r && 
+                                                  pixels[idx + 1] === sourceRgb.g && 
+                                                  pixels[idx + 2] === sourceRgb.b)) {
+                                                possiblePixels.push(y);
+                                            }
+                                        }
+                                    } else { // bottom
+                                        // Check pixels below the bottommost pixel
+                                        const maxY = Math.max(...columnPixels);
+                                        for (let y = maxY + 1; y < Math.min(tempCanvas.height, maxY + absCount + 1); y++) {
+                                            const idx = (y * tempCanvas.width + x) * 4;
+                                            // Only include non-transparent pixels from the original
+                                            if (pixels[idx + 3] === 255 && 
+                                                !(pixels[idx] === sourceRgb.r && 
+                                                  pixels[idx + 1] === sourceRgb.g && 
+                                                  pixels[idx + 2] === sourceRgb.b)) {
+                                                possiblePixels.push(y);
+                                            }
+                                        }
+                                    }
+                                    pixelsToColor = possiblePixels;
                                 }
 
                                 // Color the selected pixels
