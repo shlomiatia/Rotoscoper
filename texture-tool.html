@@ -938,13 +938,21 @@
                                     if (direction === 'top') {
                                         // Check pixels above the topmost pixel
                                         const minY = Math.min(...columnPixels);
+                                        console.log(`Column x=${x}: Found topmost pixel at y=${minY}`);
+                                        console.log(`Column x=${x}: Checking pixels from y=${minY - 1} to y=${Math.max(0, minY - absCount)}`);
+                                        
                                         for (let y = minY - 1; y >= Math.max(0, minY - absCount); y--) {
                                             const idx = (y * tempCanvas.width + x) * 4;
                                             // Only include non-transparent pixels from the original
-                                            if (pixels[idx + 3] === 255 && 
-                                                !(pixels[idx] === sourceRgb.r && 
-                                                  pixels[idx + 1] === sourceRgb.g && 
-                                                  pixels[idx + 2] === sourceRgb.b)) {
+                                            const isNonTransparent = originalImageData[idx + 3] === 255;
+                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r && 
+                                                                 originalImageData[idx + 1] === sourceRgb.g && 
+                                                                 originalImageData[idx + 2] === sourceRgb.b);
+                                            
+                                            console.log(`Column x=${x}, y=${y}: nonTransparent=${isNonTransparent}, isSourceColor=${isSourceColor}`);
+                                            
+                                            if (isNonTransparent && !isSourceColor) {
+                                                console.log(`Column x=${x}: Adding pixel at y=${y} to possible pixels`);
                                                 possiblePixels.push(y);
                                             }
                                         }
