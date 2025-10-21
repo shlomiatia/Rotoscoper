@@ -878,13 +878,21 @@
                                     } else { // right
                                         // Check pixels to the right of the rightmost pixel
                                         const maxX = Math.max(...rowPixels);
+                                        console.log(`Row ${row}: Found rightmost pixel at x=${maxX}`);
+                                        console.log(`Row ${row}: Checking pixels from x=${maxX + 1} to x=${Math.min(tempCanvas.width - 1, maxX + absCount)}`);
+                                        
                                         for (let x = maxX + 1; x < Math.min(tempCanvas.width, maxX + absCount + 1); x++) {
                                             const idx = (row * tempCanvas.width + x) * 4;
-                                            // Only include non-transparent pixels from the original
-                                            if (pixels[idx + 3] === 255 && 
-                                                !(pixels[idx] === sourceRgb.r && 
-                                                  pixels[idx + 1] === sourceRgb.g && 
-                                                  pixels[idx + 2] === sourceRgb.b)) {
+                                            // Check against original image data for transparency and color
+                                            const isNonTransparent = originalImageData[idx + 3] === 255;
+                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r && 
+                                                                originalImageData[idx + 1] === sourceRgb.g && 
+                                                                originalImageData[idx + 2] === sourceRgb.b);
+                                            
+                                            console.log(`Row ${row}, x=${x}: nonTransparent=${isNonTransparent}, isSourceColor=${isSourceColor}`);
+                                            
+                                            if (isNonTransparent && !isSourceColor) {
+                                                console.log(`Row ${row}: Adding pixel at x=${x} to possible pixels`);
                                                 possiblePixels.push(x);
                                             }
                                         }
@@ -961,11 +969,13 @@
                                         const maxY = Math.max(...columnPixels);
                                         for (let y = maxY + 1; y < Math.min(tempCanvas.height, maxY + absCount + 1); y++) {
                                             const idx = (y * tempCanvas.width + x) * 4;
-                                            // Only include non-transparent pixels from the original
-                                            if (pixels[idx + 3] === 255 && 
-                                                !(pixels[idx] === sourceRgb.r && 
-                                                  pixels[idx + 1] === sourceRgb.g && 
-                                                  pixels[idx + 2] === sourceRgb.b)) {
+                                            // Check against original image data
+                                            const isNonTransparent = originalImageData[idx + 3] === 255;
+                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r && 
+                                                                originalImageData[idx + 1] === sourceRgb.g && 
+                                                                originalImageData[idx + 2] === sourceRgb.b);
+                                            
+                                            if (isNonTransparent && !isSourceColor) {
                                                 possiblePixels.push(y);
                                             }
                                         }
