@@ -1,3 +1,6 @@
 # Playwright
 .playwright-mcp/
 Source/
+
+# Python cache files
+__pycache__/
