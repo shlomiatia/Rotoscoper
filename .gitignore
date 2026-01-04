@@ -4,3 +4,5 @@ Source/
 
 # Python cache files
 controllers/__pycache__/
+# Windows path variant (harmless duplicate):
+controllers\__pycache__
