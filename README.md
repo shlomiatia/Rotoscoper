@@ -4,11 +4,13 @@ A web-based animation toolkit for creating custom frame-based animations and gen
 
 ## Tools
 
-- **New Animation Tool** — Create custom animations from existing frames.
-- **Sprite Tool** — Generate and edit sprites and color mappings.
-- **Texture Tool** — Apply textures and save processed images.
-- **Crop Tool** — Crop animations and export cropped animations.
-- **Export Tool** — Export generated assets for use in projects.
+The `index.html` file links to all available tools. Tool files:
+
+- `new-animation-tool.html` — Create custom animations from existing frames.
+- `sprite-tool.html` — Generate and edit sprites and color mappings.
+- `texture-tool.html` — Apply textures and save processed images.
+- `crop-tool.html` — Crop animations and export cropped animations.
+- `export-tool.html` — Export generated assets for use in projects.
 
 ## Quick Start
 
