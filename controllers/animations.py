@@ -245,7 +245,6 @@ def remove_background():
 
         source_animation = data.get('sourceAnimation', '').strip()
         new_name = data.get('newName', '').strip()
-        tolerance = int(data.get('tolerance', 30))
 
         if not source_animation:
             return jsonify({'success': False, 'error': 'Source animation is required'}), 400

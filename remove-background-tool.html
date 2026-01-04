@@ -46,11 +46,6 @@
                 <input type="number" id="frame-input" min="0" max="149" value="0" style="width:80px;">
             </div>
 
-            <div class="input-group">
-                <label>Tolerance (color distance):</label>
-                <input type="range" id="tolerance-slider" min="0" max="255" value="30">
-                <input type="number" id="tolerance-input" min="0" max="255" value="30" style="width:80px;">
-            </div>
 
             <div class="input-group">
                 <label>New Animation Name:</label>
@@ -77,7 +72,6 @@
                 this.frameElements = {};
                 this.currentFrameElement = null;
 
-                this.tolerance = 30;
 
                 this.initializeElements();
                 this.bindEvents();
@@ -89,8 +83,6 @@
                 this.frameContainer = document.getElementById('frame-container');
                 this.frameSlider = document.getElementById('frame-slider');
                 this.frameInput = document.getElementById('frame-input');
-                this.toleranceSlider = document.getElementById('tolerance-slider');
-                this.toleranceInput = document.getElementById('tolerance-input');
                 this.newAnimationNameInput = document.getElementById('new-animation-name');
                 this.removeBtn = document.getElementById('remove-btn');
                 this.statusEl = document.getElementById('status');
@@ -100,8 +92,6 @@
                 this.animationSelect.addEventListener('change', (e) => this.switchAnimation(e.target.value));
                 this.frameSlider.addEventListener('input', (e) => this.setFrame(parseInt(e.target.value)));
                 this.frameInput.addEventListener('change', (e) => this.setFrame(parseInt(e.target.value)));
-                this.toleranceSlider.addEventListener('input', (e) => { this.tolerance = parseInt(e.target.value); this.toleranceInput.value = this.tolerance; });
-                this.toleranceInput.addEventListener('change', (e) => { this.tolerance = parseInt(e.target.value); this.toleranceSlider.value = this.tolerance; });
                 this.removeBtn.addEventListener('click', () => this.performRemove());
             }
 
@@ -209,7 +199,7 @@
                 this.statusEl.textContent = 'Processing frames (this may take a few seconds)...';
 
                 try {
-                    const payload = { sourceAnimation, newName, tolerance: this.tolerance };
+                    const payload = { sourceAnimation, newName };
                     const res = await fetch('/api/animations/remove-background', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                     const data = await res.json();
                     if (data.success) {
