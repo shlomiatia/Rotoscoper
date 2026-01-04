@@ -19,123 +19,16 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Configuration
-SOURCE_DIR = 'Source'
+from utils import SOURCE_DIR, ensure_source_directory
 
-def ensure_source_directory():
-    """Ensure the Source directory exists"""
-    if not os.path.exists(SOURCE_DIR):
-        os.makedirs(SOURCE_DIR)
+# Import and register blueprints that handle the API routes
+from controllers.animations import animations_bp
+from controllers.sprites import sprites_bp
+from controllers.files import files_bp
 
-def get_animation_folders():
-    """Get list of available animation folders"""
-    ensure_source_directory()
-    animations = []
-    for item in os.listdir(SOURCE_DIR):
-        item_path = os.path.join(SOURCE_DIR, item)
-        if os.path.isdir(item_path):
-            animations.append(item)
-    return sorted(animations)
-
-def get_frame_files(animation_name):
-    """Get the list of frame files in an animation folder"""
-    animation_path = os.path.join(SOURCE_DIR, animation_name)
-    if not os.path.exists(animation_path):
-        return []
-
-    # Get all files in the directory
-    try:
-        all_files = os.listdir(animation_path)
-        # Filter to only include files (not subdirectories) and sort them
-        frame_files = [f for f in all_files if os.path.isfile(os.path.join(animation_path, f))]
-        return sorted(frame_files)
-    except OSError:
-        return []
-
-def get_sprite_files(animation_name):
-    """Get the list of sprite files in an animation's sprites folder"""
-    animation_path = os.path.join(SOURCE_DIR, animation_name)
-    sprites_path = os.path.join(animation_path, 'sprites')
-
-    if not os.path.exists(sprites_path):
-        return []
-
-    try:
-        all_files = os.listdir(sprites_path)
-        # Filter to only include image files and sort them
-        sprite_files = [f for f in all_files if os.path.isfile(os.path.join(sprites_path, f))
-                       and f.lower().endswith(('.png', '.gif', '.jpg', '.jpeg'))]
-        return sorted(sprite_files)
-    except OSError:
-        return []
-
-def calculate_padding_requirements(center_offsets):
-    """Calculate padding requirements for frames based on center offsets
-
-    Requirements:
-    1. ALL frames must have identical final width
-    2. Each frame's content positioned according to its offset
-    3. Offset 0 = content centered, +N = content N pixels right of center, -N = content N pixels left
-
-    Strategy: Calculate the maximum total padding needed, then distribute per frame.
-    """
-    if not center_offsets:
-        return 0, 0, []
-
-    # Find the range of offsets
-    min_offset = min(center_offsets)
-    max_offset = max(center_offsets)
-
-    # Calculate the total padding needed to accommodate all offsets
-    # We need enough padding so that:
-    # - For max positive offset: enough left padding to push content right
-    # - For max negative offset: enough right padding to push content left
-    # - No frame gets negative padding
-
-    # If offset is +N, content should be N pixels right of center
-    # This requires: left_padding - right_padding = 2*N (mathematical relationship)
-    # Combined with: left_padding + right_padding = total_padding (uniform width)
-    # Solving: left_padding = (total_padding + 2*N) / 2, right_padding = (total_padding - 2*N) / 2
-
-    # To ensure no negative padding for any frame:
-    # For max_offset: (total_padding - 2*max_offset) / 2 >= 0 → total_padding >= 2*max_offset
-    # For min_offset: (total_padding + 2*min_offset) / 2 >= 0 → total_padding >= -2*min_offset
-
-    total_padding = max(2 * max_offset, -2 * min_offset)
-
-    # Ensure total_padding is even for clean division
-    if total_padding % 2 == 1:
-        total_padding += 1
-
-
-    # Calculate padding for each frame (FLIPPED: positive offset = more right padding)
-    frame_paddings = []
-    for i, offset in enumerate(center_offsets):
-        # FLIP: positive offset should have more RIGHT padding, negative should have more LEFT
-        left_pad = (total_padding - 2 * offset) // 2
-        right_pad = (total_padding + 2 * offset) // 2
-
-        frame_paddings.append((left_pad, right_pad))
-
-    return total_padding, total_padding // 2, frame_paddings
-
-def pad_image(image_path, output_path, left_pad, right_pad):
-    """Pad an image with transparent pixels"""
-    with Image.open(image_path) as img:
-        # Convert to RGBA if not already
-        if img.mode != 'RGBA':
-            img = img.convert('RGBA')
-
-        original_width, original_height = img.size
-        new_width = original_width + left_pad + right_pad
-
-        # Create new image with transparent background
-        new_img = Image.new('RGBA', (new_width, original_height), (0, 0, 0, 0))
-
-        # Paste the original image with the left padding offset
-        new_img.paste(img, (left_pad, 0))
-
-        # Save as GIF (preserving transparency)
-        new_img.save(output_path, 'GIF', transparency=0, disposal=2)
+app.register_blueprint(animations_bp)
+app.register_blueprint(sprites_bp)
+app.register_blueprint(files_bp)
 
 @app.route('/')
 def index():
