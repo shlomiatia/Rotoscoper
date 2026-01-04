@@ -174,30 +174,11 @@ def list_animations():
             'error': str(e)
         }), 500
 
-@app.route('/api/animations/<animation_name>/frames', methods=['GET'])
-def get_animation_info(animation_name):
-    """Get information about a specific animation"""
-    try:
-        animation_path = os.path.join(SOURCE_DIR, animation_name)
-        if not os.path.exists(animation_path):
-            return jsonify({
-                'success': False,
-                'error': f'Animation "{animation_name}" not found'
-            }), 404
+# Removed endpoint: GET /api/animations/<animation_name>/frames
+# Frame lists are included in the GET /api/animations response. If a dedicated
+# per-animation frames endpoint is required in the future, it can be reintroduced
+# with proper pagination or filtering to avoid duplicating listing logic.
 
-        frame_files = get_frame_files(animation_name)
-
-        return jsonify({
-            'success': True,
-            'name': animation_name,
-            'frameCount': len(frame_files),
-            'frames': frame_files
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @app.route('/api/animations', methods=['POST'])
 def create_animation():
@@ -333,87 +314,16 @@ def create_animation():
             'error': str(e)
         }), 500
 
-@app.route('/api/animations/<animation_name>', methods=['DELETE'])
-def delete_animation(animation_name):
-    """Delete an animation (except the original Walk animation)"""
-    try:
-        if animation_name == 'Walk':
-            return jsonify({
-                'success': False,
-                'error': 'Cannot delete the original Walk animation'
-            }), 403
+# Removed endpoint: DELETE /api/animations/<animation_name>
+# Deleting animations is intentionally disabled in the public API. If deletion
+# functionality is required, add a protected admin endpoint or a confirmation
+# flow to prevent accidental removals.
 
-        animation_path = os.path.join(SOURCE_DIR, animation_name)
-        if not os.path.exists(animation_path):
-            return jsonify({
-                'success': False,
-                'error': f'Animation "{animation_name}" not found'
-            }), 404
 
-        shutil.rmtree(animation_path)
+# Removed endpoint: GET /api/animations/<animation_name>/sprites
+# Sprite listings are now included in the GET /api/animations response to keep
+# listing and metadata centralized and avoid duplicate file system scans.
 
-        return jsonify({
-            'success': True,
-            'message': f'Animation "{animation_name}" deleted successfully'
-        })
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/animations/<animation_name>/sprites', methods=['GET'])
-def get_animation_sprites(animation_name):
-    """Get list of sprite files for an animation"""
-    try:
-        animation_path = os.path.join(SOURCE_DIR, animation_name)
-        if not os.path.exists(animation_path):
-            return jsonify({
-                'success': False,
-                'error': f'Animation "{animation_name}" not found'
-            }), 404
-
-        sprites_path = os.path.join(animation_path, 'sprites')
-        if not os.path.exists(sprites_path):
-            return jsonify({
-                'success': True,
-                'sprites': []
-            })
-
-        # Get all sprite files
-        sprite_files = []
-        try:
-            all_files = os.listdir(sprites_path)
-            for filename in all_files:
-                file_path = os.path.join(sprites_path, filename)
-                if os.path.isfile(file_path) and filename.lower().endswith(('.png', '.gif', '.jpg', '.jpeg')):
-                    # Extract frame index from filename if it follows the pattern
-                    frame_index = -1
-                    if filename.startswith('frame_') and '_delay-' in filename:
-                        try:
-                            frame_part = filename.split('_')[1]
-                            frame_index = int(frame_part)
-                        except (IndexError, ValueError):
-                            pass
-
-                    sprite_files.append({
-                        'filename': filename,
-                        'frameIndex': frame_index
-                    })
-        except OSError:
-            sprite_files = []
-
-        return jsonify({
-            'success': True,
-            'sprites': sprite_files
-        })
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @app.route('/api/animations/<animation_name>/sprites/save', methods=['POST'])
 def save_sprite(animation_name):

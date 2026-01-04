@@ -111,11 +111,11 @@ You'll see the main tools page with links to both tools.
 
 The Flask server provides these REST endpoints:
 
-- `GET /api/animations` - List all animations with frame counts
+- `GET /api/animations` - List all animations with frame counts (includes per-animation `frames` and `sprites` lists)
 - `POST /api/animations` - Create new animation from frame range with optional center point adjustments
-- `GET /api/animations/{name}/frames` - Get specific animation info and frame list
-- `DELETE /api/animations/{name}` - Delete animation (protects original Walk animation)
 - `POST /api/animations/{name}/sprites/save` - Save generated sprite images to animation folder
+- `POST /api/files/save` - Save an arbitrary image file to a specified path
+- `POST /api/animations/crop` - Create a cropped animation from existing animation frames and sprites
 
 ## File Structure
 
