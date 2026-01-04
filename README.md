@@ -50,7 +50,7 @@ pip install -r requirements.txt
 
 ### 2. Prepare Animation Frames
 
-Make sure your animation frames are in the `Source/Walk/` directory with the naming pattern:
+Place your animation frames under `Source/<animation_name>/` (for example `Source/Walk/`) with the naming pattern:
 ```
 Source/Walk/frame_000_delay-0.03s.gif
 Source/Walk/frame_001_delay-0.03s.gif
@@ -164,7 +164,7 @@ Rotoscoper/
 - Run setup script: `python setup.py`
 
 ### No animations visible
-- Ensure `Source/Walk/` directory exists with frame files
+- If no animations are visible: add frame files under `Source/<animation_name>/` (e.g., `Source/Walk/`)
 - Verify frame naming pattern: `frame_XXX_delay-0.03s.gif`
 - Check browser console (F12) for JavaScript errors
 - Confirm server is running at http://localhost:5000

@@ -34,22 +34,6 @@ def check_python():
         print(f"[ERROR] Error checking Python version: {e}")
         return False
 
-def check_source_directory():
-    """Check if Source/Walk directory exists"""
-    walk_dir = os.path.join('Source', 'Walk')
-    if os.path.exists(walk_dir):
-        frame_files = [f for f in os.listdir(walk_dir) if f.startswith('frame_') and f.endswith('.gif')]
-        if frame_files:
-            print(f"[OK] Found {len(frame_files)} frames in Source/Walk/")
-            return True
-        else:
-            print("[ERROR] No frame files found in Source/Walk/")
-            return False
-    else:
-        print("[ERROR] Source/Walk directory not found")
-        print("Please make sure your animation frames are in Source/Walk/")
-        return False
-
 def main():
     print("Animation Player Setup")
     print("=" * 50)
@@ -57,12 +41,6 @@ def main():
     # Check Python
     if not check_python():
         sys.exit(1)
-
-    # Check source directory
-    if not check_source_directory():
-        print("\nWarning: Animation frames not found.")
-        print("The server will still start, but you won't see animations until")
-        print("you place your frame files in Source/Walk/")
 
     # Install dependencies
     if not run_command("pip install -r requirements.txt", "Installing Python dependencies"):
