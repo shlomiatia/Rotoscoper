@@ -1,3 +1,6 @@
 Flask==2.3.3
 Flask-CORS==4.0.0
 Pillow>=10.0.0
+rembg>=2.0.0
+# onnxruntime provides the runtime used by rembg; install the GPU variant if you have CUDA available
+onnxruntime>=1.15.0

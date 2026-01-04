@@ -42,10 +42,11 @@ def main():
     if not check_python():
         sys.exit(1)
 
-    # Install dependencies
-    if not run_command("pip install -r requirements.txt", "Installing Python dependencies"):
-        print("\nIf pip install failed, try:")
-        print("  python -m pip install Flask==2.3.3 Flask-CORS==4.0.0")
+    # Install dependencies using the same Python executable to avoid environment mismatches
+    pip_cmd = f'"{sys.executable}" -m pip install -r requirements.txt'
+    if not run_command(pip_cmd, "Installing Python dependencies"):
+        print("\nIf pip install failed, try:\n  python -m pip install Flask==2.3.3 Flask-CORS==4.0.0 Pillow rembg")
+        print("Or install requirements directly using the same python executable:\n  {sys.executable} -m pip install -r requirements.txt")
         sys.exit(1)
 
     print("\n" + "=" * 50)

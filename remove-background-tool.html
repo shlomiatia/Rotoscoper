@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remove Background Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f0f0f0; }
+        .container { background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .back-btn { background-color: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; text-decoration:none; font-size:14px; }
+        .back-btn:hover { background-color: #5a6268; }
+        .frame-preview-container { text-align:center; margin-bottom:20px; background-color:#f8f8f8; padding:20px; border-radius:5px; }
+        .frame-image { display:none; }
+        .frame-image.active { display:block; }
+        .controls { display:grid; gap:12px; }
+        .input-group { display:flex; gap:10px; align-items:center; }
+        .input-group label { min-width:150px; font-weight:bold; }
+        input[type=range] { flex:1; }
+        input[type=text], input[type=number] { flex:1; padding:8px; border:1px solid #ddd; border-radius:3px; }
+        .action-btn { background-color:#28a745; color:white; padding:10px 16px; border:none; border-radius:5px; cursor:pointer; font-size:16px; }
+        .action-btn:disabled { background-color:#6c757d; cursor:not-allowed; }
+        .info { background-color:#e9ecef; padding:10px; border-radius:5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Remove Background</h1>
+            <a href="index.html" class="back-btn">← Back to Tools</a>
+        </div>
+
+        <div class="frame-preview-container">
+            <div id="frame-container"></div>
+        </div>
+
+        <div class="controls">
+            <div class="input-group">
+                <label>Animation:</label>
+                <select id="animation-select"></select>
+            </div>
+
+            <div class="input-group">
+                <label>Frame:</label>
+                <input type="range" id="frame-slider" min="0" max="149" value="0">
+                <input type="number" id="frame-input" min="0" max="149" value="0" style="width:80px;">
+            </div>
+
+            <div class="input-group">
+                <label>Tolerance (color distance):</label>
+                <input type="range" id="tolerance-slider" min="0" max="255" value="30">
+                <input type="number" id="tolerance-input" min="0" max="255" value="30" style="width:80px;">
+            </div>
+
+            <div class="input-group">
+                <label>New Animation Name:</label>
+                <input type="text" id="new-animation-name" placeholder="e.g. Walk_no-bg">
+            </div>
+
+            <div class="input-group">
+                <button id="remove-btn" class="action-btn">Remove Background & Create Animation</button>
+            </div>
+
+            <div id="status" class="info">Select an animation and click the button to create a background-removed copy.</div>
+        </div>
+    </div>
+
+    <script>
+        class RemoveBackgroundTool {
+            constructor() {
+                this.animations = [];
+                this.animationData = {};
+                this.currentAnimation = null;
+                this.totalFrames = 150;
+                this.currentFrame = 0;
+
+                this.frameElements = {};
+                this.currentFrameElement = null;
+
+                this.tolerance = 30;
+
+                this.initializeElements();
+                this.bindEvents();
+                this.loadAvailableAnimations();
+            }
+
+            initializeElements() {
+                this.animationSelect = document.getElementById('animation-select');
+                this.frameContainer = document.getElementById('frame-container');
+                this.frameSlider = document.getElementById('frame-slider');
+                this.frameInput = document.getElementById('frame-input');
+                this.toleranceSlider = document.getElementById('tolerance-slider');
+                this.toleranceInput = document.getElementById('tolerance-input');
+                this.newAnimationNameInput = document.getElementById('new-animation-name');
+                this.removeBtn = document.getElementById('remove-btn');
+                this.statusEl = document.getElementById('status');
+            }
+
+            bindEvents() {
+                this.animationSelect.addEventListener('change', (e) => this.switchAnimation(e.target.value));
+                this.frameSlider.addEventListener('input', (e) => this.setFrame(parseInt(e.target.value)));
+                this.frameInput.addEventListener('change', (e) => this.setFrame(parseInt(e.target.value)));
+                this.toleranceSlider.addEventListener('input', (e) => { this.tolerance = parseInt(e.target.value); this.toleranceInput.value = this.tolerance; });
+                this.toleranceInput.addEventListener('change', (e) => { this.tolerance = parseInt(e.target.value); this.toleranceSlider.value = this.tolerance; });
+                this.removeBtn.addEventListener('click', () => this.performRemove());
+            }
+
+            async loadAvailableAnimations() {
+                try {
+                    const res = await fetch('/api/animations');
+                    const data = await res.json();
+                    if (data.success) {
+                        this.animations = data.animations.map(a => a.name);
+                        this.animationData = {};
+                        data.animations.forEach(anim => {
+                            this.animationData[anim.name] = { frameCount: anim.frameCount, frames: anim.frames || [] };
+                        });
+
+                        if (this.animations.length > 0) {
+                            this.currentAnimation = this.animations[0];
+                            this.totalFrames = this.animationData[this.currentAnimation].frameCount || 150;
+                        }
+                        this.updateAnimationSelect();
+                        this.createFrameElements();
+                    } else {
+                        this.statusEl.textContent = 'Failed to load animations';
+                    }
+                } catch (err) {
+                    this.statusEl.textContent = 'Error loading animations';
+                }
+            }
+
+            updateAnimationSelect() {
+                this.animationSelect.innerHTML = '';
+                this.animations.forEach(animation => {
+                    const option = document.createElement('option');
+                    option.value = animation;
+                    option.textContent = animation;
+                    this.animationSelect.appendChild(option);
+                });
+                if (this.currentAnimation) this.animationSelect.value = this.currentAnimation;
+                this.updateNewName();
+            }
+
+            updateNewName() {
+                if (!this.currentAnimation) return;
+                const suggested = `${this.currentAnimation}_no-bg`;
+                this.newAnimationNameInput.value = suggested;
+            }
+
+            switchAnimation(name) {
+                this.currentAnimation = name;
+                this.totalFrames = this.animationData[name].frameCount || 150;
+                this.frameSlider.max = Math.max(0, this.totalFrames - 1);
+                this.frameInput.max = Math.max(0, this.totalFrames - 1);
+                this.currentFrame = 0;
+                this.createFrameElements();
+                this.updateNewName();
+            }
+
+            setFrame(frame) {
+                this.currentFrame = Math.max(0, Math.min(frame, this.totalFrames - 1));
+                this.frameSlider.value = this.currentFrame;
+                this.frameInput.value = this.currentFrame;
+                this.updateFrame();
+            }
+
+            createFrameElements() {
+                this.frameContainer.innerHTML = '';
+                this.frameElements = {};
+
+                const frameFiles = this.animationData[this.currentAnimation]?.frames || [];
+                for (let i = 0; i < this.totalFrames; i++) {
+                    const img = document.createElement('img');
+                    img.className = 'frame-image';
+                    img.alt = `Frame ${i}`;
+                    if (frameFiles.length > i) img.src = `Source/${this.currentAnimation}/${frameFiles[i]}`;
+                    else img.src = `Source/${this.currentAnimation}/frame_${String(i).padStart(3,'0')}_delay-0.03s.gif`;
+                    if (i === 0) img.onload = () => { this.setFrame(0); };
+                    this.frameContainer.appendChild(img);
+                    this.frameElements[i] = img;
+                }
+                this.updateFrame();
+            }
+
+            updateFrame() {
+                if (this.currentFrameElement) this.currentFrameElement.classList.remove('active');
+                const el = this.frameElements[this.currentFrame];
+                if (el) {
+                    el.classList.add('active');
+                    this.currentFrameElement = el;
+                }
+            }
+
+            async performRemove() {
+                const sourceAnimation = this.currentAnimation;
+                const newName = (document.getElementById('new-animation-name').value || '').trim();
+                if (!sourceAnimation || !newName) {
+                    alert('Please select an animation and enter a new animation name');
+                    return;
+                }
+
+                if (this.animations.includes(newName)) {
+                    alert('Animation with this name already exists');
+                    return;
+                }
+
+                this.removeBtn.disabled = true;
+                this.statusEl.textContent = 'Processing frames (this may take a few seconds)...';
+
+                try {
+                    const payload = { sourceAnimation, newName, tolerance: this.tolerance };
+                    const res = await fetch('/api/animations/remove-background', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    const data = await res.json();
+                    if (data.success) {
+                        this.statusEl.textContent = `Created animation ${data.name} (frames: ${data.frameCount}, sprites: ${data.spriteCount})`;
+                        this.animations.push(data.name);
+                        this.animationData[data.name] = { frameCount: data.frameCount, frames: [] };
+                        this.updateAnimationSelect();
+                    } else {
+                        this.statusEl.textContent = `Error: ${data.error}`;
+                    }
+                } catch (err) {
+                    this.statusEl.textContent = 'Error processing request';
+                }
+
+                this.removeBtn.disabled = false;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => new RemoveBackgroundTool());
+    </script>
+</body>
+</html>
