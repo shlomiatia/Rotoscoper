@@ -302,7 +302,9 @@
             font-weight: bold;
         }
 
-        select, input[type="text"], input[type="number"] {
+        select,
+        input[type="text"],
+        input[type="number"] {
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 3px;
@@ -588,12 +590,14 @@
 
             getFormatOptions(format) {
                 return [
-                    { id: 'sheet-layout', label: 'Layout', type: 'select', default: 'horizontal',
-                      options: [
-                          { value: 'horizontal', label: 'Horizontal Strip' },
-                          { value: 'vertical', label: 'Vertical Strip' },
-                          { value: 'auto', label: 'Auto (Square-ish)' }
-                      ]}
+                    {
+                        id: 'sheet-layout', label: 'Layout', type: 'select', default: 'horizontal',
+                        options: [
+                            { value: 'horizontal', label: 'Horizontal Strip' },
+                            { value: 'vertical', label: 'Vertical Strip' },
+                            { value: 'auto', label: 'Auto (Square-ish)' }
+                        ]
+                    }
                 ];
             }
 
