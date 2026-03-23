@@ -310,7 +310,6 @@
             <h3>Create Animation from Frame Range</h3>
             <div class="animation-selector">
                 <select id="animation-select">
-                    <option value="Walk">Walk</option>
                 </select>
             </div>
             <div class="range-controls">
@@ -364,7 +363,7 @@
                 this.isPlaying = false;
                 this.animationId = null;
                 this.startTime = Date.now();
-                this.currentAnimation = 'Walk';
+                this.currentAnimation = null;
                 this.animations = [];
                 this.animationData = {};
                 this.isCreating = false;
@@ -384,8 +383,6 @@
                 this.loadAvailableAnimations();
                 this.updateDisplays();
                 this.updateZoomDisplay();
-
-                setTimeout(() => this.createFrameElements(), 100);
             }
 
             initializeElements() {
@@ -576,6 +573,8 @@
             }
 
             createFrameElements() {
+                if (!this.currentAnimation) return;
+
                 this.frameContainer.innerHTML = '';
                 this.currentFrameElement = null;
 
@@ -728,9 +727,7 @@
                             };
                         });
 
-                        if (this.animations.includes('Walk')) {
-                            this.currentAnimation = 'Walk';
-                        } else if (this.animations.length > 0) {
+                        if (this.animations.length > 0) {
                             this.currentAnimation = this.animations[0];
                         }
 
@@ -740,20 +737,21 @@
                         }
 
                         this.updateAnimationSelect();
+                        if (this.currentAnimation) {
+                            setTimeout(() => this.createFrameElements(), 100);
+                        }
                     } else {
-                        this.animations = ['Walk'];
-                        this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
-                        this.currentAnimation = 'Walk';
-                        this.totalFrames = 150;
-                        this.endFrame = 149;
+                        alert('Failed to load animations from server');
+                        this.animations = [];
+                        this.animationData = {};
+                        this.currentAnimation = null;
                         this.updateAnimationSelect();
                     }
                 } catch (error) {
-                    this.animations = ['Walk'];
-                    this.animationData = { 'Walk': { frameCount: 150, frames: [] } };
-                    this.currentAnimation = 'Walk';
-                    this.totalFrames = 150;
-                    this.endFrame = 149;
+                    alert('Failed to load animations from server: ' + error.message);
+                    this.animations = [];
+                    this.animationData = {};
+                    this.currentAnimation = null;
                     this.updateAnimationSelect();
                 }
             }
