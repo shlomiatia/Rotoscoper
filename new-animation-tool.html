@@ -72,22 +72,29 @@
         .frame-image {
             display: none;
             transition: transform 0.1s ease;
+            transform-origin: center center;
         }
 
         .frame-image.active {
             display: block;
         }
 
-        .center-indicator {
+        .center-indicator-container {
             position: absolute;
             top: 0;
-            bottom: 0;
-            left: 50%;
-            width: 1px;
-            background-color: #ff4444;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
-            z-index: 10;
-            transform: translateX(-50%);
+        }
+
+        #center-indicator-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
         .range-controls {
@@ -274,7 +281,9 @@
         <div class="animation-container">
             <div class="frame-preview-container">
                 <div id="frame-container"></div>
-                <div class="center-indicator" id="center-indicator"></div>
+                <div class="center-indicator-container">
+                    <canvas id="center-indicator-canvas"></canvas>
+                </div>
             </div>
         </div>
 
@@ -393,7 +402,8 @@
                 this.frameSlider = document.getElementById('frame-slider');
                 this.frameInput = document.getElementById('frame-input');
                 this.centerInput = document.getElementById('center-input');
-                this.centerIndicator = document.getElementById('center-indicator');
+                this.centerCanvas = document.getElementById('center-indicator-canvas');
+                this.centerCtx = this.centerCanvas.getContext('2d');
                 this.applyCenterBtn = document.getElementById('apply-center-btn');
                 this.delaySlider = document.getElementById('delay-slider');
                 this.delayInput = document.getElementById('delay-input');
@@ -645,14 +655,35 @@
                     });
                 }
 
-                // Apply translation only to current frame
+                // Apply translation only to current frame (center point offset in original coordinate space)
                 if (this.currentFrameElement) {
-                    const scaledOffset = -this.currentCenterPoint;
-                    this.currentFrameElement.style.transform = `scale(${this.zoomLevel}) translateX(${scaledOffset}px)`;
+                    this.currentFrameElement.style.transform = `scale(${this.zoomLevel}) translateX(${-this.currentCenterPoint}px)`;
                 }
 
-                // Keep center indicator always at 1px width
-                this.centerIndicator.style.width = '1px';
+                this.drawCenterIndicator();
+            }
+
+            drawCenterIndicator() {
+                if (!this.centerCanvas || !this.centerCtx || this.frameWidth === 0 || this.frameHeight === 0 || !this.currentFrameElement) {
+                    this.centerCanvas.style.display = 'none';
+                    return;
+                }
+
+                this.centerCanvas.style.display = 'block';
+
+                const x = Math.round(this.frameWidth / 2); // Always draw at visual center of frame
+
+                this.centerCanvas.width = this.frameWidth;
+                this.centerCanvas.height = this.frameHeight;
+                this.centerCanvas.style.width = `${this.frameWidth}px`;
+                this.centerCanvas.style.height = `${this.frameHeight}px`;
+
+                // Center and scale the canvas (no center point offset - indicator stays at frame center)
+                this.centerCanvas.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
+
+                this.centerCtx.clearRect(0, 0, this.frameWidth, this.frameHeight);
+                this.centerCtx.fillStyle = '#ff4444';
+                this.centerCtx.fillRect(x, 0, 1, this.frameHeight);
             }
 
             nextFrame() {
