@@ -1,7 +1,7 @@
 [gd_scene load_steps=45 format=3 uid="uid://dmby0fn5i84m7"]
 
 [ext_resource type="Texture2D" uid="uid://yat3ck777e7g" path="res://Walk_cropped_sprites.png" id="1_8oy84"]
-[ext_resource type="Script" path="res://player.gd" id="1_i6c2i"]
+[ext_resource type="Script" uid="uid://bcytu14scmu6i" path="res://player.gd" id="1_i6c2i"]
 [ext_resource type="Texture2D" uid="uid://deau1cflrk8n6" path="res://StartWalk_cropped_sprites.png" id="2_vuqh8"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_8ptci"]
