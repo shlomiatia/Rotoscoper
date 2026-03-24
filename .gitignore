@@ -6,4 +6,5 @@ Source/
 controllers/__pycache__/
 # Windows path variant (harmless duplicate):
 controllers\__pycache__
-__pycache__/utils.cpython-313.pyc
+__pycache__/
+__pycache__\
