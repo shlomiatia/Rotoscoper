@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cleanup Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .image-container {
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f8f8f8;
+            padding: 20px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .image-preview-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #image-preview {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .control-group {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        .zoom-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        .zoom-btn:hover {
+            background-color: #5a6268;
+        }
+
+        #zoom-display {
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .file-input-group {
+            margin-bottom: 15px;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .file-input-label:hover {
+            background-color: #0056b3;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .action-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background-color: #218838;
+        }
+
+        .action-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        .download-btn {
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .download-btn:hover:not(:disabled) {
+            background-color: #138496;
+        }
+
+        .download-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Cleanup Tool</h1>
+            <a href="index.html" class="back-btn">← Back to Tools</a>
+        </div>
+
+        <div class="control-group">
+            <div class="file-input-group">
+                <label class="file-input-label">
+                    Select Image
+                    <input type="file" id="file-input" accept="image/*">
+                </label>
+                <div class="info" id="image-info"></div>
+            </div>
+
+            <div class="input-group">
+                <label>Zoom:</label>
+                <button id="zoom-out-btn" class="zoom-btn">-</button>
+                <span id="zoom-display">100%</span>
+                <button id="zoom-in-btn" class="zoom-btn">+</button>
+            </div>
+        </div>
+
+        <div class="image-container">
+            <div class="image-preview-container" id="image-preview-container">
+                <img id="image-preview" style="display: none;">
+                <canvas id="image-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <button id="cleanup-btn" class="action-btn" disabled>Cleanup and Download</button>
+        </div>
+    </div>
+
+    <script>
+        const CleanupTool = function() {
+            const self = this;
+
+            this.zoomLevel = 100;
+            this.maxZoom = 1000;
+            this.minZoom = 25;
+            this.zoomLevels = [25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
+            this.originalImageData = null;
+            this.cleanedImageData = null;
+
+            this.initializeElements = function() {
+                this.fileInput = document.getElementById('file-input');
+                this.imagePreview = document.getElementById('image-preview');
+                this.imageInfo = document.getElementById('image-info');
+                this.zoomDisplay = document.getElementById('zoom-display');
+                this.zoomInBtn = document.getElementById('zoom-in-btn');
+                this.zoomOutBtn = document.getElementById('zoom-out-btn');
+                this.imageCanvas = document.getElementById('image-canvas');
+                this.imageCtx = this.imageCanvas.getContext('2d');
+                this.cleanupBtn = document.getElementById('cleanup-btn');
+
+                // Set pixelated rendering
+                this.imageCanvas.style.imageRendering = 'pixelated';
+                this.imageCanvas.style.imageRendering = '-moz-crisp-edges';
+                this.imageCanvas.style.imageRendering = 'crisp-edges';
+            };
+
+            this.bindEvents = function() {
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.zoomInBtn.addEventListener('click', () => this.zoomIn());
+                this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
+                this.cleanupBtn.addEventListener('click', () => this.cleanupImage());
+                this.downloadBtn.addEventListener('click', () => this.downloadImage());
+                window.addEventListener('resize', () => this.updateZoom());
+            };
+
+            this.handleFileSelect = function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.originalImageData = null;
+                        this.cleanedImageData = null;
+                        this.passCount = 0;
+
+                        // Set canvas size to image size
+                        this.imageCanvas.width = img.width;
+                        this.imageCanvas.height = img.height;
+
+                        // Draw image to canvas
+                        this.imageCtx.drawImage(img, 0, 0);
+
+                        // Get image data
+                        this.originalImageData = this.imageCtx.getImageData(0, 0, img.width, img.height);
+
+                        // Start with original data loaded
+                        this.cleanedImageData = new ImageData(
+                            new Uint8ClampedArray(this.originalImageData.data),
+                            this.originalImageData.width,
+                            this.originalImageData.height
+                        );
+
+                        // Update UI
+                        this.imageInfo.textContent = `Image loaded: ${img.width}x${img.height}`;
+                        this.cleanupBtn.disabled = false;
+
+                        this.updateZoom();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+
+            this.zoomIn = function() {
+                const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
+                if (currentIndex < this.zoomLevels.length - 1) {
+                    this.zoomLevel = this.zoomLevels[currentIndex + 1];
+                    this.updateZoom();
+                }
+            };
+
+            this.zoomOut = function() {
+                const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
+                if (currentIndex > 0) {
+                    this.zoomLevel = this.zoomLevels[currentIndex - 1];
+                    this.updateZoom();
+                }
+            };
+
+            this.updateZoom = function() {
+                this.zoomDisplay.textContent = this.zoomLevel + '%';
+
+                if (this.originalImageData) {
+                    const scale = this.zoomLevel / 100;
+                    this.imageCanvas.style.width = (this.originalImageData.width * scale) + 'px';
+                    this.imageCanvas.style.height = (this.originalImageData.height * scale) + 'px';
+                }
+            };
+
+            this.cleanupImage = function() {
+                if (!this.cleanedImageData) return;
+
+                // Disable action while processing
+                this.cleanupBtn.disabled = true;
+
+                let changed = true;
+                let iterations = 0;
+                const maxIterations = 100;
+
+                while (changed && iterations < maxIterations) {
+                    changed = false;
+                    iterations++;
+
+                    const sourceData = this.cleanedImageData;
+                    const width = sourceData.width;
+                    const height = sourceData.height;
+                    const newImageData = new ImageData(new Uint8ClampedArray(sourceData.data), width, height);
+
+                    for (let y = 0; y < height; y++) {
+                        for (let x = 0; x < width; x++) {
+                            const index = (y * width + x) * 4;
+                            const alpha = sourceData.data[index + 3];
+                            const isFilled = alpha > 0;
+
+                            let filledNeighbors = 0;
+                            let transparentNeighbors = 0;
+                            const neighborColors = [];
+
+                            const directions = [
+                                { dx: 0, dy: -1 },
+                                { dx: 0, dy: 1 },
+                                { dx: -1, dy: 0 },
+                                { dx: 1, dy: 0 }
+                            ];
+
+                            directions.forEach(({dx, dy}) => {
+                                const nx = x + dx;
+                                const ny = y + dy;
+
+                                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                    const nIndex = (ny * width + nx) * 4;
+                                    const nAlpha = sourceData.data[nIndex + 3];
+                                    const nIsFilled = nAlpha > 0;
+
+                                    if (nIsFilled) {
+                                        filledNeighbors++;
+                                        neighborColors.push({
+                                            r: sourceData.data[nIndex],
+                                            g: sourceData.data[nIndex + 1],
+                                            b: sourceData.data[nIndex + 2]
+                                        });
+                                    } else {
+                                        transparentNeighbors++;
+                                    }
+                                }
+                            });
+
+                            if (isFilled && transparentNeighbors >= 3) {
+                                newImageData.data[index + 3] = 0;
+                                changed = true;
+                            } else if (!isFilled && filledNeighbors >= 3) {
+                                if (neighborColors.length > 0) {
+                                    const mostCommonColor = this.getMostCommonColor(neighborColors);
+                                    newImageData.data[index] = mostCommonColor.r;
+                                    newImageData.data[index + 1] = mostCommonColor.g;
+                                    newImageData.data[index + 2] = mostCommonColor.b;
+                                    newImageData.data[index + 3] = 255;
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+
+                    this.cleanedImageData = newImageData;
+                }
+
+                // Update display and download automatically
+                this.imageCtx.putImageData(this.cleanedImageData, 0, 0);
+                this.passCount = iterations;
+                console.log(`Cleanup completed in ${iterations} iterations, stable=${!changed}`);
+
+                this.downloadImage();
+                this.cleanupBtn.disabled = false;
+            };
+
+            this.getMostCommonColor = function(colors) {
+                const colorCounts = new Map();
+
+                colors.forEach(color => {
+                    const key = `${color.r},${color.g},${color.b}`;
+                    colorCounts.set(key, (colorCounts.get(key) || 0) + 1);
+                });
+
+                let maxCount = 0;
+                const mostCommonKeys = [];
+
+                colorCounts.forEach((count, key) => {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        mostCommonKeys.length = 0;
+                        mostCommonKeys.push(key);
+                    } else if (count === maxCount) {
+                        mostCommonKeys.push(key);
+                    }
+                });
+
+                // If tie, choose randomly among the most common
+                const selectedKey = mostCommonKeys[Math.floor(Math.random() * mostCommonKeys.length)];
+                const [r, g, b] = selectedKey.split(',').map(Number);
+                return { r, g, b };
+            };
+
+            this.downloadImage = function() {
+                if (!this.cleanedImageData) return;
+
+                this.imageCanvas.toBlob((blob) => {
+                    this.downloadBlob(blob, 'cleaned_image.png');
+                });
+            };
+
+            this.downloadBlob = function(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            this.init = function() {
+                this.initializeElements();
+                this.bindEvents();
+            };
+        };
+
+        // Initialize the tool when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const tool = new CleanupTool();
+            tool.init();
+        });
+    </script>
+</body>
+
+</html>
