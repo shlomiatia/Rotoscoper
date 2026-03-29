@@ -312,6 +312,13 @@
             </div>
 
             <div class="input-group">
+                <label>Center Y Offset:</label>
+                <input type="number" id="center-y-input" value="0" step="1">
+                <span>px</span>
+                <button id="apply-center-y-btn" class="apply-center-btn">Apply to Rest</button>
+            </div>
+
+            <div class="input-group">
                 <label>Elapsed Time:</label>
                 <span id="elapsed-time-display">0.00s</span>
             </div>
@@ -380,7 +387,9 @@
                 this.isCreating = false;
 
                 this.centerPoints = {};
+                this.centerPointsY = {};
                 this.currentCenterPoint = 0;
+                this.currentCenterPointY = 0;
                 this.frameWidth = 0;
                 this.frameHeight = 0;
                 this.frameElements = {};
@@ -402,9 +411,11 @@
                 this.frameSlider = document.getElementById('frame-slider');
                 this.frameInput = document.getElementById('frame-input');
                 this.centerInput = document.getElementById('center-input');
+                this.centerYInput = document.getElementById('center-y-input');
                 this.centerCanvas = document.getElementById('center-indicator-canvas');
                 this.centerCtx = this.centerCanvas.getContext('2d');
                 this.applyCenterBtn = document.getElementById('apply-center-btn');
+                this.applyCenterYBtn = document.getElementById('apply-center-y-btn');
                 this.delaySlider = document.getElementById('delay-slider');
                 this.delayInput = document.getElementById('delay-input');
                 this.fpsDisplay = document.getElementById('fps-display');
@@ -425,6 +436,10 @@
                 this.centerInput.removeAttribute('min');
                 this.centerInput.removeAttribute('max');
                 this.centerInput.value = this.currentCenterPoint;
+
+                this.centerYInput.removeAttribute('min');
+                this.centerYInput.removeAttribute('max');
+                this.centerYInput.value = this.currentCenterPointY;
             }
 
             bindEvents() {
@@ -446,12 +461,30 @@
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         this.applyCenterToSubsequentFrames();
+                        this.applyCenterYToSubsequentFrames();
+                        this.nextFrame();
+                    }
+                });
+
+                this.centerYInput.addEventListener('change', (e) => {
+                    this.setCenterPointY(parseInt(e.target.value) || 0);
+                });
+
+                this.centerYInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.applyCenterToSubsequentFrames();
+                        this.applyCenterYToSubsequentFrames();
                         this.nextFrame();
                     }
                 });
 
                 this.applyCenterBtn.addEventListener('click', () => {
                     this.applyCenterToSubsequentFrames();
+                });
+
+                this.applyCenterYBtn.addEventListener('click', () => {
+                    this.applyCenterYToSubsequentFrames();
                 });
 
                 this.delaySlider.addEventListener('input', (e) => {
@@ -502,6 +535,13 @@
                 this.updatePreview();
             }
 
+            setCenterPointY(offsetPixels) {
+                this.currentCenterPointY = offsetPixels;
+                this.saveCenterPoint();
+                this.centerYInput.value = this.currentCenterPointY;
+                this.updatePreview();
+            }
+
             applyCenterToSubsequentFrames() {
                 if (!this.centerPoints[this.currentAnimation]) {
                     this.centerPoints[this.currentAnimation] = {};
@@ -512,9 +552,23 @@
                 }
             }
 
+            applyCenterYToSubsequentFrames() {
+                if (!this.centerPointsY[this.currentAnimation]) {
+                    this.centerPointsY[this.currentAnimation] = {};
+                }
+
+                for (let frameIndex = this.currentFrame; frameIndex < this.totalFrames; frameIndex++) {
+                    this.centerPointsY[this.currentAnimation][frameIndex] = this.currentCenterPointY;
+                }
+            }
+
             loadCurrentFrameCenterPoint() {
                 if (!this.centerPoints[this.currentAnimation]) {
                     this.centerPoints[this.currentAnimation] = {};
+                }
+
+                if (!this.centerPointsY[this.currentAnimation]) {
+                    this.centerPointsY[this.currentAnimation] = {};
                 }
 
                 const savedCenter = this.centerPoints[this.currentAnimation][this.currentFrame];
@@ -524,7 +578,15 @@
                     this.currentCenterPoint = 0;
                 }
 
+                const savedCenterY = this.centerPointsY[this.currentAnimation][this.currentFrame];
+                if (savedCenterY !== undefined) {
+                    this.currentCenterPointY = savedCenterY;
+                } else {
+                    this.currentCenterPointY = 0;
+                }
+
                 this.centerInput.value = this.currentCenterPoint;
+                this.centerYInput.value = this.currentCenterPointY;
             }
 
             saveCenterPoint() {
@@ -657,7 +719,7 @@
 
                 // Apply translation only to current frame (center point offset in original coordinate space)
                 if (this.currentFrameElement) {
-                    this.currentFrameElement.style.transform = `scale(${this.zoomLevel}) translateX(${-this.currentCenterPoint}px)`;
+                    this.currentFrameElement.style.transform = `scale(${this.zoomLevel}) translate(${-this.currentCenterPoint}px, ${-this.currentCenterPointY}px)`;
                 }
 
                 this.drawCenterIndicator();
@@ -672,6 +734,7 @@
                 this.centerCanvas.style.display = 'block';
 
                 const x = Math.round(this.frameWidth / 2); // Always draw at visual center of frame
+                const y = Math.round(this.frameHeight / 2); // Always draw at visual center of frame
 
                 this.centerCanvas.width = this.frameWidth;
                 this.centerCanvas.height = this.frameHeight;
@@ -683,7 +746,8 @@
 
                 this.centerCtx.clearRect(0, 0, this.frameWidth, this.frameHeight);
                 this.centerCtx.fillStyle = '#ff4444';
-                this.centerCtx.fillRect(x, 0, 1, this.frameHeight);
+                this.centerCtx.fillRect(x, 0, 1, this.frameHeight); // Vertical line
+                this.centerCtx.fillRect(0, y, this.frameWidth, 1); // Horizontal line
             }
 
             nextFrame() {
@@ -840,7 +904,9 @@
                     this.currentFrame = 0;
 
                     this.currentCenterPoint = 0;
+                    this.currentCenterPointY = 0;
                     this.centerInput.value = 0;
+                    this.centerYInput.value = 0;
 
                     this.startFrameInput.max = this.endFrame;
                     this.endFrameInput.max = this.endFrame;
@@ -866,12 +932,15 @@
 
             copyCenterPointsToNewAnimation(newAnimationName) {
                 this.centerPoints[newAnimationName] = {};
+                this.centerPointsY[newAnimationName] = {};
                 const sourceAnimation = this.currentAnimation;
 
                 let newFrameIndex = 0;
                 for (let sourceFrameIndex = this.startFrame; sourceFrameIndex <= this.endFrame; sourceFrameIndex++) {
                     const sourceCenterOffset = this.centerPoints[sourceAnimation]?.[sourceFrameIndex] || 0;
+                    const sourceCenterOffsetY = this.centerPointsY[sourceAnimation]?.[sourceFrameIndex] || 0;
                     this.centerPoints[newAnimationName][newFrameIndex] = sourceCenterOffset;
+                    this.centerPointsY[newAnimationName][newFrameIndex] = sourceCenterOffsetY;
                     newFrameIndex++;
                 }
             }
@@ -879,8 +948,9 @@
             calculateCenterOffsetsForRange() {
                 const offsets = [];
                 for (let frameIndex = this.startFrame; frameIndex <= this.endFrame; frameIndex++) {
-                    const offset = this.centerPoints[this.currentAnimation]?.[frameIndex] || 0;
-                    offsets.push(offset);
+                    const offsetX = this.centerPoints[this.currentAnimation]?.[frameIndex] || 0;
+                    const offsetY = this.centerPointsY[this.currentAnimation]?.[frameIndex] || 0;
+                    offsets.push({ x: offsetX, y: offsetY });
                 }
                 return offsets;
             }
@@ -972,8 +1042,14 @@
                     this.centerPoints[animationName] = {};
                 }
 
+                if (!this.centerPointsY[animationName]) {
+                    this.centerPointsY[animationName] = {};
+                }
+
                 this.currentCenterPoint = 0;
+                this.currentCenterPointY = 0;
                 this.centerInput.value = 0;
+                this.centerYInput.value = 0;
 
                 this.startFrameInput.max = this.totalFrames - 1;
                 this.endFrameInput.max = this.totalFrames - 1;
