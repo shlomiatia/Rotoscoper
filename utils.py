@@ -118,4 +118,13 @@ def pad_image(image_path, output_path, left_pad, right_pad, top_pad=0, bottom_pa
 
         new_img = Image.new('RGBA', (new_width, new_height), (0, 0, 0, 0))
         new_img.paste(img, (left_pad, top_pad))
-        new_img.save(output_path, 'GIF', transparency=0, disposal=2)
+        
+        # Determine format from output file extension
+        output_ext = os.path.splitext(output_path)[1].lower()
+        if output_ext == '.png':
+            new_img.save(output_path, 'PNG')
+        elif output_ext == '.gif':
+            new_img.save(output_path, 'GIF', transparency=0, disposal=2)
+        else:
+            # Default to PNG for best quality
+            new_img.save(output_path, 'PNG')

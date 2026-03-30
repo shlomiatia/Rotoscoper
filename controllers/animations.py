@@ -96,9 +96,12 @@ def create_animation():
 
                 if frame_paddings and i < len(frame_paddings):
                     left_pad, right_pad, top_pad, bottom_pad = frame_paddings[i]
-                    try:
-                        pad_image(source_file_path, new_file_path, left_pad, right_pad, top_pad, bottom_pad)
-                    except Exception:
+                    if left_pad > 0 or right_pad > 0 or top_pad > 0 or bottom_pad > 0:
+                        try:
+                            pad_image(source_file_path, new_file_path, left_pad, right_pad, top_pad, bottom_pad)
+                        except Exception:
+                            shutil.copy2(source_file_path, new_file_path)
+                    else:
                         shutil.copy2(source_file_path, new_file_path)
                 else:
                     shutil.copy2(source_file_path, new_file_path)
