@@ -457,6 +457,10 @@
                     this.setCenterPoint(parseInt(e.target.value) || 0);
                 });
 
+                this.centerInput.addEventListener('input', (e) => {
+                    this.setCenterPoint(parseInt(e.target.value) || 0);
+                });
+
                 this.centerInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -467,6 +471,10 @@
                 });
 
                 this.centerYInput.addEventListener('change', (e) => {
+                    this.setCenterPointY(parseInt(e.target.value) || 0);
+                });
+
+                this.centerYInput.addEventListener('input', (e) => {
                     this.setCenterPointY(parseInt(e.target.value) || 0);
                 });
 
@@ -629,7 +637,12 @@
                 if (!this.centerPoints[this.currentAnimation]) {
                     this.centerPoints[this.currentAnimation] = {};
                 }
+                if (!this.centerPointsY[this.currentAnimation]) {
+                    this.centerPointsY[this.currentAnimation] = {};
+                }
+
                 this.centerPoints[this.currentAnimation][this.currentFrame] = this.currentCenterPoint;
+                this.centerPointsY[this.currentAnimation][this.currentFrame] = this.currentCenterPointY;
             }
 
             setStartFrame(startFrame) {
