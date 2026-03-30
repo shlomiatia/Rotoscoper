@@ -65,18 +65,24 @@ func change_state(new_state: State) -> void:
     match current_state:
         State.STAND:
             animated_sprite_2d.play("stand")
+            animated_sprite_2d.position = Vector2(-5, 0)
         State.START_WALK:
             animated_sprite_2d.play("start_walk")
+            animated_sprite_2d.position = Vector2(-5, 0)
         State.WALK:
             animated_sprite_2d.play("walk")
+            animated_sprite_2d.position = Vector2(-5, 0)
         State.JUMP_START:
             animated_sprite_2d.play("jump_start")
+            animated_sprite_2d.position = Vector2(5, -10)
         State.JUMP:
             animated_sprite_2d.play("jump")
             velocity.y = JUMP_VELOCITY
             just_entered_jump = true
+            animated_sprite_2d.position = Vector2(5, -10)
         State.JUMP_END:
             animated_sprite_2d.play_backwards("jump_start")
+            animated_sprite_2d.position = Vector2(5, -10)
 
 func _ready() -> void:
     animated_sprite_2d.connect("animation_finished", _on_AnimatedSprite2D_animation_finished)
