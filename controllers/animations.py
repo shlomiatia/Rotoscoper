@@ -62,8 +62,8 @@ def create_animation():
         if start_frame is None or end_frame is None:
             return jsonify({'success': False, 'error': 'Start and end frames are required'}), 400
 
-        if start_frame >= end_frame:
-            return jsonify({'success': False, 'error': 'Start frame must be less than end frame'}), 400
+        if start_frame > end_frame:
+            return jsonify({'success': False, 'error': 'Start frame must not be greater than end frame'}), 400
 
         source_path = os.path.join(SOURCE_DIR, source_animation)
         if not os.path.exists(source_path):

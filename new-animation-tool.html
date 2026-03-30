@@ -633,7 +633,7 @@
             }
 
             setStartFrame(startFrame) {
-                this.startFrame = Math.max(0, Math.min(startFrame, this.endFrame - 1));
+                this.startFrame = Math.max(0, Math.min(startFrame, this.endFrame));
                 this.startFrameInput.value = this.startFrame;
                 this.frameSlider.min = this.startFrame;
 
@@ -646,7 +646,7 @@
             }
 
             setEndFrame(endFrame) {
-                this.endFrame = Math.max(this.startFrame + 1, Math.min(endFrame, this.totalFrames - 1));
+                this.endFrame = Math.max(this.startFrame, Math.min(endFrame, this.totalFrames - 1));
                 this.endFrameInput.value = this.endFrame;
                 this.frameSlider.max = this.endFrame;
 
@@ -914,8 +914,8 @@
                     return;
                 }
 
-                if (this.startFrame >= this.endFrame) {
-                    alert('Start frame must be less than end frame');
+                if (this.startFrame > this.endFrame) {
+                    alert('Start frame must not be greater than end frame');
                     return;
                 }
 
