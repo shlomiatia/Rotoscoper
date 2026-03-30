@@ -35,14 +35,16 @@ func _physics_process(delta: float) -> void:
                 change_state(State.START_WALK)
         State.START_WALK:
             velocity.x = direction * SPEED
-            animated_sprite_2d.flip_h = direction < 0
             if direction == 0:
                 change_state(State.STAND)
+            else:
+                animated_sprite_2d.flip_h = direction < 0
         State.WALK:
             velocity.x = direction * SPEED
-            animated_sprite_2d.flip_h = direction < 0
             if direction == 0:
                 change_state(State.STAND)
+            else:
+                animated_sprite_2d.flip_h = direction < 0
         State.JUMP_START:
             pass # Wait for animation
         State.JUMP:
@@ -74,7 +76,7 @@ func change_state(new_state: State) -> void:
             velocity.y = JUMP_VELOCITY
             just_entered_jump = true
         State.JUMP_END:
-            animated_sprite_2d.play_backwards("jump_start") # Reverse
+            animated_sprite_2d.play_backwards("jump_start")
 
 func _ready() -> void:
     animated_sprite_2d.connect("animation_finished", _on_AnimatedSprite2D_animation_finished)
