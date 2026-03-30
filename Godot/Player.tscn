@@ -1,10 +1,10 @@
 [gd_scene load_steps=79 format=3 uid="uid://dmby0fn5i84m7"]
 
-[ext_resource type="Texture2D" uid="uid://yat3ck777e7g" path="res://Walk_cropped_sprites.png" id="1_8oy84"]
+[ext_resource type="Texture2D" uid="uid://yat3ck777e7g" path="res://Textures/Walk_cropped_sprites.png" id="1_8oy84"]
 [ext_resource type="Script" uid="uid://bcytu14scmu6i" path="res://player.gd" id="1_i6c2i"]
-[ext_resource type="Texture2D" uid="uid://d4hojh1y3uilo" path="res://JumpUp.png" id="2_cxr5p"]
-[ext_resource type="Texture2D" uid="uid://87t8k1nb3nsi" path="res://StartJumpUp_cropped_sprites_textured.png" id="2_e80uo"]
-[ext_resource type="Texture2D" uid="uid://deau1cflrk8n6" path="res://StartWalk_cropped_sprites.png" id="2_vuqh8"]
+[ext_resource type="Texture2D" uid="uid://d4hojh1y3uilo" path="res://Textures/JumpUp.png" id="2_cxr5p"]
+[ext_resource type="Texture2D" uid="uid://87t8k1nb3nsi" path="res://Textures/StartJumpUp_cropped_sprites_textured.png" id="2_e80uo"]
+[ext_resource type="Texture2D" uid="uid://deau1cflrk8n6" path="res://Textures/StartWalk_cropped_sprites.png" id="2_vuqh8"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_xmpta"]
 atlas = ExtResource("2_cxr5p")

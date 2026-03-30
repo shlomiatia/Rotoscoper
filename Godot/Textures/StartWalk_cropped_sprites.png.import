@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d4hojh1y3uilo"
-path="res://.godot/imported/JumpUp.png-6024cd9b78d193df1a2076af452e11b7.ctex"
+uid="uid://deau1cflrk8n6"
+path="res://.godot/imported/StartWalk_cropped_sprites.png-89e9a1571dc781fb262616d4e9c3a080.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://JumpUp.png"
-dest_files=["res://.godot/imported/JumpUp.png-6024cd9b78d193df1a2076af452e11b7.ctex"]
+source_file="res://Textures/StartWalk_cropped_sprites.png"
+dest_files=["res://.godot/imported/StartWalk_cropped_sprites.png-89e9a1571dc781fb262616d4e9c3a080.ctex"]
 
 [params]
 
