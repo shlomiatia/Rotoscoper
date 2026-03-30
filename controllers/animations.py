@@ -77,7 +77,7 @@ def create_animation():
 
         frame_paddings = []
         if center_offsets:
-            total_width_increase, max_center_offset, frame_paddings = calculate_padding_requirements(center_offsets)
+            total_width_increase, total_height_increase, max_center_offset_x, max_center_offset_y, frame_paddings = calculate_padding_requirements(center_offsets)
 
         source_frame_files = get_frame_files(source_animation)
         if not source_frame_files:
@@ -95,9 +95,9 @@ def create_animation():
                 new_file_path = os.path.join(new_path, new_filename)
 
                 if frame_paddings and i < len(frame_paddings):
-                    left_pad, right_pad = frame_paddings[i]
+                    left_pad, right_pad, top_pad, bottom_pad = frame_paddings[i]
                     try:
-                        pad_image(source_file_path, new_file_path, left_pad, right_pad)
+                        pad_image(source_file_path, new_file_path, left_pad, right_pad, top_pad, bottom_pad)
                     except Exception:
                         shutil.copy2(source_file_path, new_file_path)
                 else:

@@ -518,6 +518,42 @@
                 this.zoomOutBtn.addEventListener('click', () => {
                     this.zoomOut();
                 });
+
+                // Global keyboard controls for centering
+                document.addEventListener('keydown', (e) => {
+                    // Don't interfere with input fields
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                        return;
+                    }
+
+                    const step = e.shiftKey ? 5 : 1; // Hold shift for bigger steps
+
+                    switch (e.key.toLowerCase()) {
+                        case 'w':
+                            e.preventDefault();
+                            this.setCenterPointY(this.currentCenterPointY - step);
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            this.setCenterPointY(this.currentCenterPointY + step);
+                            break;
+                        case 'a':
+                            e.preventDefault();
+                            this.setCenterPoint(this.currentCenterPoint - step);
+                            break;
+                        case 'd':
+                            e.preventDefault();
+                            this.setCenterPoint(this.currentCenterPoint + step);
+                            break;
+                        case 'enter':
+                        case ' ':
+                            e.preventDefault();
+                            this.applyCenterToSubsequentFrames();
+                            this.applyCenterYToSubsequentFrames();
+                            this.nextFrame();
+                            break;
+                    }
+                });
             }
 
             setFrame(frame) {
