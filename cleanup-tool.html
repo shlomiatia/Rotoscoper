@@ -226,7 +226,7 @@
     </div>
 
     <script>
-        const CleanupTool = function() {
+        const CleanupTool = function () {
             const self = this;
 
             this.zoomLevel = 100;
@@ -236,7 +236,7 @@
             this.originalImageData = null;
             this.cleanedImageData = null;
 
-            this.initializeElements = function() {
+            this.initializeElements = function () {
                 this.fileInput = document.getElementById('file-input');
                 this.imagePreview = document.getElementById('image-preview');
                 this.imageInfo = document.getElementById('image-info');
@@ -253,7 +253,7 @@
                 this.imageCanvas.style.imageRendering = 'crisp-edges';
             };
 
-            this.bindEvents = function() {
+            this.bindEvents = function () {
                 this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
                 this.zoomInBtn.addEventListener('click', () => this.zoomIn());
                 this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
@@ -262,7 +262,7 @@
                 window.addEventListener('resize', () => this.updateZoom());
             };
 
-            this.handleFileSelect = function(event) {
+            this.handleFileSelect = function (event) {
                 const file = event.target.files[0];
                 if (!file) return;
 
@@ -302,7 +302,7 @@
                 reader.readAsDataURL(file);
             };
 
-            this.zoomIn = function() {
+            this.zoomIn = function () {
                 const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
                 if (currentIndex < this.zoomLevels.length - 1) {
                     this.zoomLevel = this.zoomLevels[currentIndex + 1];
@@ -310,7 +310,7 @@
                 }
             };
 
-            this.zoomOut = function() {
+            this.zoomOut = function () {
                 const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
                 if (currentIndex > 0) {
                     this.zoomLevel = this.zoomLevels[currentIndex - 1];
@@ -318,7 +318,7 @@
                 }
             };
 
-            this.updateZoom = function() {
+            this.updateZoom = function () {
                 this.zoomDisplay.textContent = this.zoomLevel + '%';
 
                 if (this.originalImageData) {
@@ -328,7 +328,7 @@
                 }
             };
 
-            this.cleanupImage = function() {
+            this.cleanupImage = function () {
                 if (!this.cleanedImageData) return;
 
                 // Disable action while processing
@@ -364,7 +364,7 @@
                                 { dx: 1, dy: 0 }
                             ];
 
-                            directions.forEach(({dx, dy}) => {
+                            directions.forEach(({ dx, dy }) => {
                                 const nx = x + dx;
                                 const ny = y + dy;
 
@@ -441,7 +441,7 @@
                 this.cleanupBtn.disabled = false;
             };
 
-            this.getMostCommonColor = function(colors) {
+            this.getMostCommonColor = function (colors) {
                 const colorCounts = new Map();
 
                 colors.forEach(color => {
@@ -468,7 +468,7 @@
                 return { r, g, b };
             };
 
-            this.downloadImage = function() {
+            this.downloadImage = function () {
                 if (!this.cleanedImageData) return;
 
                 this.imageCanvas.toBlob((blob) => {
@@ -476,7 +476,7 @@
                 });
             };
 
-            this.downloadBlob = function(blob, filename) {
+            this.downloadBlob = function (blob, filename) {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -487,14 +487,14 @@
                 URL.revokeObjectURL(url);
             };
 
-            this.init = function() {
+            this.init = function () {
                 this.initializeElements();
                 this.bindEvents();
             };
         };
 
         // Initialize the tool when the page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const tool = new CleanupTool();
             tool.init();
         });
