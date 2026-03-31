@@ -386,9 +386,36 @@
                                 }
                             });
 
-                            if (isFilled && transparentNeighbors >= 3) {
-                                newImageData.data[index + 3] = 0;
-                                changed = true;
+                            if (isFilled) {
+                                if (transparentNeighbors >= 3) {
+                                    newImageData.data[index + 3] = 0;
+                                    changed = true;
+                                } else if (filledNeighbors >= 3) {
+                                    const currentColor = {
+                                        r: sourceData.data[index],
+                                        g: sourceData.data[index + 1],
+                                        b: sourceData.data[index + 2]
+                                    };
+
+                                    const sameColorNeighbors = neighborColors.filter(c =>
+                                        c.r === currentColor.r && c.g === currentColor.g && c.b === currentColor.b
+                                    ).length;
+
+                                    const differentColorNeighbors = filledNeighbors - sameColorNeighbors;
+
+                                    if (differentColorNeighbors >= 3) {
+                                        const mostCommonColor = this.getMostCommonColor(neighborColors);
+                                        if (mostCommonColor.r !== currentColor.r ||
+                                            mostCommonColor.g !== currentColor.g ||
+                                            mostCommonColor.b !== currentColor.b) {
+                                            newImageData.data[index] = mostCommonColor.r;
+                                            newImageData.data[index + 1] = mostCommonColor.g;
+                                            newImageData.data[index + 2] = mostCommonColor.b;
+                                            newImageData.data[index + 3] = 255;
+                                            changed = true;
+                                        }
+                                    }
+                                }
                             } else if (!isFilled && filledNeighbors >= 3) {
                                 if (neighborColors.length > 0) {
                                     const mostCommonColor = this.getMostCommonColor(neighborColors);
