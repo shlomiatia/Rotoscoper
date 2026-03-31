@@ -184,15 +184,28 @@ def create_cropped_animation():
             if os.path.exists(source_frame_path):
                 try:
                     with Image.open(source_frame_path) as img:
+                        # Preserve original format
+                        file_ext = os.path.splitext(frame_file)[1]
+                        original_format = img.format
+                        
                         if img.mode != 'RGBA':
                             img = img.convert('RGBA')
 
                         width, height = img.size
                         crop_box = (crop_left, crop_top, width - crop_right, height - crop_bottom)
                         cropped_img = img.crop(crop_box)
-                        new_frame_name = f'frame_{i:03d}_delay-0.03s.gif'
+                        new_frame_name = f'frame_{i:03d}_delay-0.03s{file_ext}'
                         new_frame_path = os.path.join(new_path, new_frame_name)
-                        cropped_img.save(new_frame_path, 'GIF', transparency=0, disposal=2)
+                        
+                        # Save in original format to preserve quality
+                        if original_format and original_format.upper() in ['PNG', 'JPEG', 'GIF', 'BMP', 'TIFF', 'WEBP']:
+                            save_format = original_format.upper()
+                            if save_format == 'JPEG':
+                                save_format = 'JPEG'
+                            cropped_img.save(new_frame_path, save_format)
+                        else:
+                            # Default to PNG if format is unknown
+                            cropped_img.save(new_frame_path, 'PNG')
                         frames_processed += 1
 
                 except Exception as e:
@@ -206,15 +219,26 @@ def create_cropped_animation():
                 if os.path.exists(source_sprite_path):
                     try:
                         with Image.open(source_sprite_path) as img:
+                            # Preserve original sprite format
+                            file_ext = os.path.splitext(sprite_file)[1]
+                            original_format = img.format
+                            
                             if img.mode != 'RGBA':
                                 img = img.convert('RGBA')
 
                             width, height = img.size
                             crop_box = (crop_left, crop_top, width - crop_right, height - crop_bottom)
                             cropped_img = img.crop(crop_box)
-                            new_sprite_name = f'frame_{i:03d}_delay-0.03s.png'
+                            new_sprite_name = f'frame_{i:03d}_delay-0.03s{file_ext}'
                             new_sprite_path = os.path.join(new_sprites_path, new_sprite_name)
-                            cropped_img.save(new_sprite_path, 'PNG')
+                            
+                            # Save in original format to preserve quality
+                            if original_format and original_format.upper() in ['PNG', 'JPEG', 'GIF', 'BMP', 'TIFF', 'WEBP']:
+                                save_format = original_format.upper()
+                                cropped_img.save(new_sprite_path, save_format)
+                            else:
+                                # Default to PNG if format is unknown
+                                cropped_img.save(new_sprite_path, 'PNG')
                             sprites_processed += 1
 
                     except Exception as e:

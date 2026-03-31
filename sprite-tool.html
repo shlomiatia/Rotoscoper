@@ -1516,13 +1516,13 @@
             }
 
             handleToleranceKeyDown(e) {
-                if (e.key === 'PageUp') {
+                if (e.key.toLowerCase() === 'w') {
                     e.preventDefault();
                     const activeLayer = this.getActiveLayer();
                     if (activeLayer) {
                         this.adjustToleranceMore(activeLayer.id);
                     }
-                } else if (e.key === 'PageDown') {
+                } else if (e.key.toLowerCase() === 's') {
                     e.preventDefault();
                     const activeLayer = this.getActiveLayer();
                     if (activeLayer) {

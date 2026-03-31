@@ -548,10 +548,6 @@
                                 this.setCropRight(this.currentCropRight - step);
                             }
                             break;
-                        case ' ':
-                            e.preventDefault();
-                            this.toggleCropMode();
-                            break;
                         case 'enter':
                             e.preventDefault();
                             this.applyAllCropToSubsequentFrames();
@@ -701,10 +697,11 @@
             }
 
             nextFrame() {
-                this.currentFrame++;
-                if (this.currentFrame >= this.totalFrames) {
-                    this.currentFrame = 0;
+                if (this.currentFrame >= this.totalFrames - 1) {
+                    alert('Finished! You have completed all frames.');
+                    return;
                 }
+                this.currentFrame++;
                 this.updateFrame();
                 this.updateDisplays();
                 this.updatePreview();
