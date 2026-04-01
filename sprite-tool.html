@@ -1160,6 +1160,14 @@
                             };
                         });
 
+                        if (this.animations.length > 0) {
+                            this.totalFrames = this.animationData[this.animations[0]].frameCount;
+                            this.currentFrame = 0;
+
+                            this.frameSlider.max = Math.max(0, this.totalFrames - 1);
+                            this.frameInput.max = Math.max(0, this.totalFrames - 1);
+                        }
+
                         this.updateAnimationSelect();
                         if (this.animations.length > 0) {
                             this.switchAnimation(this.animations[0]);
@@ -2023,8 +2031,10 @@
 
                 this.currentFrame = 0;
 
-                this.frameSlider.max = this.totalFrames - 1;
-                this.frameInput.max = this.totalFrames - 1;
+                this.frameSlider.max = Math.max(0, this.totalFrames - 1);
+                this.frameInput.max = Math.max(0, this.totalFrames - 1);
+                this.frameSlider.value = 0;
+                this.frameInput.value = 0;
 
                 this.spriteCanvasContainer.innerHTML = '';
 
@@ -2053,6 +2063,7 @@
                 this.frameHeight = 0;
 
                 this.createFrameElements();
+                this.updateFrame();
                 this.updateDisplays();
                 this.updateZoomDisplay();
             }
