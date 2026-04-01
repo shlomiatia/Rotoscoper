@@ -94,18 +94,6 @@
             color: #6f42c1;
         }
 
-        .crop-tool {
-            border-color: #fd7e14;
-        }
-
-        .crop-tool:hover {
-            border-color: #fd7e14;
-        }
-
-        .crop-tool .tool-icon {
-            color: #fd7e14;
-        }
-
         .export-tool {
             border-color: #dc3545;
         }
@@ -141,6 +129,18 @@
         .cleanup-tool .tool-icon {
             color: #20c997;
         }
+
+        .crop-tool {
+            border-color: #fd7e14;
+        }
+
+        .crop-tool:hover {
+            border-color: #fd7e14;
+        }
+
+        .crop-tool .tool-icon {
+            color: #fd7e14;
+        }
     </style>
 </head>
 
@@ -159,21 +159,21 @@
                 </div>
             </a>
 
+            <a href="crop-tool.html" class="tool-card crop-tool">
+                <span class="tool-icon">✂️</span>
+                <div class="tool-title">Crop Tool</div>
+                <div class="tool-description">
+                    Crop animations to specific frame ranges with preview and zoom controls.
+                    Create focused animations from selected portions of existing animations.
+                </div>
+            </a>
+
             <a href="sprite-tool.html" class="tool-card sprite-tool">
                 <span class="tool-icon">🎨</span>
                 <div class="tool-title">Sprite Tool</div>
                 <div class="tool-description">
                     Generate and customize sprites from animations with color mapping.
                     Extract colors, apply color changes, and preview results in real-time.
-                </div>
-            </a>
-
-            <a href="crop-tool.html" class="tool-card crop-tool">
-                <span class="tool-icon">✂️</span>
-                <div class="tool-title">Crop Tool</div>
-                <div class="tool-description">
-                    Simple single-color selection tool for cropping specific areas.
-                    Click to select pixels with similar colors and create clean sprites.
                 </div>
             </a>
 
@@ -186,21 +186,21 @@
                 </div>
             </a>
 
-            <a href="texture-tool.html" class="tool-card texture-tool">
-                <span class="tool-icon">🖼️</span>
-                <div class="tool-title">Texture Tool</div>
-                <div class="tool-description">
-                    Apply textures and layers to images with customizable colors and effects.
-                    Create layered compositions with color mapping and preview results in real-time.
-                </div>
-            </a>
-
             <a href="cleanup-tool.html" class="tool-card cleanup-tool">
                 <span class="tool-icon">🧹</span>
                 <div class="tool-title">Cleanup Tool</div>
                 <div class="tool-description">
                     Clean up images by removing noise and filling gaps.
                     Automatically removes isolated pixels and fills transparent areas with surrounding colors.
+                </div>
+            </a>
+
+            <a href="texture-tool.html" class="tool-card texture-tool">
+                <span class="tool-icon">🖼️</span>
+                <div class="tool-title">Texture Tool</div>
+                <div class="tool-description">
+                    Apply textures and layers to images with customizable colors and effects.
+                    Create layered compositions with color mapping and preview results in real-time.
                 </div>
             </a>
 

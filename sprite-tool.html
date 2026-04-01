@@ -854,8 +854,8 @@
                 // Convert 3-digit hex to 6-digit
                 if (normalizedHex.length === 4) {
                     normalizedHex = '#' + normalizedHex[1] + normalizedHex[1] +
-                                   normalizedHex[2] + normalizedHex[2] +
-                                   normalizedHex[3] + normalizedHex[3];
+                        normalizedHex[2] + normalizedHex[2] +
+                        normalizedHex[3] + normalizedHex[3];
                 }
 
                 const layer = this.layers.find(l => l.id === layerId);
@@ -999,7 +999,7 @@
                 }
                 // Show preloaded sprite element if no generated sprite exists
                 else if (this.spriteElements[this.currentAnimation] &&
-                         this.spriteElements[this.currentAnimation][this.currentFrame]) {
+                    this.spriteElements[this.currentAnimation][this.currentFrame]) {
                     this.currentSpriteElement = this.spriteElements[this.currentAnimation][this.currentFrame];
                     this.currentSpriteElement.style.display = 'block';
                     this.currentSpriteElement.style.opacity = this.spriteOpacity / 100;
@@ -1516,13 +1516,13 @@
             }
 
             handleToleranceKeyDown(e) {
-                if (e.key === 'PageUp') {
+                if (e.key.toLowerCase() === 'w') {
                     e.preventDefault();
                     const activeLayer = this.getActiveLayer();
                     if (activeLayer) {
                         this.adjustToleranceMore(activeLayer.id);
                     }
-                } else if (e.key === 'PageDown') {
+                } else if (e.key.toLowerCase() === 's') {
                     e.preventDefault();
                     const activeLayer = this.getActiveLayer();
                     if (activeLayer) {
