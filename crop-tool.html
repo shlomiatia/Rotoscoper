@@ -246,8 +246,8 @@
 
             <div class="input-group">
                 <label>Frame:</label>
-                <input type="range" id="frame-slider" min="0" max="149" value="0">
-                <input type="number" id="frame-input" min="0" max="149" value="0">
+                <input type="range" id="frame-slider" min="0" max="0" value="0">
+                <input type="number" id="frame-input" min="0" max="0" value="0">
             </div>
 
             <div class="input-group">
@@ -319,7 +319,7 @@
         <div class="info">
             <div class="info-item">
                 <span class="info-label">Animation Frames:</span>
-                <span id="current-animation-frames">150</span>
+                <span id="current-animation-frames">0</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Animation Length:</span>
@@ -332,7 +332,7 @@
         class CropTool {
             constructor() {
                 this.currentFrame = 0;
-                this.totalFrames = 150;
+                this.totalFrames = 0;
                 this.delay = 30;
                 this.isPlaying = false;
                 this.animationId = null;
@@ -905,7 +905,7 @@
 
                         this.updateAnimationSelect();
                         if (this.currentAnimation) {
-                            setTimeout(() => this.createFrameElements(), 100);
+                            this.switchAnimation(this.currentAnimation);
                         }
                     } else {
                         alert('Failed to load animations from server');
@@ -980,13 +980,14 @@
                 if (this.animationData[animationName]) {
                     this.totalFrames = this.animationData[animationName].frameCount;
                 } else {
-                    this.totalFrames = 150;
+                    this.totalFrames = 0;
                 }
 
                 this.currentFrame = 0;
 
                 this.frameSlider.min = 0;
-                this.frameSlider.max = this.totalFrames - 1;
+                this.frameSlider.max = Math.max(0, this.totalFrames - 1);
+                this.frameInput.max = Math.max(0, this.totalFrames - 1);
 
                 this.frameWidth = 0;
                 this.frameHeight = 0;
