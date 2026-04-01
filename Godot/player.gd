@@ -71,7 +71,7 @@ func change_state(new_state: State) -> void:
     match current_state:
         State.STAND:
             animated_sprite_2d.play("stand")
-            animated_sprite_2d.position = Vector2(-5, 0)
+            animated_sprite_2d.position = Vector2(1, 1)
         State.START_WALK:
             animated_sprite_2d.play("start_walk")
             animated_sprite_2d.position = Vector2(-5, 0)
@@ -81,7 +81,7 @@ func change_state(new_state: State) -> void:
         State.TURN:
             velocity.x = 0
             animated_sprite_2d.play("turn")
-            animated_sprite_2d.position = Vector2(1, 0)
+            animated_sprite_2d.position = Vector2(1, 1)
             turn_reverse = false
         State.JUMP_START:
             animated_sprite_2d.play("jump_start")
@@ -104,13 +104,6 @@ func _on_AnimatedSprite2D_animation_finished() -> void:
             if animated_sprite_2d.animation == "start_walk":
                 change_state(State.WALK)
         State.TURN:
-            #if not turn_reverse:
-            #    # Play turn animation in reverse
-            #    turn_reverse = true
-            #    animated_sprite_2d.flip_h = !animated_sprite_2d.flip_h
-            #    animated_sprite_2d.play_backwards("turn")
-            #else:
-                # Turn complete, return to stand
             animated_sprite_2d.flip_h = !animated_sprite_2d.flip_h
             change_state(State.STAND)
         State.JUMP_START:
