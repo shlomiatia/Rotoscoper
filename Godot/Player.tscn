@@ -729,7 +729,8 @@ script = ExtResource("1_i6c2i")
 sprite_frames = SubResource("SpriteFrames_wo8av")
 animation = &"turn"
 autoplay = "stand"
-frame = 10
+frame = 25
+frame_progress = 1.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 visible = false

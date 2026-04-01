@@ -104,14 +104,15 @@ func _on_AnimatedSprite2D_animation_finished() -> void:
             if animated_sprite_2d.animation == "start_walk":
                 change_state(State.WALK)
         State.TURN:
-            if not turn_reverse:
-                # Play turn animation in reverse
-                turn_reverse = true
-                animated_sprite_2d.flip_h = !animated_sprite_2d.flip_h
-                animated_sprite_2d.play_backwards("turn")
-            else:
+            #if not turn_reverse:
+            #    # Play turn animation in reverse
+            #    turn_reverse = true
+            #    animated_sprite_2d.flip_h = !animated_sprite_2d.flip_h
+            #    animated_sprite_2d.play_backwards("turn")
+            #else:
                 # Turn complete, return to stand
-                change_state(State.STAND)
+            animated_sprite_2d.flip_h = !animated_sprite_2d.flip_h
+            change_state(State.STAND)
         State.JUMP_START:
             if animated_sprite_2d.animation == "jump_start":
                 change_state(State.JUMP)
