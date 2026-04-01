@@ -1,4 +1,4 @@
-[gd_scene load_steps=133 format=3 uid="uid://dmby0fn5i84m7"]
+[gd_scene load_steps=132 format=3 uid="uid://dmby0fn5i84m7"]
 
 [ext_resource type="Texture2D" uid="uid://yat3ck777e7g" path="res://Textures/Walk_cropped_sprites.png" id="1_8oy84"]
 [ext_resource type="Script" uid="uid://bcytu14scmu6i" path="res://player.gd" id="1_i6c2i"]
@@ -391,10 +391,6 @@ region = Rect2(80, 92, 40, 92)
 [sub_resource type="AtlasTexture" id="AtlasTexture_dbi5o"]
 atlas = ExtResource("5_tdg3f")
 region = Rect2(40, 92, 40, 92)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_ud5ta"]
-atlas = ExtResource("5_tdg3f")
-region = Rect2(0, 92, 40, 92)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_2yd2m"]
 atlas = ExtResource("1_8oy84")
@@ -815,9 +811,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_dbi5o")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_ud5ta")
 }],
 "loop": false,
 "name": &"turn",
