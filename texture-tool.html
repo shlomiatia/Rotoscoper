@@ -365,7 +365,7 @@
         function hexToRgb(hex) {
             // Remove the # if present
             hex = hex.replace(/^#/, '');
-            
+
             // Parse the hex values
             const bigint = parseInt(hex, 16);
             return {
@@ -375,9 +375,9 @@
             };
         }
 
-        const TextureTool = function() {
+        const TextureTool = function () {
             const self = this;
-            
+
             this.zoomLevel = 100;
             this.maxZoom = 1000;
             this.minZoom = 25;
@@ -388,8 +388,8 @@
             this.canvasPool = []; // Pool of reusable canvases
             this.nextLayerId = 1; // Counter for generating unique layer IDs
             this.originalFile = null; // Original file object for saving
-            
-            this.initializeElements = function() {
+
+            this.initializeElements = function () {
                 this.fileInput = document.getElementById('file-input');
                 this.imagePreview = document.getElementById('image-preview');
                 this.imageInfo = document.getElementById('image-info');
@@ -422,8 +422,8 @@
                     canvas.style.imageRendering = 'crisp-edges';
                 });
             };
-            
-            this.updateLayerColorFromHex = function(layerId, sourceColorHex, hexValue) {
+
+            this.updateLayerColorFromHex = function (layerId, sourceColorHex, hexValue) {
                 // Validate and normalize hex color
                 let normalizedHex = hexValue.trim().toUpperCase();
 
@@ -455,8 +455,8 @@
                 // Convert 3-digit hex to 6-digit
                 if (normalizedHex.length === 4) {
                     normalizedHex = '#' + normalizedHex[1] + normalizedHex[1] +
-                                      normalizedHex[2] + normalizedHex[2] +
-                                      normalizedHex[3] + normalizedHex[3];
+                        normalizedHex[2] + normalizedHex[2] +
+                        normalizedHex[3] + normalizedHex[3];
                 }
 
                 // Find layer and toolbar elements
@@ -479,15 +479,15 @@
                 }
             };
 
-            this.bindEvents = function() {
+            this.bindEvents = function () {
                 this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
                 this.zoomInBtn.addEventListener('click', () => this.zoomIn());
                 this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
                 window.addEventListener('resize', () => this.updateZoom());
                 this.addLayerBtn.addEventListener('click', () => this.addLayer());
             };
-            
-            this.deleteLayer = function(layerId, colorHex) {
+
+            this.deleteLayer = function (layerId, colorHex) {
                 const layers = this.colorLayers.get(colorHex);
                 if (!layers) return;
 
@@ -518,17 +518,17 @@
                 this.updateLayerDisplay();
 
                 // Hide layers container if no layers for current color
-                if (this.selectedColor && (!this.colorLayers.has(this.selectedColor.hex) || 
+                if (this.selectedColor && (!this.colorLayers.has(this.selectedColor.hex) ||
                     this.colorLayers.get(this.selectedColor.hex).length === 0)) {
                     this.layersContainer.style.display = 'none';
                 }
             };
 
-            this.addLayer = function() {
+            this.addLayer = function () {
                 if (!this.selectedColor) return;
-                
+
                 const layerId = this.nextLayerId++;
-                
+
                 // Get or create canvas from pool
                 let canvas;
                 if (this.canvasPool.length > 0) {
@@ -538,29 +538,29 @@
                     canvas.width = this.imagePreview.naturalWidth;
                     canvas.height = this.imagePreview.naturalHeight;
                 }
-                
+
                 const layer = {
                     id: layerId,
                     color: this.selectedColor.hex, // Use selected color as initial color
                     sourceColor: this.selectedColor,
                     canvas: canvas
                 };
-                
+
                 // Create initial color replacement
                 this.updateLayerCanvas(layer);
-                
+
                 // Store the layer for this color
                 if (!this.colorLayers.has(this.selectedColor.hex)) {
                     this.colorLayers.set(this.selectedColor.hex, []);
                 }
                 this.colorLayers.get(this.selectedColor.hex).push(layer);
-                
+
                 // Create and add the layer UI row
                 const layerRow = document.createElement('div');
                 layerRow.className = 'layer-row';
                 layerRow.dataset.layerId = layerId;
                 layerRow.dataset.colorHex = this.selectedColor.hex;
-                
+
                 // Color picker input
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
@@ -629,14 +629,14 @@
                 directions.forEach((direction, index) => {
                     const label = document.createElement('label');
                     label.className = 'direction-label';
-                    
+
                     const radio = document.createElement('input');
                     radio.type = 'radio';
                     radio.name = `direction-${layerId}`;
                     radio.value = direction;
                     radio.className = 'direction-radio';
                     radio.checked = direction === 'full';
-                    
+
                     // Add change event listener
                     radio.addEventListener('change', () => {
                         if (radio.checked) {
@@ -648,10 +648,10 @@
                             this.updateLayerDisplay();
                         }
                     });
-                    
+
                     const text = document.createElement('span');
                     text.textContent = direction.charAt(0).toUpperCase() + direction.slice(1);
-                    
+
                     label.appendChild(radio);
                     label.appendChild(text);
                     directionDiv.appendChild(label);
@@ -694,19 +694,19 @@
                 layerRow.appendChild(controlsDiv);
                 this.layerRows.insertBefore(layerRow, this.layerRows.firstChild);
                 this.layersContainer.style.display = 'block';
-                
+
                 // Update display
                 this.updateLayerDisplay();
             };
-            
-            this.findBoundingBoxes = function(pixels, sourceRgb, width, height) {
+
+            this.findBoundingBoxes = function (pixels, sourceRgb, width, height) {
                 const visited = new Array(width * height).fill(false);
                 const regions = [];
 
                 const isMatchingColor = (index) => {
                     return pixels[index] === sourceRgb.r &&
-                           pixels[index + 1] === sourceRgb.g &&
-                           pixels[index + 2] === sourceRgb.b;
+                        pixels[index + 1] === sourceRgb.g &&
+                        pixels[index + 2] === sourceRgb.b;
                 };
 
                 // Flood fill to find connected components
@@ -714,12 +714,12 @@
                     const box = { minX: startX, minY: startY, maxX: startX, maxY: startY };
                     const pixelsByRow = new Map();
                     const stack = [[startX, startY]];
-                    
+
                     visited[startY * width + startX] = true;
 
                     while (stack.length > 0) {
                         const [x, y] = stack.pop();
-                        
+
                         // Update bounding box
                         box.minX = Math.min(box.minX, x);
                         box.minY = Math.min(box.minY, y);
@@ -737,11 +737,11 @@
                         for (const [dx, dy] of directions) {
                             const newX = x + dx;
                             const newY = y + dy;
-                            
-                            if (newX >= 0 && newX < width && 
-                                newY >= 0 && newY < height && 
+
+                            if (newX >= 0 && newX < width &&
+                                newY >= 0 && newY < height &&
                                 !visited[newY * width + newX]) {
-                                
+
                                 const index = (newY * width + newX) * 4;
                                 if (isMatchingColor(index)) {
                                     stack.push([newX, newY]);
@@ -776,30 +776,30 @@
                 return regions;
             };
 
-            this.updateLayerCanvas = function(layer) {
+            this.updateLayerCanvas = function (layer) {
                 // Create a temporary canvas to read the original image
                 const tempCanvas = document.createElement('canvas');
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCanvas.width = this.imagePreview.naturalWidth;
                 tempCanvas.height = this.imagePreview.naturalHeight;
-                
+
                 // Draw the original image
                 tempCtx.drawImage(this.imagePreview, 0, 0);
-                
+
                 // Get image data
                 const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
                 const pixels = imageData.data;
-                
+
                 // Get source color components
                 const sourceRgb = hexToRgb(layer.sourceColor.hex);
-                
+
                 // Get target color components
                 const targetRgb = hexToRgb(layer.color);
-                
+
                 // Get current layer settings
                 const toolbar = this.layersContainer.querySelector(`[data-layer-id="${layer.id}"]`);
                 if (!toolbar) return;
-                
+
                 const direction = toolbar.querySelector('input[type="radio"]:checked').value;
                 const pixelCount = parseInt(toolbar.querySelector('.numeric-input').value) || 0;
 
@@ -820,10 +820,10 @@
                 } else {
                     // Store original image data before modifications
                     const originalImageData = new Uint8ClampedArray(pixels);
-                    
+
                     // Find all regions first
                     const regions = this.findBoundingBoxes(pixels, sourceRgb, tempCanvas.width, tempCanvas.height);
-                    
+
                     // Clear all pixels first
                     for (let i = 0; i < pixels.length; i += 4) {
                         pixels[i + 3] = 0; // Make everything transparent initially
@@ -846,30 +846,30 @@
                                 let pixelsToColor;
                                 if (pixelCount >= 0) {
                                     // Positive values - paint inside the region
-                                    pixelsToColor = direction === 'left' ? 
-                                        rowPixels.slice(0, pixelCount) : 
+                                    pixelsToColor = direction === 'left' ?
+                                        rowPixels.slice(0, pixelCount) :
                                         rowPixels.slice(-pixelCount);
                                 } else {
                                     // Negative values - paint outside the region
                                     const absCount = Math.abs(pixelCount);
                                     const possiblePixels = [];
-                                    
+
                                     if (direction === 'left') {
                                         // Check pixels to the left of the leftmost pixel
                                         const minX = Math.min(...rowPixels);
                                         console.log(`Row ${row}: Found leftmost pixel at x=${minX}`);
                                         console.log(`Row ${row}: Checking pixels from x=${minX - 1} to x=${Math.max(0, minX - absCount)}`);
-                                        
+
                                         for (let x = minX - 1; x >= Math.max(0, minX - absCount); x--) {
                                             const idx = (row * tempCanvas.width + x) * 4;
                                             // Check against original image data for transparency and color
                                             const isNonTransparent = originalImageData[idx + 3] === 255;
-                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r && 
-                                                                 originalImageData[idx + 1] === sourceRgb.g && 
-                                                                 originalImageData[idx + 2] === sourceRgb.b);
-                                            
+                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r &&
+                                                originalImageData[idx + 1] === sourceRgb.g &&
+                                                originalImageData[idx + 2] === sourceRgb.b);
+
                                             console.log(`Row ${row}, x=${x}: nonTransparent=${isNonTransparent}, isSourceColor=${isSourceColor}`);
-                                            
+
                                             if (isNonTransparent && !isSourceColor) {
                                                 console.log(`Row ${row}: Adding pixel at x=${x} to possible pixels`);
                                                 possiblePixels.push(x);
@@ -880,17 +880,17 @@
                                         const maxX = Math.max(...rowPixels);
                                         console.log(`Row ${row}: Found rightmost pixel at x=${maxX}`);
                                         console.log(`Row ${row}: Checking pixels from x=${maxX + 1} to x=${Math.min(tempCanvas.width - 1, maxX + absCount)}`);
-                                        
+
                                         for (let x = maxX + 1; x < Math.min(tempCanvas.width, maxX + absCount + 1); x++) {
                                             const idx = (row * tempCanvas.width + x) * 4;
                                             // Check against original image data for transparency and color
                                             const isNonTransparent = originalImageData[idx + 3] === 255;
-                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r && 
-                                                                originalImageData[idx + 1] === sourceRgb.g && 
-                                                                originalImageData[idx + 2] === sourceRgb.b);
-                                            
+                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r &&
+                                                originalImageData[idx + 1] === sourceRgb.g &&
+                                                originalImageData[idx + 2] === sourceRgb.b);
+
                                             console.log(`Row ${row}, x=${x}: nonTransparent=${isNonTransparent}, isSourceColor=${isSourceColor}`);
-                                            
+
                                             if (isNonTransparent && !isSourceColor) {
                                                 console.log(`Row ${row}: Adding pixel at x=${x} to possible pixels`);
                                                 possiblePixels.push(x);
@@ -914,7 +914,7 @@
                         } else if (direction === 'top' || direction === 'bottom') {
                             // Organize pixels by column
                             const pixelsByColumn = new Map();
-                            
+
                             // Build columns from our row data
                             pixelsByRow.forEach((rowPixels, row) => {
                                 rowPixels.forEach(x => {
@@ -942,23 +942,23 @@
                                     // Negative values - paint outside the region
                                     const absCount = Math.abs(pixelCount);
                                     const possiblePixels = [];
-                                    
+
                                     if (direction === 'top') {
                                         // Check pixels above the topmost pixel
                                         const minY = Math.min(...columnPixels);
                                         console.log(`Column x=${x}: Found topmost pixel at y=${minY}`);
                                         console.log(`Column x=${x}: Checking pixels from y=${minY - 1} to y=${Math.max(0, minY - absCount)}`);
-                                        
+
                                         for (let y = minY - 1; y >= Math.max(0, minY - absCount); y--) {
                                             const idx = (y * tempCanvas.width + x) * 4;
                                             // Only include non-transparent pixels from the original
                                             const isNonTransparent = originalImageData[idx + 3] === 255;
-                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r && 
-                                                                 originalImageData[idx + 1] === sourceRgb.g && 
-                                                                 originalImageData[idx + 2] === sourceRgb.b);
-                                            
+                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r &&
+                                                originalImageData[idx + 1] === sourceRgb.g &&
+                                                originalImageData[idx + 2] === sourceRgb.b);
+
                                             console.log(`Column x=${x}, y=${y}: nonTransparent=${isNonTransparent}, isSourceColor=${isSourceColor}`);
-                                            
+
                                             if (isNonTransparent && !isSourceColor) {
                                                 console.log(`Column x=${x}: Adding pixel at y=${y} to possible pixels`);
                                                 possiblePixels.push(y);
@@ -971,10 +971,10 @@
                                             const idx = (y * tempCanvas.width + x) * 4;
                                             // Check against original image data
                                             const isNonTransparent = originalImageData[idx + 3] === 255;
-                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r && 
-                                                                originalImageData[idx + 1] === sourceRgb.g && 
-                                                                originalImageData[idx + 2] === sourceRgb.b);
-                                            
+                                            const isSourceColor = (originalImageData[idx] === sourceRgb.r &&
+                                                originalImageData[idx + 1] === sourceRgb.g &&
+                                                originalImageData[idx + 2] === sourceRgb.b);
+
                                             if (isNonTransparent && !isSourceColor) {
                                                 possiblePixels.push(y);
                                             }
@@ -995,13 +995,13 @@
                         }
                     });
                 }
-                
+
                 // Update the layer's canvas
                 const ctx = layer.canvas.getContext('2d');
                 ctx.putImageData(imageData, 0, 0);
             };
 
-            this.clearOverlay = function() {
+            this.clearOverlay = function () {
                 if (this.overlayCanvas && this.imagePreview.naturalWidth) {
                     const scale = this.zoomLevel / 100;
                     // Set canvas size to match zoomed dimensions
@@ -1012,8 +1012,8 @@
                     this.overlayCanvas.style.transform = 'none';
                 }
             };
-            
-            this.findAndDrawBoundingBoxes = function() {
+
+            this.findAndDrawBoundingBoxes = function () {
                 if (!this.selectedColor || !this.imagePreview.naturalWidth) return;
 
                 // Create a canvas to read pixel data
@@ -1025,7 +1025,7 @@
 
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const pixels = imageData.data;
-                
+
                 // Create a visited array for flood fill
                 const visited = new Array(canvas.width * canvas.height).fill(false);
                 const boundingBoxes = [];
@@ -1036,10 +1036,10 @@
                     const g = pixels[index + 1];
                     const b = pixels[index + 2];
                     const a = pixels[index + 3];
-                    return r === this.selectedColor.r && 
-                           g === this.selectedColor.g && 
-                           b === this.selectedColor.b && 
-                           a === this.selectedColor.a;
+                    return r === this.selectedColor.r &&
+                        g === this.selectedColor.g &&
+                        b === this.selectedColor.b &&
+                        a === this.selectedColor.a;
                 };
 
                 // Helper function to get pixel index from coordinates
@@ -1050,14 +1050,14 @@
                     const box = { minX: startX, minY: startY, maxX: startX, maxY: startY };
                     const stack = [[startX, startY]];
                     const pixelIdx = getPixelIndex(startX, startY);
-                    
+
                     if (!isMatchingColor(pixelIdx)) return null;
-                    
+
                     visited[startY * canvas.width + startX] = true;
 
                     while (stack.length > 0) {
                         const [x, y] = stack.pop();
-                        
+
                         // Update bounding box
                         box.minX = Math.min(box.minX, x);
                         box.minY = Math.min(box.minY, y);
@@ -1069,11 +1069,11 @@
                         for (const [dx, dy] of directions) {
                             const newX = x + dx;
                             const newY = y + dy;
-                            
-                            if (newX >= 0 && newX < canvas.width && 
-                                newY >= 0 && newY < canvas.height && 
+
+                            if (newX >= 0 && newX < canvas.width &&
+                                newY >= 0 && newY < canvas.height &&
                                 !visited[newY * canvas.width + newX]) {
-                                
+
                                 const newPixelIdx = getPixelIndex(newX, newY);
                                 if (isMatchingColor(newPixelIdx)) {
                                     stack.push([newX, newY]);
@@ -1102,11 +1102,11 @@
                 const scale = this.zoomLevel / 100;
                 this.overlayCtx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
                 this.overlayCtx.lineWidth = 1;
-                
+
                 // Scale the context for drawing
                 this.overlayCtx.save();
                 this.overlayCtx.scale(scale, scale);
-                
+
                 boundingBoxes.forEach(box => {
                     // Draw at original coordinates, letting the context scale handle the zoom
                     this.overlayCtx.strokeRect(
@@ -1116,11 +1116,11 @@
                         box.maxY - box.minY + 1
                     );
                 });
-                
+
                 this.overlayCtx.restore();
             };
 
-            this.resetLayers = function() {
+            this.resetLayers = function () {
                 // Return all canvases to the pool
                 this.colorLayers.forEach(layers => {
                     layers.forEach(layer => {
@@ -1130,21 +1130,21 @@
                         this.canvasPool.push(layer.canvas);
                     });
                 });
-                
+
                 // Clear the color layers map
                 this.colorLayers.clear();
-                
+
                 // Clear the UI
                 this.layerRows.innerHTML = '';
                 this.layersContainer.style.display = 'none';
-                
+
                 // Clear the layers canvas
                 if (this.layersCanvas) {
                     this.layersCtx.clearRect(0, 0, this.layersCanvas.width, this.layersCanvas.height);
                 }
             };
 
-            this.handleFileSelect = function(event) {
+            this.handleFileSelect = function (event) {
                 const file = event.target.files[0];
                 if (file) {
                     const reader = new FileReader();
@@ -1153,10 +1153,10 @@
                         this.imagePreview.style.display = 'block';
                         this.selectedColor = null; // Clear selected color
                         this.resetLayers(); // Reset all layers
-                        
+
                         // Store the original file path
                         this.originalFile = file;
-                        
+
                         // Wait for image to load to get dimensions
                         this.imagePreview.onload = () => {
                             this.updateImageInfo();
@@ -1167,43 +1167,43 @@
                     reader.readAsDataURL(file);
                 }
             };
-            
-            this.updateImageInfo = function() {
+
+            this.updateImageInfo = function () {
                 const width = this.imagePreview.naturalWidth;
                 const height = this.imagePreview.naturalHeight;
                 this.imageInfo.textContent = `Image dimensions: ${width}×${height} pixels`;
-                
+
                 // Scan for colors when image is loaded
                 this.scanImageColors();
             };
-            
-            this.scanImageColors = function() {
+
+            this.scanImageColors = function () {
                 // Create a canvas to read the pixel colors
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 canvas.width = this.imagePreview.naturalWidth;
                 canvas.height = this.imagePreview.naturalHeight;
                 ctx.drawImage(this.imagePreview, 0, 0);
-                
+
                 // Get all pixel data
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const pixels = imageData.data;
-                
+
                 // Clear previous color map
                 this.colorMap.clear();
-                
+
                 // Scan all pixels
                 for (let i = 0; i < pixels.length; i += 4) {
                     const r = pixels[i];
                     const g = pixels[i + 1];
                     const b = pixels[i + 2];
                     const a = pixels[i + 3];
-                    
+
                     // Skip transparent pixels
                     if (a === 0) continue;
-                    
+
                     const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-                    
+
                     // Count occurrences of each color
                     if (this.colorMap.has(hex)) {
                         this.colorMap.set(hex, {
@@ -1214,27 +1214,27 @@
                         this.colorMap.set(hex, { count: 1, r, g, b, a });
                     }
                 }
-                
+
                 this.displayColors();
                 // Ensure bounding boxes are drawn after colors are loaded
                 if (this.selectedColor) {
                     requestAnimationFrame(() => this.findAndDrawBoundingBoxes());
                 }
             };
-            
-            this.displayColors = function() {
+
+            this.displayColors = function () {
                 // Clear previous options
                 this.colorOptions.innerHTML = '';
-                
+
                 // Sort colors by count (most frequent first)
                 const sortedColors = Array.from(this.colorMap.entries())
                     .sort((a, b) => b[1].count - a[1].count);
-                
+
                 // Create radio buttons for each color
                 sortedColors.forEach(([hex, data], index) => {
                     const colorDiv = document.createElement('div');
                     colorDiv.className = 'color-option';
-                    
+
                     const input = document.createElement('input');
                     input.type = 'radio';
                     input.name = 'color';
@@ -1246,37 +1246,37 @@
                         this.updateLayerDisplay(); // Update layer display when color changes
                         this.addLayerBtn.disabled = false;
                     });
-                    
+
                     const preview = document.createElement('div');
                     preview.className = 'color-preview';
                     preview.style.backgroundColor = hex;
-                    
+
                     const label = document.createElement('label');
                     label.htmlFor = `color-${index}`;
                     label.className = 'color-info';
-                    
+
                     const hexSpan = document.createElement('span');
                     hexSpan.className = 'color-hex';
                     hexSpan.textContent = hex.toUpperCase();
-                    
+
                     const rgbSpan = document.createElement('span');
                     rgbSpan.className = 'color-rgb';
                     rgbSpan.textContent = `RGB(${data.r}, ${data.g}, ${data.b})`;
-                    
+
                     const countSpan = document.createElement('span');
                     countSpan.className = 'color-count';
                     countSpan.textContent = `${data.count} pixels`;
-                    
+
                     label.appendChild(preview);
                     label.appendChild(hexSpan);
                     label.appendChild(rgbSpan);
                     label.appendChild(countSpan);
-                    
+
                     colorDiv.appendChild(input);
                     colorDiv.appendChild(label);
-                    
+
                     this.colorOptions.appendChild(colorDiv);
-                    
+
                     // Auto-select the first color
                     if (index === 0) {
                         input.checked = true;
@@ -1286,29 +1286,29 @@
                         requestAnimationFrame(() => this.findAndDrawBoundingBoxes());
                     }
                 });
-                
+
                 this.colorsContainer.style.display = 'block';
                 this.layersContainer.style.display = 'none'; // Reset layers container
                 this.clearOverlay(); // Clear any existing bounding boxes
             };
-            
-            this.zoomIn = function() {
+
+            this.zoomIn = function () {
                 const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
                 if (currentIndex < this.zoomLevels.length - 1) {
                     this.zoomLevel = this.zoomLevels[currentIndex + 1];
                     this.updateZoom();
                 }
             };
-            
-            this.zoomOut = function() {
+
+            this.zoomOut = function () {
                 const currentIndex = this.zoomLevels.indexOf(this.zoomLevel);
                 if (currentIndex > 0) {
                     this.zoomLevel = this.zoomLevels[currentIndex - 1];
                     this.updateZoom();
                 }
             };
-            
-            this.updateLayerColor = function(layerId, sourceColorHex, newColor) {
+
+            this.updateLayerColor = function (layerId, sourceColorHex, newColor) {
                 const layers = this.colorLayers.get(sourceColorHex) || [];
                 const layer = layers.find(l => l.id === layerId);
                 if (!layer) return;
@@ -1327,7 +1327,7 @@
                 }
             };
 
-            this.saveCompositeImage = async function() {
+            this.saveCompositeImage = async function () {
                 // Create a temporary canvas for the composite
                 const compositeCanvas = document.createElement('canvas');
                 compositeCanvas.width = this.imagePreview.naturalWidth;
@@ -1350,10 +1350,10 @@
                 // Get path information from the original file
                 const filename = this.originalFile.name;
                 const baseName = filename.substring(0, filename.lastIndexOf('.'));
-                
+
                 // Create the new filename in the same directory
                 const newFilename = `${baseName}_textured.png`;
-                
+
                 // Use the file API to get path relative to workspace
                 const relativePath = this.originalFile.webkitRelativePath || '';
                 const dirPath = relativePath ? relativePath.split('/').slice(0, -1).join('/') : '.';
@@ -1383,7 +1383,7 @@
                 }
             };
 
-            this.updateLayerDisplay = function() {
+            this.updateLayerDisplay = function () {
                 if (!this.layersCanvas || !this.imagePreview.naturalWidth) return;
 
                 // Set canvas to original image size
@@ -1412,7 +1412,7 @@
                 });
 
                 // Show/hide layers container based on whether there are layers for this color
-                if (this.selectedColor && this.colorLayers.has(this.selectedColor.hex) && 
+                if (this.selectedColor && this.colorLayers.has(this.selectedColor.hex) &&
                     this.colorLayers.get(this.selectedColor.hex).length > 0) {
                     this.layersContainer.style.display = 'block';
                 } else {
@@ -1420,7 +1420,7 @@
                 }
             };
 
-            this.updateZoom = function() {
+            this.updateZoom = function () {
                 const scale = this.zoomLevel / 100;
                 this.zoomDisplay.textContent = `${this.zoomLevel}%`;
 
@@ -1428,23 +1428,23 @@
                 if (this.imagePreview.naturalWidth && this.imagePreview.naturalHeight) {
                     const scaledWidth = this.imagePreview.naturalWidth * scale;
                     const scaledHeight = this.imagePreview.naturalHeight * scale;
-                    
+
                     const container = document.querySelector('.image-preview-container');
                     container.style.width = `${Math.max(scaledWidth, window.innerWidth - 100)}px`;
                     const scrollbarHeight = scaledWidth > (window.innerWidth - 100) ? 17 : 0;
                     container.style.height = `${scaledHeight + scrollbarHeight}px`;
-                    
+
                     // Apply transform scaling to image and layers canvas
                     const transformStyle = `scale(${scale})`;
                     const elements = [this.imagePreview, this.layersCanvas];
-                    
+
                     elements.forEach(element => {
                         if (element) {
                             element.style.transformOrigin = 'top left';
                             element.style.transform = transformStyle;
                         }
                     });
-                    
+
                     if (scaledWidth < (window.innerWidth - 100)) {
                         this.imagePreview.style.display = 'block';
                         this.imagePreview.style.margin = '0';
@@ -1462,7 +1462,7 @@
                     }
                 }
             };
-            
+
             // Initialize
             this.initializeElements();
             this.bindEvents();

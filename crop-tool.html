@@ -1009,6 +1009,9 @@
                 this.loadCurrentFrameCropValues();
                 this.updateDisplays();
                 this.updateZoomDisplay();
+
+                // Set default animation name to [current animation]Cropped
+                this.cropAnimationNameInput.value = animationName + '_cropped';
             }
 
             getMinimumCropValues() {

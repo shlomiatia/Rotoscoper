@@ -1118,6 +1118,9 @@
                 this.centerInput.value = 0;
                 this.centerYInput.value = 0;
 
+                // Set default animation name to [current animation]Centered
+                this.animationNameInput.value = animationName + '_centered';
+
                 this.startFrameInput.max = Math.max(0, this.totalFrames - 1);
                 this.endFrameInput.max = Math.max(0, this.totalFrames - 1);
                 this.frameSlider.min = this.startFrame;
