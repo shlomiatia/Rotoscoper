@@ -19,6 +19,10 @@ var current_state: State = State.STAND
 var just_entered_jump: bool = false
 var turn_reverse: bool = false
 
+func _ready() -> void:
+    change_state(State.STAND)
+    animated_sprite_2d.connect("animation_finished", _on_AnimatedSprite2D_animation_finished)
+
 func _physics_process(delta: float) -> void:
     # Gravity
     if not is_on_floor():
@@ -94,9 +98,6 @@ func change_state(new_state: State) -> void:
         State.JUMP_END:
             animated_sprite_2d.play_backwards("jump_start")
             animated_sprite_2d.position = Vector2(5, -10)
-
-func _ready() -> void:
-    animated_sprite_2d.connect("animation_finished", _on_AnimatedSprite2D_animation_finished)
 
 func _on_AnimatedSprite2D_animation_finished() -> void:
     match current_state:
