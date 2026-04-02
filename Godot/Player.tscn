@@ -1,4 +1,4 @@
-[gd_scene load_steps=132 format=3 uid="uid://dmby0fn5i84m7"]
+[gd_scene load_steps=134 format=3 uid="uid://dmby0fn5i84m7"]
 
 [ext_resource type="Texture2D" uid="uid://yat3ck777e7g" path="res://Textures/Walk_cropped_sprites.png" id="1_8oy84"]
 [ext_resource type="Script" uid="uid://bcytu14scmu6i" path="res://player.gd" id="1_i6c2i"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://87t8k1nb3nsi" path="res://Textures/StartJumpUp_cropped_sprites_textured.png" id="2_e80uo"]
 [ext_resource type="Texture2D" uid="uid://deau1cflrk8n6" path="res://Textures/StartWalk_cropped_sprites.png" id="2_vuqh8"]
 [ext_resource type="Texture2D" uid="uid://u47cx0ecoyn6" path="res://Textures/JumpForwardStart.png" id="3_dtqjt"]
+[ext_resource type="Texture2D" uid="uid://bwlhrkljxfoj" path="res://Textures/JumpForward.png" id="4_5ncpa"]
 [ext_resource type="Texture2D" uid="uid://bb421jvrn1sbg" path="res://Textures/Turn_cropped_sprites_textured.png" id="5_tdg3f"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_xmpta"]
@@ -115,6 +116,10 @@ region = Rect2(90, 0, 90, 85)
 [sub_resource type="AtlasTexture" id="AtlasTexture_vv42g"]
 atlas = ExtResource("3_dtqjt")
 region = Rect2(0, 0, 90, 85)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ud5ta"]
+atlas = ExtResource("4_5ncpa")
+region = Rect2(0, 0, 83, 82)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_cxr5p"]
 atlas = ExtResource("2_e80uo")
@@ -584,6 +589,9 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_vv42g")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ud5ta")
 }],
 "loop": false,
 "name": &"jump_forward_start",
@@ -909,9 +917,11 @@ script = ExtResource("1_i6c2i")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -39)
 sprite_frames = SubResource("SpriteFrames_wo8av")
-animation = &"turn"
+animation = &"jump_forward_start"
 autoplay = "stand"
+frame = 11
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
 position = Vector2(0, -40.5)
 shape = SubResource("RectangleShape2D_pl02u")
