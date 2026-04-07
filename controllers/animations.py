@@ -371,6 +371,7 @@ def create_zoomed_animation():
             return jsonify({'success': False, 'error': f'Animation "{new_animation_name}" already exists'}), 409
 
         source_frame_files = get_frame_files(source_animation)
+        source_sprite_files = get_sprite_files(source_animation)
         if not source_frame_files:
             return jsonify({'success': False, 'error': f'No frames found in source animation "{source_animation}"'}), 400
 
@@ -403,6 +404,8 @@ def create_zoomed_animation():
 
         max_cropped_height = max(cropped_heights)
         os.makedirs(new_path, exist_ok=False)
+        new_sprites_path = os.path.join(new_path, 'sprites')
+        os.makedirs(new_sprites_path, exist_ok=True)
 
         frames_processed = 0
         for i, frame_file in enumerate(source_frame_files):
@@ -446,6 +449,49 @@ def create_zoomed_animation():
             except Exception as e:
                 print(f"Warning: Failed to process frame {frame_file}: {e}")
 
+        sprites_processed = 0
+        source_sprites_path = os.path.join(source_path, 'sprites')
+        if os.path.exists(source_sprites_path):
+            for i, sprite_file in enumerate(source_sprite_files):
+                source_sprite_path = os.path.join(source_sprites_path, sprite_file)
+                if not os.path.exists(source_sprite_path):
+                    continue
+
+                try:
+                    with Image.open(source_sprite_path) as img:
+                        original_format = img.format
+                        file_ext = os.path.splitext(sprite_file)[1]
+
+                        if img.mode != 'RGBA':
+                            img = img.convert('RGBA')
+
+                        width, height = img.size
+                        scaled_width = max(1, int(round(width * scale_factor)))
+                        scaled_height = max(1, int(round(height * scale_factor)))
+
+                        scaled_img = img.resize((scaled_width, scaled_height), resample=Image.NEAREST)
+
+                        final_img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+                        paste_x = (width - scaled_img.width) // 2
+                        paste_y = (height - scaled_img.height) // 2
+                        final_img.paste(scaled_img, (paste_x, paste_y), scaled_img)
+
+                        new_sprite_name = f'frame_{i:03d}_delay-0.03s{file_ext}'
+                        new_sprite_path = os.path.join(new_sprites_path, new_sprite_name)
+
+                        if original_format and original_format.upper() in ['PNG', 'JPEG', 'GIF', 'BMP', 'TIFF', 'WEBP']:
+                            save_format = original_format.upper()
+                            if save_format == 'JPEG':
+                                final_img.convert('RGB').save(new_sprite_path, save_format)
+                            else:
+                                final_img.save(new_sprite_path, save_format)
+                        else:
+                            final_img.save(new_sprite_path, 'PNG')
+
+                        sprites_processed += 1
+                except Exception as e:
+                    print(f"Warning: Failed to process sprite {sprite_file}: {e}")
+
         if frames_processed == 0:
             shutil.rmtree(new_path, ignore_errors=True)
             return jsonify({'success': False, 'error': 'No frames were processed'}), 400
@@ -456,6 +502,143 @@ def create_zoomed_animation():
             'frameCount': frames_processed,
             'name': new_animation_name,
             'maxCroppedHeight': max_cropped_height
+        })
+
+    except Exception as e:
+        if 'new_path' in locals() and os.path.exists(new_path):
+            shutil.rmtree(new_path, ignore_errors=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@animations_bp.route('/api/create-scaled-animation', methods=['POST'])
+def create_scaled_animation():
+    """Create a new animation by scaling all frames from the center using nearest-neighbor interpolation."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        source_animation = data.get('sourceAnimation', '').strip()
+        new_animation_name = data.get('newAnimationName', '').strip()
+        scale_factor = data.get('scaleFactor', 1)
+
+        if not source_animation:
+            return jsonify({'success': False, 'error': 'Source animation is required'}), 400
+        if not new_animation_name:
+            return jsonify({'success': False, 'error': 'New animation name is required'}), 400
+
+        try:
+            scale_factor = float(scale_factor)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Scale factor must be a number'}), 400
+
+        if scale_factor <= 0:
+            return jsonify({'success': False, 'error': 'Scale factor must be greater than 0'}), 400
+
+        source_path = os.path.join(SOURCE_DIR, source_animation)
+        if not os.path.exists(source_path):
+            return jsonify({'success': False, 'error': f'Source animation "{source_animation}" not found'}), 404
+
+        new_path = os.path.join(SOURCE_DIR, new_animation_name)
+        if os.path.exists(new_path):
+            return jsonify({'success': False, 'error': f'Animation "{new_animation_name}" already exists'}), 409
+
+        source_frame_files = get_frame_files(source_animation)
+        source_sprite_files = get_sprite_files(source_animation)
+        if not source_frame_files:
+            return jsonify({'success': False, 'error': f'No frames found in source animation "{source_animation}"'}), 400
+
+        from PIL import Image
+
+        os.makedirs(new_path, exist_ok=False)
+        new_sprites_path = os.path.join(new_path, 'sprites')
+        os.makedirs(new_sprites_path, exist_ok=True)
+
+        frames_processed = 0
+        for i, frame_file in enumerate(source_frame_files):
+            source_frame_path = os.path.join(source_path, frame_file)
+            if not os.path.exists(source_frame_path):
+                continue
+
+            try:
+                with Image.open(source_frame_path) as img:
+                    original_format = img.format
+                    file_ext = os.path.splitext(frame_file)[1]
+
+                    if img.mode != 'RGBA':
+                        img = img.convert('RGBA')
+
+                    width, height = img.size
+                    scaled_width = max(1, int(round(width * scale_factor)))
+                    scaled_height = max(1, int(round(height * scale_factor)))
+
+                    scaled_img = img.resize((scaled_width, scaled_height), resample=Image.NEAREST)
+
+                    new_frame_name = f'frame_{i:03d}_delay-0.03s{file_ext}'
+                    new_frame_path = os.path.join(new_path, new_frame_name)
+
+                    if original_format and original_format.upper() in ['PNG', 'JPEG', 'GIF', 'BMP', 'TIFF', 'WEBP']:
+                        save_format = original_format.upper()
+                        if save_format == 'JPEG':
+                            scaled_img.convert('RGB').save(new_frame_path, save_format)
+                        else:
+                            scaled_img.save(new_frame_path, save_format)
+                    else:
+                        scaled_img.save(new_frame_path, 'PNG')
+
+                    frames_processed += 1
+            except Exception as e:
+                print(f"Warning: Failed to process frame {frame_file}: {e}")
+
+        if frames_processed == 0:
+            shutil.rmtree(new_path, ignore_errors=True)
+            return jsonify({'success': False, 'error': 'No frames were processed'}), 400
+
+        sprites_processed = 0
+        source_sprites_path = os.path.join(source_path, 'sprites')
+        if os.path.exists(source_sprites_path):
+            for i, sprite_file in enumerate(source_sprite_files):
+                source_sprite_path = os.path.join(source_sprites_path, sprite_file)
+                if not os.path.exists(source_sprite_path):
+                    continue
+
+                try:
+                    with Image.open(source_sprite_path) as img:
+                        original_format = img.format
+                        file_ext = os.path.splitext(sprite_file)[1]
+
+                        if img.mode != 'RGBA':
+                            img = img.convert('RGBA')
+
+                        width, height = img.size
+                        scaled_width = max(1, int(round(width * scale_factor)))
+                        scaled_height = max(1, int(round(height * scale_factor)))
+
+                        scaled_img = img.resize((scaled_width, scaled_height), resample=Image.NEAREST)
+
+                        new_sprite_name = f'frame_{i:03d}_delay-0.03s{file_ext}'
+                        new_sprite_path = os.path.join(new_sprites_path, new_sprite_name)
+
+                        if original_format and original_format.upper() in ['PNG', 'JPEG', 'GIF', 'BMP', 'TIFF', 'WEBP']:
+                            save_format = original_format.upper()
+                            if save_format == 'JPEG':
+                                scaled_img.convert('RGB').save(new_sprite_path, save_format)
+                            else:
+                                scaled_img.save(new_sprite_path, save_format)
+                        else:
+                            scaled_img.save(new_sprite_path, 'PNG')
+
+                        sprites_processed += 1
+                except Exception as e:
+                    print(f"Warning: Failed to process sprite {sprite_file}: {e}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Scaled animation "{new_animation_name}" created successfully',
+            'frameCount': frames_processed,
+            'spriteCount': sprites_processed,
+            'name': new_animation_name,
+            'scaleFactor': scale_factor
         })
 
     except Exception as e:

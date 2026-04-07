@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scale Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .animation-container {
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f8f8f8;
+            padding: 20px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .frame-preview-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        #frame-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+            height: auto;
+        }
+
+        .frame-image {
+            display: none;
+            transition: transform 0.1s ease;
+            transform-origin: center center;
+        }
+
+        .frame-image.active {
+            display: block;
+        }
+
+        .sprite-overlay-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .sprite-image {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            opacity: 0.75;
+        }
+
+        .sprite-image.active {
+            display: block;
+        }
+
+        .zoom-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        .zoom-btn:hover {
+            background-color: #5a6268;
+        }
+
+        #zoom-display {
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .animation-selector {
+            margin-bottom: 10px;
+        }
+
+        .animation-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .control-group {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            min-width: 130px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            flex: 1;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            width: 220px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .play-pause-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .play-pause-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .primary-btn {
+            width: 100%;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .primary-btn:hover {
+            background-color: #e08a00;
+        }
+
+        .info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Scale Tool</h1>
+            <a href="index.html" class="back-btn">← Back to Tools</a>
+        </div>
+
+        <div class="animation-container">
+            <div class="frame-preview-container">
+                <div id="frame-container"></div>
+                <div id="sprite-overlay-container" class="sprite-overlay-container"></div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Animation Selector</h3>
+            <div class="animation-selector">
+                <select id="animation-select"></select>
+            </div>
+
+            <h3>Playback Controls</h3>
+            <button class="play-pause-btn" id="play-pause-btn">Play</button>
+
+            <div class="input-group">
+                <label>Frame:</label>
+                <input type="range" id="frame-slider" min="0" max="0" value="0">
+                <input type="number" id="frame-input" min="0" max="0" value="0">
+            </div>
+
+            <div class="input-group">
+                <label>Zoom:</label>
+                <button id="zoom-out-btn" class="zoom-btn">-</button>
+                <span id="zoom-display">100%</span>
+                <button id="zoom-in-btn" class="zoom-btn">+</button>
+            </div>
+
+            <div class="input-group">
+                <label>Elapsed Time:</label>
+                <span id="elapsed-time-display">0.00s</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Timing Settings</h3>
+            <div class="input-group">
+                <label>Delay (ms):</label>
+                <input type="range" id="delay-slider" min="10" max="1000" value="30">
+                <input type="number" id="delay-input" min="10" max="1000" value="30">
+            </div>
+
+            <div class="input-group">
+                <label>FPS:</label>
+                <span id="fps-display">33.3</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Create Scaled Animation</h3>
+            <div class="input-group">
+                <label>Scale Factor:</label>
+                <input type="number" id="scale-factor-input" min="0.01" step="0.01" value="1.00">
+            </div>
+            <div class="input-group">
+                <label>Animation Name:</label>
+                <input type="text" id="scale-animation-name-input" placeholder="[animation]_scaled">
+            </div>
+            <button id="scale-animation-btn" class="primary-btn">Create Scaled Animation</button>
+        </div>
+
+        <div class="info">
+            <div class="info-item">
+                <span class="info-label">Animation Frames:</span>
+                <span id="current-animation-frames">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Animation Length:</span>
+                <span id="total-length-display">0.00s</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ScaleTool {
+            constructor() {
+                this.currentFrame = 0;
+                this.totalFrames = 0;
+                this.delay = 30;
+                this.isPlaying = false;
+                this.animationId = null;
+                this.currentAnimation = null;
+                this.animations = [];
+                this.animationData = {};
+
+                this.frameWidth = 0;
+                this.frameHeight = 0;
+                this.frameElements = {};
+                this.spriteElements = {};
+                this.currentFrameElement = null;
+                this.currentSpriteElement = null;
+                this.zoomLevel = 1.0;
+                this.zoomLevels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
+                this.currentZoomIndex = 3;
+
+                this.initializeElements();
+                this.bindEvents();
+                this.loadAvailableAnimations();
+                this.updateDisplays();
+                this.updateZoomDisplay();
+            }
+
+            initializeElements() {
+                this.frameContainer = document.getElementById('frame-container');
+                this.spriteOverlayContainer = document.getElementById('sprite-overlay-container');
+                this.playPauseBtn = document.getElementById('play-pause-btn');
+                this.frameSlider = document.getElementById('frame-slider');
+                this.frameInput = document.getElementById('frame-input');
+                this.delaySlider = document.getElementById('delay-slider');
+                this.delayInput = document.getElementById('delay-input');
+                this.fpsDisplay = document.getElementById('fps-display');
+                this.currentAnimationFrames = document.getElementById('current-animation-frames');
+                this.totalLengthDisplay = document.getElementById('total-length-display');
+                this.elapsedTimeDisplay = document.getElementById('elapsed-time-display');
+                this.animationSelect = document.getElementById('animation-select');
+                this.zoomInBtn = document.getElementById('zoom-in-btn');
+                this.zoomOutBtn = document.getElementById('zoom-out-btn');
+                this.zoomDisplay = document.getElementById('zoom-display');
+                this.scaleFactorInput = document.getElementById('scale-factor-input');
+                this.scaleAnimationNameInput = document.getElementById('scale-animation-name-input');
+                this.scaleAnimationBtn = document.getElementById('scale-animation-btn');
+            }
+
+            bindEvents() {
+                this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+
+                this.frameSlider.addEventListener('input', (e) => {
+                    this.setFrame(parseInt(e.target.value, 10));
+                });
+
+                this.frameInput.addEventListener('change', (e) => {
+                    this.setFrame(parseInt(e.target.value, 10));
+                });
+
+                this.delaySlider.addEventListener('input', (e) => {
+                    this.setDelay(parseInt(e.target.value, 10));
+                });
+
+                this.delayInput.addEventListener('change', (e) => {
+                    this.setDelay(parseInt(e.target.value, 10));
+                });
+
+                this.animationSelect.addEventListener('change', (e) => {
+                    this.switchAnimation(e.target.value);
+                });
+
+                this.zoomInBtn.addEventListener('click', () => {
+                    this.zoomIn();
+                });
+
+                this.zoomOutBtn.addEventListener('click', () => {
+                    this.zoomOut();
+                });
+
+                this.scaleAnimationBtn.addEventListener('click', () => {
+                    this.createScaledAnimation();
+                });
+            }
+
+            setFrame(frame) {
+                this.currentFrame = Math.max(0, Math.min(frame, this.totalFrames - 1));
+                this.updateFrame();
+                this.updateDisplays();
+            }
+
+            setDelay(delay) {
+                this.delay = Math.max(10, Math.min(delay, 1000));
+                this.delaySlider.value = this.delay;
+                this.delayInput.value = this.delay;
+                this.updateDisplays();
+
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                    this.startAnimation();
+                }
+            }
+
+            updateFrame() {
+                if (this.currentFrameElement) {
+                    this.currentFrameElement.classList.remove('active');
+                }
+
+                if (this.currentSpriteElement) {
+                    this.currentSpriteElement.classList.remove('active');
+                }
+
+                if (this.frameElements[this.currentAnimation] &&
+                    this.frameElements[this.currentAnimation][this.currentFrame]) {
+                    this.currentFrameElement = this.frameElements[this.currentAnimation][this.currentFrame];
+                    this.currentFrameElement.classList.add('active');
+                }
+
+                if (this.spriteElements[this.currentAnimation] &&
+                    this.spriteElements[this.currentAnimation][this.currentFrame]) {
+                    this.currentSpriteElement = this.spriteElements[this.currentAnimation][this.currentFrame];
+                    this.currentSpriteElement.classList.add('active');
+                } else {
+                    this.currentSpriteElement = null;
+                }
+            }
+
+            createFrameElements() {
+                if (!this.currentAnimation) {
+                    return;
+                }
+
+                this.frameContainer.innerHTML = '';
+                this.currentFrameElement = null;
+
+                if (!this.frameElements[this.currentAnimation]) {
+                    this.frameElements[this.currentAnimation] = {};
+                }
+
+                if (!this.spriteElements[this.currentAnimation]) {
+                    this.spriteElements[this.currentAnimation] = {};
+                }
+
+                const frameFiles = this.animationData[this.currentAnimation] ? this.animationData[this.currentAnimation].frames : [];
+                const spriteFiles = this.animationData[this.currentAnimation] ? this.animationData[this.currentAnimation].sprites : [];
+
+                this.spriteOverlayContainer.innerHTML = '';
+
+                for (let frame = 0; frame < this.totalFrames; frame++) {
+                    let img = this.frameElements[this.currentAnimation][frame];
+
+                    if (!img) {
+                        let frameSrc;
+                        if (frameFiles.length > frame) {
+                            frameSrc = `Source/${this.currentAnimation}/${frameFiles[frame]}`;
+                        } else {
+                            const frameNumber = String(frame).padStart(3, '0');
+                            frameSrc = `Source/${this.currentAnimation}/frame_${frameNumber}_delay-0.03s.gif`;
+                        }
+
+                        img = document.createElement('img');
+                        img.className = 'frame-image';
+                        img.src = frameSrc;
+                        img.alt = `Frame ${frame}`;
+
+                        if (frame === 0) {
+                            img.onload = () => {
+                                this.frameWidth = img.naturalWidth;
+                                this.frameHeight = img.naturalHeight;
+                                this.setContainerDimensions();
+                                this.updatePreview();
+                            };
+                        } else {
+                            img.onload = () => {
+                                if (!this.frameWidth || !this.frameHeight) {
+                                    this.frameWidth = img.naturalWidth;
+                                    this.frameHeight = img.naturalHeight;
+                                    this.setContainerDimensions();
+                                    this.updatePreview();
+                                }
+                            };
+                        }
+
+                        this.frameElements[this.currentAnimation][frame] = img;
+                    }
+
+                    this.frameContainer.appendChild(img);
+
+                    let spriteImg = this.spriteElements[this.currentAnimation][frame];
+                    if (!spriteImg && spriteFiles.length > frame && spriteFiles[frame]) {
+                        spriteImg = document.createElement('img');
+                        spriteImg.className = 'sprite-image';
+                        spriteImg.src = `Source/${this.currentAnimation}/sprites/${spriteFiles[frame]}`;
+                        spriteImg.alt = `Sprite ${frame}`;
+                        this.spriteElements[this.currentAnimation][frame] = spriteImg;
+                    }
+
+                    if (spriteImg) {
+                        this.spriteOverlayContainer.appendChild(spriteImg);
+                    }
+                }
+
+                this.updateFrame();
+            }
+
+            updatePreview() {
+                if (!this.frameElements[this.currentAnimation]) {
+                    return;
+                }
+
+                Object.values(this.frameElements[this.currentAnimation]).forEach((frameElement) => {
+                    if (frameElement) {
+                        frameElement.style.transform = `scale(${this.zoomLevel})`;
+                    }
+                });
+
+                if (this.spriteElements[this.currentAnimation]) {
+                    Object.values(this.spriteElements[this.currentAnimation]).forEach((spriteElement) => {
+                        if (spriteElement) {
+                            spriteElement.style.transform = `translate(-50%, -50%) scale(${this.zoomLevel})`;
+                        }
+                    });
+                }
+            }
+
+            nextFrame() {
+                this.currentFrame++;
+                if (this.currentFrame >= this.totalFrames) {
+                    this.currentFrame = 0;
+                }
+                this.updateFrame();
+                this.updateDisplays();
+            }
+
+            togglePlayPause() {
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                } else {
+                    this.startAnimation();
+                }
+            }
+
+            startAnimation() {
+                this.isPlaying = true;
+                this.playPauseBtn.textContent = 'Pause';
+
+                const animate = () => {
+                    if (this.isPlaying) {
+                        this.nextFrame();
+                        this.animationId = setTimeout(animate, this.delay);
+                    }
+                };
+
+                this.animationId = setTimeout(animate, this.delay);
+            }
+
+            stopAnimation() {
+                this.isPlaying = false;
+                this.playPauseBtn.textContent = 'Play';
+                if (this.animationId) {
+                    clearTimeout(this.animationId);
+                    this.animationId = null;
+                }
+            }
+
+            updateDisplays() {
+                this.frameSlider.value = this.currentFrame;
+                this.frameInput.value = this.currentFrame;
+
+                const fps = (1000 / this.delay).toFixed(1);
+                this.fpsDisplay.textContent = fps;
+
+                this.currentAnimationFrames.textContent = this.totalFrames;
+                const totalLength = (this.totalFrames * this.delay / 1000).toFixed(2);
+                this.totalLengthDisplay.textContent = totalLength + 's';
+
+                const elapsedTime = (this.currentFrame * this.delay / 1000).toFixed(2);
+                this.elapsedTimeDisplay.textContent = elapsedTime + 's';
+            }
+
+            async loadAvailableAnimations() {
+                try {
+                    const response = await fetch('/api/animations');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.animations = data.animations.map((anim) => anim.name);
+                        this.animationData = {};
+
+                        data.animations.forEach((anim) => {
+                            this.animationData[anim.name] = {
+                                frameCount: anim.frameCount,
+                                frames: anim.frames || [],
+                                sprites: anim.sprites || []
+                            };
+                        });
+
+                        this.updateAnimationSelect();
+                        if (this.animations.length > 0) {
+                            this.switchAnimation(this.animations[0]);
+                        }
+                    } else {
+                        alert('Failed to load animations from server');
+                        this.animations = [];
+                        this.animationData = {};
+                        this.currentAnimation = null;
+                        this.updateAnimationSelect();
+                    }
+                } catch (error) {
+                    alert('Failed to load animations from server: ' + error.message);
+                    this.animations = [];
+                    this.animationData = {};
+                    this.currentAnimation = null;
+                    this.updateAnimationSelect();
+                }
+            }
+
+            updateAnimationSelect() {
+                this.animationSelect.innerHTML = '';
+                this.animations.forEach((animation) => {
+                    const option = document.createElement('option');
+                    option.value = animation;
+                    option.textContent = animation;
+                    if (animation === this.currentAnimation) {
+                        option.selected = true;
+                    }
+                    this.animationSelect.appendChild(option);
+                });
+            }
+
+            setContainerDimensions() {
+                if (this.frameWidth && this.frameHeight) {
+                    const scaledWidth = this.frameWidth * this.zoomLevel;
+                    const scaledHeight = this.frameHeight * this.zoomLevel;
+                    this.frameContainer.style.width = scaledWidth + 'px';
+                    this.frameContainer.style.height = scaledHeight + 'px';
+                }
+            }
+
+            zoomIn() {
+                if (this.currentZoomIndex < this.zoomLevels.length - 1) {
+                    this.currentZoomIndex++;
+                    this.setZoom(this.zoomLevels[this.currentZoomIndex]);
+                }
+            }
+
+            zoomOut() {
+                if (this.currentZoomIndex > 0) {
+                    this.currentZoomIndex--;
+                    this.setZoom(this.zoomLevels[this.currentZoomIndex]);
+                }
+            }
+
+            setZoom(zoomLevel) {
+                this.zoomLevel = zoomLevel;
+                this.updateZoomDisplay();
+                this.setContainerDimensions();
+                this.updatePreview();
+            }
+
+            updateZoomDisplay() {
+                const percentage = Math.round(this.zoomLevel * 100);
+                this.zoomDisplay.textContent = percentage + '%';
+            }
+
+            switchAnimation(animationName) {
+                if (animationName === this.currentAnimation) {
+                    return;
+                }
+
+                this.currentAnimation = animationName;
+
+                if (this.animationData[animationName]) {
+                    this.totalFrames = this.animationData[animationName].frameCount;
+                } else {
+                    this.totalFrames = 0;
+                }
+
+                this.currentFrame = 0;
+
+                this.frameSlider.min = 0;
+                this.frameSlider.max = Math.max(0, this.totalFrames - 1);
+                this.frameInput.max = Math.max(0, this.totalFrames - 1);
+                this.frameSlider.value = 0;
+                this.frameInput.value = 0;
+
+                this.frameWidth = 0;
+                this.frameHeight = 0;
+
+                this.createFrameElements();
+                this.updateFrame();
+                this.updateDisplays();
+                this.updateZoomDisplay();
+
+                this.scaleAnimationNameInput.value = animationName + '_scaled';
+            }
+
+            async createScaledAnimation() {
+                const newAnimationName = this.scaleAnimationNameInput.value.trim();
+                const scaleFactor = parseFloat(this.scaleFactorInput.value);
+
+                if (!newAnimationName) {
+                    alert('Please enter a name for the new animation');
+                    return;
+                }
+
+                if (!this.currentAnimation) {
+                    alert('No animation selected');
+                    return;
+                }
+
+                if (!Number.isFinite(scaleFactor) || scaleFactor <= 0) {
+                    alert('Please enter a valid scale factor greater than 0');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/create-scaled-animation', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            sourceAnimation: this.currentAnimation,
+                            newAnimationName: newAnimationName,
+                            scaleFactor: scaleFactor
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert(`Animation "${newAnimationName}" created successfully!`);
+                        await this.loadAvailableAnimations();
+                        this.switchAnimation(newAnimationName);
+                    } else {
+                        alert('Failed to create animation: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Error creating animation: ' + error.message);
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new ScaleTool();
+        });
+    </script>
+</body>
+
+</html>
