@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 600px;
+            max-width: 900px;
             margin: 50px auto;
             padding: 20px;
             background-color: #f0f0f0;
@@ -29,20 +29,23 @@
         }
 
         .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
             margin-top: 40px;
+            justify-content: center;
         }
 
         .tool-card {
             background-color: #f8f9fa;
-            padding: 30px 20px;
+            padding: 25px 18px;
             border-radius: 10px;
             border: 2px solid #e9ecef;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             text-decoration: none;
             color: inherit;
+            width: 220px;
+            flex-shrink: 0;
         }
 
         .tool-card:hover {
@@ -168,6 +171,15 @@
                 </div>
             </a>
 
+            <a href="zoom-tool.html" class="tool-card crop-tool">
+                <span class="tool-icon">🔍</span>
+                <div class="tool-title">Zoom Tool</div>
+                <div class="tool-description">
+                    Scale animation frames to match the largest cropped region, keeping frame size unchanged. Useful for
+                    creating zoomed-in effects without cropping.
+                </div>
+            </a>
+
             <a href="crop-tool.html" class="tool-card crop-tool">
                 <span class="tool-icon">✂️</span>
                 <div class="tool-title">Crop Tool</div>
@@ -183,6 +195,15 @@
                 <div class="tool-description">
                     Generate and customize sprites from animations with color mapping.
                     Extract colors, apply color changes, and preview results in real-time.
+                </div>
+            </a>
+
+            <a href="scale-tool.html" class="tool-card crop-tool">
+                <span class="tool-icon">📏</span>
+                <div class="tool-title">Scale Tool</div>
+                <div class="tool-description">
+                    Scale all frames of an animation by a fixed factor from the center with no interpolation.
+                    Creates a new animation folder with scaled frames and sprites.
                 </div>
             </a>
 
@@ -210,24 +231,6 @@
                 <div class="tool-description">
                     Apply textures and layers to images with customizable colors and effects.
                     Create layered compositions with color mapping and preview results in real-time.
-                </div>
-            </a>
-
-            <a href="zoom-tool.html" class="tool-card crop-tool">
-                <span class="tool-icon">🔍</span>
-                <div class="tool-title">Zoom Tool</div>
-                <div class="tool-description">
-                    Scale animation frames to match the largest cropped region, keeping frame size unchanged. Useful for
-                    creating zoomed-in effects without cropping.
-                </div>
-            </a>
-
-            <a href="scale-tool.html" class="tool-card crop-tool">
-                <span class="tool-icon">📏</span>
-                <div class="tool-title">Scale Tool</div>
-                <div class="tool-description">
-                    Scale all frames of an animation by a fixed factor from the center with no interpolation.
-                    Keeps output frame dimensions unchanged and creates a new scaled animation.
                 </div>
             </a>
         </div>
