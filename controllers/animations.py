@@ -419,18 +419,14 @@ def create_zoomed_animation():
                         img = img.convert('RGBA')
 
                     width, height = img.size
-                    top = max(0, crop_top[i])
-                    bottom = max(0, crop_bottom[i])
-                    cropped_img = img.crop((0, top, width, height - bottom))
-
                     cropped_height = cropped_heights[i]
                     if cropped_height == max_cropped_height:
-                        scaled_img = cropped_img
+                        scaled_img = img.copy()
                     else:
                         scale_factor = max_cropped_height / cropped_height
                         scaled_width = max(1, int(round(width * scale_factor)))
-                        scaled_height = max(1, int(round(cropped_img.height * scale_factor)))
-                        scaled_img = cropped_img.resize((scaled_width, scaled_height), resample=Image.NEAREST)
+                        scaled_height = max(1, int(round(height * scale_factor)))
+                        scaled_img = img.resize((scaled_width, scaled_height), resample=Image.NEAREST)
 
                     final_img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
                     paste_x = (width - scaled_img.width) // 2
