@@ -883,6 +883,7 @@
 
                         if (this.animations.length > 0) {
                             this.currentAnimation = this.animations[0];
+                            this.animationNameInput.value = this.currentAnimation + '_centered';
                         }
 
                         if (this.currentAnimation && this.animationData[this.currentAnimation]) {
