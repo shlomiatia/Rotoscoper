@@ -89,7 +89,7 @@ func change_state(new_state: State) -> void:
         State.WALK:
             animated_sprite_2d.play("walk")
             animated_sprite_2d.frame = 10
-            _set_sprite_position(Vector2(-5.5, -37))
+            _set_sprite_position(Vector2(3, -37))
         State.TURN:
             velocity.x = 0
             animated_sprite_2d.play("turn")
@@ -113,9 +113,9 @@ func change_state(new_state: State) -> void:
         State.JUMP_FORWARD:
             animated_sprite_2d.play("jump_forward")
             if animated_sprite_2d.flip_h:
-                velocity = Vector2(-2, -1).normalized() * 200
+                velocity = Vector2(-1, -1).normalized() * 300
             else:
-                velocity = Vector2(2, -1).normalized() * 200
+                velocity = Vector2(1, -1).normalized() * 300
             just_entered_jump = true
             _set_sprite_position(Vector2(22, -38))
         State.JUMP_FORWARD_END:
