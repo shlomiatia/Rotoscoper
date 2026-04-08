@@ -510,6 +510,143 @@ def create_zoomed_animation():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@animations_bp.route('/api/create-rotated-animation', methods=['POST'])
+def create_rotated_animation():
+    """Create a new animation by rotating each frame around its center with nearest-neighbor sampling."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        source_animation = data.get('sourceAnimation', '').strip()
+        new_animation_name = data.get('newAnimationName', '').strip()
+        rotation_values = data.get('rotationAngles', [])
+
+        if not source_animation:
+            return jsonify({'success': False, 'error': 'Source animation is required'}), 400
+        if not new_animation_name:
+            return jsonify({'success': False, 'error': 'New animation name is required'}), 400
+        if not isinstance(rotation_values, list):
+            return jsonify({'success': False, 'error': 'rotationAngles must be an array'}), 400
+
+        source_path = os.path.join(SOURCE_DIR, source_animation)
+        if not os.path.exists(source_path):
+            return jsonify({'success': False, 'error': f'Source animation "{source_animation}" not found'}), 404
+
+        new_path = os.path.join(SOURCE_DIR, new_animation_name)
+        if os.path.exists(new_path):
+            return jsonify({'success': False, 'error': f'Animation "{new_animation_name}" already exists'}), 409
+
+        source_frame_files = get_frame_files(source_animation)
+        source_sprite_files = get_sprite_files(source_animation)
+        if not source_frame_files:
+            return jsonify({'success': False, 'error': f'No frames found in source animation "{source_animation}"'}), 400
+
+        frame_count = len(source_frame_files)
+        rotations = []
+        for idx, value in enumerate(rotation_values):
+            try:
+                rotations.append(float(value) if str(value).strip() else 0.0)
+            except (TypeError, ValueError):
+                return jsonify({'success': False, 'error': f'Invalid rotation value at frame {idx}'}), 400
+
+        if len(rotations) < frame_count:
+            rotations.extend([0.0] * (frame_count - len(rotations)))
+        rotations = rotations[:frame_count]
+
+        from PIL import Image
+
+        os.makedirs(new_path, exist_ok=False)
+        new_sprites_path = os.path.join(new_path, 'sprites')
+        os.makedirs(new_sprites_path, exist_ok=True)
+
+        frames_processed = 0
+        for i, frame_file in enumerate(source_frame_files):
+            source_frame_path = os.path.join(source_path, frame_file)
+            if not os.path.exists(source_frame_path):
+                continue
+
+            try:
+                with Image.open(source_frame_path) as img:
+                    original_format = img.format
+                    file_ext = os.path.splitext(frame_file)[1]
+
+                    if img.mode != 'RGBA':
+                        img = img.convert('RGBA')
+
+                    angle = rotations[i]
+                    rotated_img = img.rotate(-angle, resample=Image.NEAREST, expand=False, fillcolor=(0, 0, 0, 0))
+
+                    new_frame_name = f'frame_{i:03d}_delay-0.03s{file_ext}'
+                    new_frame_path = os.path.join(new_path, new_frame_name)
+
+                    if original_format and original_format.upper() in ['PNG', 'JPEG', 'GIF', 'BMP', 'TIFF', 'WEBP']:
+                        save_format = original_format.upper()
+                        if save_format == 'JPEG':
+                            rotated_img.convert('RGB').save(new_frame_path, save_format)
+                        else:
+                            rotated_img.save(new_frame_path, save_format)
+                    else:
+                        rotated_img.save(new_frame_path, 'PNG')
+
+                    frames_processed += 1
+            except Exception as e:
+                print(f"Warning: Failed to rotate frame {frame_file}: {e}")
+
+        sprites_processed = 0
+        source_sprites_path = os.path.join(source_path, 'sprites')
+        if os.path.exists(source_sprites_path):
+            for i, sprite_file in enumerate(source_sprite_files):
+                source_sprite_path = os.path.join(source_sprites_path, sprite_file)
+                if not os.path.exists(source_sprite_path):
+                    continue
+
+                try:
+                    with Image.open(source_sprite_path) as img:
+                        original_format = img.format
+                        file_ext = os.path.splitext(sprite_file)[1]
+
+                        if img.mode != 'RGBA':
+                            img = img.convert('RGBA')
+
+                        angle = rotations[i] if i < len(rotations) else 0.0
+                        rotated_img = img.rotate(-angle, resample=Image.NEAREST, expand=False, fillcolor=(0, 0, 0, 0))
+
+                        new_sprite_name = f'frame_{i:03d}_delay-0.03s{file_ext}'
+                        new_sprite_path = os.path.join(new_sprites_path, new_sprite_name)
+
+                        if original_format and original_format.upper() in ['PNG', 'JPEG', 'GIF', 'BMP', 'TIFF', 'WEBP']:
+                            save_format = original_format.upper()
+                            if save_format == 'JPEG':
+                                rotated_img.convert('RGB').save(new_sprite_path, save_format)
+                            else:
+                                rotated_img.save(new_sprite_path, save_format)
+                        else:
+                            rotated_img.save(new_sprite_path, 'PNG')
+
+                        sprites_processed += 1
+                except Exception as e:
+                    print(f"Warning: Failed to rotate sprite {sprite_file}: {e}")
+
+        if frames_processed == 0:
+            shutil.rmtree(new_path, ignore_errors=True)
+            return jsonify({'success': False, 'error': 'No frames were processed'}), 400
+
+        return jsonify({
+            'success': True,
+            'message': f'Rotated animation "{new_animation_name}" created successfully',
+            'frameCount': frames_processed,
+            'spriteCount': sprites_processed,
+            'name': new_animation_name,
+            'frames': get_frame_files(new_animation_name)
+        })
+
+    except Exception as e:
+        if 'new_path' in locals() and os.path.exists(new_path):
+            shutil.rmtree(new_path, ignore_errors=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @animations_bp.route('/api/create-scaled-animation', methods=['POST'])
 def create_scaled_animation():
     """Create a new animation by scaling all frames from the center using nearest-neighbor interpolation."""

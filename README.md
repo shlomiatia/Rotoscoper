@@ -8,6 +8,7 @@ The `index.html` file links to all available tools. Tool files:
 
 - `cut-tool.html` — Create cut animations from selected frame ranges.
 - `center-tool.html` — Adjust center offsets and create centered animation copies.
+- `rotate-tool.html` — Rotate frames per animation using per-frame angle values.
 - `sprite-tool.html` — Generate and edit sprites and color mappings.
 - `texture-tool.html` — Apply textures and save processed images.
 - `crop-tool.html` — Crop animations and export cropped animations.
