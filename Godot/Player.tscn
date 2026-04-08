@@ -707,7 +707,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"walk",
-"speed": 30.0
+"speed": 45.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_pl02u"]
@@ -719,10 +719,9 @@ script = ExtResource("1_i6c2i")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(3, -39)
 sprite_frames = SubResource("SpriteFrames_wo8av")
-animation = &"jump_forward_end"
+animation = &"walk"
 autoplay = "stand"
-frame = 13
-frame_progress = 1.0
+frame = 26
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 visible = false
