@@ -6,7 +6,8 @@ A web-based animation toolkit for creating custom frame-based animations and gen
 
 The `index.html` file links to all available tools. Tool files:
 
-- `new-animation-tool.html` — Create custom animations from existing frames.
+- `cut-tool.html` — Create cut animations from selected frame ranges.
+- `center-tool.html` — Adjust center offsets and create centered animation copies.
 - `sprite-tool.html` — Generate and edit sprites and color mappings.
 - `texture-tool.html` — Apply textures and save processed images.
 - `crop-tool.html` — Crop animations and export cropped animations.
