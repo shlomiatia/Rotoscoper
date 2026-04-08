@@ -31,7 +31,7 @@
             <input id="video-file" type="file" accept="video/*" required>
 
             <label for="fps">Frame rate (FPS)</label>
-            <input id="fps" type="number" min="1" value="24" required>
+            <input id="fps" type="number" min="1" value="30" required>
 
             <label for="animation-name">Animation Name</label>
             <input id="animation-name" type="text" maxlength="100" placeholder="e.g. Run" required>
@@ -72,7 +72,7 @@
                 return;
             }
 
-            const fps = Number(fpsInput.value) || 24;
+            const fps = Number(fpsInput.value) || 30;
             if (fps <= 0) {
                 showStatus('Please enter a valid FPS greater than 0.', 'error');
                 return;
