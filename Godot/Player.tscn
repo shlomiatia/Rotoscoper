@@ -724,6 +724,5 @@ autoplay = "stand"
 frame = 26
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-visible = false
 position = Vector2(0, -40.5)
 shape = SubResource("RectangleShape2D_pl02u")
