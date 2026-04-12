@@ -21,6 +21,7 @@ enum State {
 
 var current_state: State = State.STAND
 var just_entered_jump: bool = false
+var queued_jump_after_landing: bool = false
 var turn_reverse: bool = false
 var original_collision_shape_position: Vector2 = Vector2.ZERO
 var original_collision_shape_size: Vector2 = Vector2.ZERO
@@ -51,6 +52,9 @@ func _physics_process(delta: float) -> void:
     if current_state == State.JUMP_START:
         if direction_match_orientation(direction):
             change_state(State.JUMP_FORWARD_START)
+    if current_state == State.JUMP_END or current_state == State.JUMP_FORWARD_END:
+        if Input.is_action_just_pressed("ui_accept"):
+            queued_jump_after_landing = true
     
                 
     # State logic
@@ -165,7 +169,11 @@ func _on_AnimatedSprite2D_animation_finished() -> void:
         State.JUMP_START:
             change_state(State.JUMP)
         State.JUMP_END:
-            change_state(State.STAND)
+            if queued_jump_after_landing:
+                queued_jump_after_landing = false
+                change_state(State.JUMP_START)
+            else:
+                change_state(State.STAND)
         State.JUMP_FORWARD_START:
             change_state(State.JUMP_FORWARD)
         State.JUMP_FORWARD_END:
@@ -176,4 +184,8 @@ func _on_AnimatedSprite2D_animation_finished() -> void:
             else:
                 position.x += JUMP_FORWARD_OFFSET
 
-            change_state(State.STAND)
+            if queued_jump_after_landing:
+                queued_jump_after_landing = false
+                change_state(State.JUMP_START)
+            else:
+                change_state(State.STAND)
